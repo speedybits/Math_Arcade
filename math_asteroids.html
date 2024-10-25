@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width">
+    <title>Multiplication Asteroids</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: black;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        #gameCanvas {
+            display: block;
+            background-color: black;
+        }
+        #score {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 24px;
+            z-index: 1;
+        }
+        #currentAnswer {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 24px;
+            z-index: 1;
+        }
+        #gameOver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 50px;
+            color: red;
+            display: none;
+            z-index: 2;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <div id="score">Score: 0</div>
+    <div id="currentAnswer"></div>
+    <div id="gameOver">Game Over</div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const currentAnswerElement = document.getElementById('currentAnswer');
+        const gameOverElement = document.getElementById('gameOver');
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        let score = 0;
+        let currentAnswer = '';
+        const bullets = [];
+        const asteroids = [];
+        let gameOver = false;
+
+        // Ship object
+        const ship = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            angle: 0, // in radians
+            rotation: 0,
+            velocity: { x: 0, y: 0 },
+            speed: 0.2
+        };
+
+        const bulletSpeed = 7;
+        const bulletRange = 300; // Limited range for bullets
+        const maxAsteroidSize = 40;
+        const minAsteroidSize = 15;
+
+        // Event listeners for keyboard inputs
+        const keys = {};
+
+        window.addEventListener('keydown', function(e) {
+            if (e.code === 'ArrowUp') {
+                keys['ArrowUp'] = true;
+            } else if (e.code === 'ArrowLeft') {
+                keys['ArrowLeft'] = true;
+            } else if (e.code === 'ArrowRight') {
+                keys['ArrowRight'] = true;
+            } else if (e.code === 'Space') {
+                fireBullet();
+            } else if (e.code === 'Backspace') {
+                currentAnswer = currentAnswer.slice(0, -1);
+            } else if (!isNaN(e.key)) {
+                currentAnswer += e.key;
+            }
+            updateCurrentAnswerDisplay();
+        });
+
+        window.addEventListener('keyup', function(e) {
+            if (e.code === 'ArrowUp') {
+                keys['ArrowUp'] = false;
+            } else if (e.code === 'ArrowLeft') {
+                keys['ArrowLeft'] = false;
+            } else if (e.code === 'ArrowRight') {
+                keys['ArrowRight'] = false;
+            }
+        });
+
+        function updateCurrentAnswerDisplay() {
+            currentAnswerElement.textContent = `Answer: ${currentAnswer}`;
+        }
+
+        // Function to create an asteroid
+        function createAsteroid(x = Math.random() * canvas.width, y = Math.random() * canvas.height, size = maxAsteroidSize) {
+            const a = Math.floor(Math.random() * 10);
+            const b = Math.floor(Math.random() * 10);
+            return {
+                x,
+                y,
+                size,
+                a,
+                b,
+                velocity: {
+                    x: (Math.random() - 0.5) * 2, // Random velocity between -1 and 1
+                    y: (Math.random() - 0.5) * 2
+                },
+                vertices: generateAsteroidVertices(size)
+            };
+        }
+
+        // Function to generate irregular asteroid shape
+        function generateAsteroidVertices(size) {
+            const vertices = [];
+            const vertexCount = Math.floor(Math.random() * 5) + 5; // Between 5 and 9 vertices
+            for (let i = 0; i < vertexCount; i++) {
+                const angle = (Math.PI * 2 / vertexCount) * i;
+                const distance = size + Math.random() * size * 0.4 - size * 0.2; // Slight variation
+                vertices.push({ angle, distance });
+            }
+            return vertices;
+        }
+
+        // Initialize initial asteroids
+        function initAsteroids() {
+            asteroids.length = 0; // Clear existing asteroids
+            for (let i = 0; i < 5; i++) {
+                asteroids.push(createAsteroid());
+            }
+        }
+
+        // Function to draw the ship
+        function drawShip() {
+            ctx.save();
+            ctx.translate(ship.x, ship.y);
+            ctx.rotate(ship.angle);
+            ctx.beginPath();
+            ctx.moveTo(20, 0); // Tip of the ship
+            ctx.lineTo(-10, 10);
+            ctx.lineTo(-10, -10);
+            ctx.closePath();
+            ctx.strokeStyle = 'white';
+            ctx.stroke();
+            ctx.restore();
+
+            // Draw dashed firing line
+            ctx.save();
+            ctx.translate(ship.x, ship.y);
+            ctx.rotate(ship.angle);
+            ctx.setLineDash([10, 10]);
+            ctx.strokeStyle = 'white';
+            ctx.beginPath();
+            ctx.moveTo(20, 0);
+            ctx.lineTo(20 + bulletRange, 0);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        // Function to draw asteroids
+        function drawAsteroids() {
+            asteroids.forEach(asteroid => {
+                ctx.save();
+                ctx.translate(asteroid.x, asteroid.y);
+                ctx.rotate(asteroid.angle || 0); // Optional: Add rotation if desired
+
+                ctx.fillStyle = 'lightgray';
+                ctx.strokeStyle = 'white';
+                ctx.beginPath();
+                asteroid.vertices.forEach((vertex, index) => {
+                    const x = vertex.distance * Math.cos(vertex.angle);
+                    const y = vertex.distance * Math.sin(vertex.angle);
+                    if (index === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                });
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+
+                // Draw multiplication fact at center
+                ctx.fillStyle = 'white';
+                ctx.font = `${Math.max(14, asteroid.size / 2)}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(`${asteroid.a} x ${asteroid.b}`, 0, 0);
+
+                ctx.restore();
+            });
+        }
+
+        // Function to draw bullets
+        function drawBullets() {
+            bullets.forEach(bullet => {
+                ctx.beginPath();
+                ctx.arc(bullet.x, bullet.y, 3, 0, Math.PI * 2);
+                ctx.fillStyle = 'yellow';
+                ctx.fill();
+            });
+        }
+
+        // Function to fire a bullet
+        function fireBullet() {
+            if (currentAnswer === '') return; // Do not fire if no answer is entered
+            const bullet = {
+                x: ship.x + Math.cos(ship.angle) * 20,
+                y: ship.y + Math.sin(ship.angle) * 20,
+                dx: Math.cos(ship.angle) * bulletSpeed,
+                dy: Math.sin(ship.angle) * bulletSpeed,
+                distanceTraveled: 0
+            };
+            bullets.push(bullet);
+        }
+
+        // Function to update ship position and rotation
+        function updateShip() {
+            if (keys['ArrowLeft']) {
+                ship.angle -= 0.05;
+            }
+            if (keys['ArrowRight']) {
+                ship.angle += 0.05;
+            }
+            if (keys['ArrowUp']) {
+                ship.velocity.x += Math.cos(ship.angle) * ship.speed;
+                ship.velocity.y += Math.sin(ship.angle) * ship.speed;
+            }
+
+            // Apply friction to slow down the ship gradually
+            ship.velocity.x *= 0.99;
+            ship.velocity.y *= 0.99;
+
+            ship.x += ship.velocity.x;
+            ship.y += ship.velocity.y;
+
+            // Wrap around screen edges
+            if (ship.x < 0) ship.x = canvas.width;
+            if (ship.x > canvas.width) ship.x = 0;
+            if (ship.y < 0) ship.y = canvas.height;
+            if (ship.y > canvas.height) ship.y = 0;
+        }
+
+        // Function to update asteroids' positions
+        function updateAsteroids() {
+            asteroids.forEach(asteroid => {
+                asteroid.x += asteroid.velocity.x;
+                asteroid.y += asteroid.velocity.y;
+
+                // Wrap around screen edges
+                if (asteroid.x < -asteroid.size) asteroid.x = canvas.width + asteroid.size;
+                if (asteroid.x > canvas.width + asteroid.size) asteroid.x = -asteroid.size;
+                if (asteroid.y < -asteroid.size) asteroid.y = canvas.height + asteroid.size;
+                if (asteroid.y > canvas.height + asteroid.size) asteroid.y = -asteroid.size;
+            });
+
+            // Check if all asteroids are cleared
+            if (asteroids.length === 0) {
+                score += 500; // Add 500 bonus points
+                scoreElement.textContent = `Score: ${score}`;
+                initAsteroids(); // Restart the game by creating new asteroids
+            }
+        }
+
+        // Function to update bullets
+        function updateBullets() {
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                const bullet = bullets[i];
+                bullet.x += bullet.dx;
+                bullet.y += bullet.dy;
+                bullet.distanceTraveled += bulletSpeed;
+
+                // Remove bullet if it exceeds its range
+                if (bullet.distanceTraveled > bulletRange) {
+                    bullets.splice(i, 1);
+                    continue;
+                }
+
+                // Check collision with asteroids
+                for (let j = asteroids.length - 1; j >= 0; j--) {
+                    const asteroid = asteroids[j];
+                    const dist = Math.hypot(bullet.x - asteroid.x, bullet.y - asteroid.y);
+                    if (dist < asteroid.size) {
+                        // Check if entered answer matches the asteroid's product
+                        if (parseInt(currentAnswer) === (asteroid.a * asteroid.b)) {
+                            score += asteroid.a * asteroid.b;
+                            scoreElement.textContent = `Score: ${score}`;
+
+                            // Split asteroid if size is large enough
+                            if (asteroid.size > minAsteroidSize + 10) {
+                                const newSize = asteroid.size / 2;
+                                for (let k = 0; k < 2; k++) {
+                                    const newAsteroid = createAsteroid(asteroid.x, asteroid.y, newSize);
+                                    // Add outward velocity
+                                    newAsteroid.velocity.x += Math.cos(ship.angle) * 1;
+                                    newAsteroid.velocity.y += Math.sin(ship.angle) * 1;
+                                    newAsteroid.size = newSize;
+                                    newAsteroid.vertices = generateAsteroidVertices(newSize);
+                                    asteroids.push(newAsteroid);
+                                }
+                            }
+
+                            asteroids.splice(j, 1); // Remove the destroyed asteroid
+                            bullets.splice(i, 1); // Remove the bullet
+                            currentAnswer = ''; // Reset entered answer
+                            updateCurrentAnswerDisplay();
+                            break; // Exit the asteroid loop
+                        } else {
+                            // Incorrect answer: do not destroy asteroid or bullet
+                            // Optionally, you can provide feedback here
+                        }
+                    }
+                }
+            }
+        }
+
+        // Function to check collision between ship and asteroids
+        function checkShipCollision() {
+            for (let asteroid of asteroids) {
+                const dist = Math.hypot(ship.x - asteroid.x, ship.y - asteroid.y);
+                if (dist < asteroid.size + 10) { // 10 is approximate ship radius
+                    endGame();
+                    break;
+                }
+            }
+        }
+
+        // Function to end the game
+        function endGame() {
+            gameOver = true;
+            gameOverElement.style.display = 'block';
+        }
+
+        // Main game loop
+        function gameLoop() {
+            if (gameOver) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            updateShip();
+            updateAsteroids();
+            updateBullets();
+            checkShipCollision();
+
+            drawShip();
+            drawAsteroids();
+            drawBullets();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Initialize the game
+        initAsteroids();
+        gameLoop();
+    </script>
+</body>
+</html>
