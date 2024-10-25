@@ -37,11 +37,58 @@
         }
         #instructions {
             position: absolute;
-            bottom: 10px;
-            left: 50%;
-            transform: translateX(-50%);
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            text-align: center;
             font-size: 14px;
             color: #fff;
+        }
+        #startScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+        #startButton {
+            font-size: 24px;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #gameOverScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+        #gameOverScreen h2 {
+            font-size: 48px;
+            color: #ff0000;
+            margin-bottom: 20px;
+        }
+        #gameOverScreen p {
+            font-size: 24px;
+            color: #ffffff;
+            margin: 10px 0;
         }
     </style>
 </head>
@@ -51,6 +98,9 @@
     <div id="inputDisplay"></div>
     <div id="instructions">
         Use Left/Right Arrow Keys to Move | Type Answer | Press Spacebar to Fire
+    </div>
+    <div id="startScreen">
+        <button id="startButton">Start Game</button>
     </div>
 
     <script>
@@ -65,7 +115,7 @@
 
         const CANNON_WIDTH = 50;
         const CANNON_HEIGHT = 30;
-        const CANNON_Y = CANVAS_HEIGHT - CANNON_HEIGHT - 10;
+        const CANNON_Y = CANVAS_HEIGHT - CANNON_HEIGHT - 50; // Moved up by 40 pixels
 
         const POSITIONS = ['left', 'center', 'right'];
         const POSITION_COORDS = {
@@ -93,12 +143,33 @@
         // Game State
         let gameOver = false;
 
+        let gameStarted = false;
+
         // Initialize Game
         function init() {
+            document.getElementById('startButton').addEventListener('click', startGame);
+        }
+
+        function startGame() {
+            gameStarted = true;
+            gameOver = false;
+            document.getElementById('startScreen').style.display = 'none';
             document.addEventListener('keydown', handleKeyDown);
             startSpawningAliens();
             startDifficultyIncrease();
+            resetGame();
             requestAnimationFrame(gameLoop);
+        }
+
+        function resetGame() {
+            score = 0;
+            scoreElement.textContent = `Score: ${score}`;
+            activeAliens = [];
+            inputAnswer = '';
+            updateInputDisplay();
+            currentCannonPosition = 'center';
+            difficultyLevel = 1;
+            maxFactor = 3;
         }
 
         // Handle Keyboard Input
@@ -244,6 +315,8 @@
 
         // Game Loop
         function gameLoop(timestamp) {
+            if (!gameStarted) return;
+
             if (!lastTime) lastTime = timestamp;
             const deltaTime = (timestamp - lastTime) / 1000; // in seconds
             lastTime = timestamp;
@@ -263,8 +336,8 @@
             // Move Aliens
             activeAliens.forEach(alien => {
                 alien.y += ALIEN_SPEED * deltaTime;
-                if (alien.y > CANVAS_HEIGHT - CANNON_HEIGHT - 10) {
-                    // Alien has reached the bottom
+                if (alien.y > CANVAS_HEIGHT - CANNON_HEIGHT - 50) {
+                    // Alien has reached the bottom (adjusted for new cannon position)
                     gameOver = true;
                 }
             });
@@ -309,6 +382,9 @@
 
             ctx.font = '24px Arial';
             ctx.fillText(`Final Score: ${score}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 30);
+
+            // Show the start screen again
+            document.getElementById('startScreen').style.display = 'flex';
         }
 
         // Start the Game

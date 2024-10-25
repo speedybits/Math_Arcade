@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Games</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #000;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            text-align: center;
+        }
+        h1 {
+            font-size: 3em;
+            margin-bottom: 30px;
+        }
+        .game-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+        .game-button {
+            padding: 15px 30px;
+            font-size: 1.2em;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .game-button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Choose Your Math Game</h1>
+        <div class="game-buttons">
+            <button class="game-button" onclick="location.href='math_invaders.html'">Math Invaders</button>
+            <button class="game-button" onclick="location.href='math_asteroids.html'">Math Asteroids</button>
+        </div>
+    </div>
+</body>
+</html>
