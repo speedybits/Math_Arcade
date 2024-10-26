@@ -266,16 +266,54 @@
                 ctx.fillText(bullet.answer, bullet.x, bullet.y + 4);
             });
 
-            // Draw cannon
+            // Draw futuristic cannon
             const cannonX = POSITION_COORDS[currentCannonPosition];
-            ctx.fillStyle = 'green';
-            ctx.fillRect(cannonX - CANNON_WIDTH / 2, CANNON_Y, CANNON_WIDTH, CANNON_HEIGHT);
+            const cannonY = CANNON_Y;
+            
+            // Cannon base
+            ctx.fillStyle = '#333';
+            ctx.beginPath();
+            ctx.moveTo(cannonX - 20, cannonY + 30);
+            ctx.lineTo(cannonX + 20, cannonY + 30);
+            ctx.lineTo(cannonX + 15, cannonY);
+            ctx.lineTo(cannonX - 15, cannonY);
+            ctx.closePath();
+            ctx.fill();
+
+            // Cannon barrel
+            ctx.fillStyle = '#555';
+            ctx.beginPath();
+            ctx.moveTo(cannonX - 10, cannonY);
+            ctx.lineTo(cannonX + 10, cannonY);
+            ctx.lineTo(cannonX + 5, cannonY - 25);
+            ctx.lineTo(cannonX - 5, cannonY - 25);
+            ctx.closePath();
+            ctx.fill();
+
+            // Glowing energy core
+            const gradient = ctx.createRadialGradient(cannonX, cannonY + 15, 0, cannonX, cannonY + 15, 10);
+            gradient.addColorStop(0, 'rgba(0, 255, 255, 1)');
+            gradient.addColorStop(1, 'rgba(0, 255, 255, 0)');
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(cannonX, cannonY + 15, 10, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Cannon highlights
+            ctx.strokeStyle = '#0ff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(cannonX - 18, cannonY + 28);
+            ctx.lineTo(cannonX - 13, cannonY + 2);
+            ctx.moveTo(cannonX + 18, cannonY + 28);
+            ctx.lineTo(cannonX + 13, cannonY + 2);
+            ctx.stroke();
 
             // Draw input answer on cannon
             ctx.fillStyle = 'yellow';
             ctx.font = '16px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText(inputAnswer, cannonX, CANNON_Y - 5);
+            ctx.fillText(inputAnswer, cannonX, cannonY - 25);
         }
 
         function handleKeyDown(e) {
