@@ -144,6 +144,8 @@
         const SPAWN_INTERVAL = 3000; // milliseconds between spawns, adjust as needed
         let lastSpawnTime = 0;
 
+        let activeBullets = [];
+
         function startGame() {
             gameStarted = true;
             score = 0;
@@ -208,6 +210,25 @@
                 spawnAlien();
                 lastSpawnTime = currentTime;
             }
+
+            // Update bullets
+            activeBullets.forEach((bullet, index) => {
+                bullet.y -= 525 * deltaTime; // Slowed down bullet speed
+
+                // Check for collision with target alien
+                if (bullet.targetAlien && Math.abs(bullet.y - bullet.targetAlien.y) < 10) {
+                    // Remove the alien and the bullet
+                    activeAliens = activeAliens.filter(alien => alien !== bullet.targetAlien);
+                    activeBullets.splice(index, 1);
+                    updateScore(bullet.targetAlien.factor1 * bullet.targetAlien.factor2);
+                    spawnAlien();
+                }
+
+                // Remove bullet if it goes off screen
+                if (bullet.y < 0) {
+                    activeBullets.splice(index, 1);
+                }
+            });
         }
 
         function endGame() {
@@ -224,15 +245,33 @@
 
         function render() {
             ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+            // Draw aliens
             activeAliens.forEach(alien => {
                 ctx.fillStyle = 'white';
                 ctx.font = '20px Arial';
                 ctx.textAlign = 'center';
                 ctx.fillText(`${alien.factor1} × ${alien.factor2}`, alien.x, alien.y);
             });
+
+            // Draw bullets
+            activeBullets.forEach(bullet => {
+                ctx.fillStyle = 'yellow';
+                ctx.beginPath();
+                ctx.arc(bullet.x, bullet.y, 10, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = 'black';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(bullet.answer, bullet.x, bullet.y + 4);
+            });
+
+            // Draw cannon
             const cannonX = POSITION_COORDS[currentCannonPosition];
             ctx.fillStyle = 'green';
             ctx.fillRect(cannonX - CANNON_WIDTH / 2, CANNON_Y, CANNON_WIDTH, CANNON_HEIGHT);
+
+            // Draw input answer on cannon
             ctx.fillStyle = 'yellow';
             ctx.font = '16px Arial';
             ctx.textAlign = 'center';
@@ -273,12 +312,15 @@
                 Math.abs(alien.x - cannonX) < 20 && 
                 parseInt(inputAnswer) === alien.factor1 * alien.factor2
             );
-            if (targetAlien) {
-                const index = activeAliens.indexOf(targetAlien);
-                activeAliens.splice(index, 1);
-                updateScore(targetAlien.factor1 * targetAlien.factor2);
-                spawnAlien();
-            }
+
+            // Create a new bullet
+            activeBullets.push({
+                x: cannonX,
+                y: CANNON_Y,
+                answer: inputAnswer,
+                targetAlien: targetAlien
+            });
+
             inputAnswer = '';
             updateInputDisplay();
         }
