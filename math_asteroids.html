@@ -41,6 +41,39 @@
             display: none;
             z-index: 2;
         }
+        #startScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+
+        #startScreen h1 {
+            color: white;
+            font-size: 36px;
+            margin-bottom: 20px;
+        }
+
+        #startButton {
+            font-size: 24px;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #startButton:hover {
+            background-color: #45a049;
+        }
     </style>
 </head>
 <body>
@@ -48,6 +81,12 @@
     <div id="score">Score: 0</div>
     <div id="currentAnswer"></div>
     <div id="gameOver">Game Over</div>
+    
+    <!-- Add this new div for the start screen -->
+    <div id="startScreen">
+        <h1>Multiplication Asteroids</h1>
+        <button id="startButton">Start Game</button>
+    </div>
 
     <script>
         const canvas = document.getElementById('gameCanvas');
@@ -55,6 +94,8 @@
         const scoreElement = document.getElementById('score');
         const currentAnswerElement = document.getElementById('currentAnswer');
         const gameOverElement = document.getElementById('gameOver');
+        const startScreen = document.getElementById('startScreen');
+        const startButton = document.getElementById('startButton');
 
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
@@ -64,6 +105,7 @@
         const bullets = [];
         const asteroids = [];
         let gameOver = false;
+        let gameStarted = false;
 
         // Ship object
         const ship = {
@@ -353,10 +395,21 @@
             gameOverElement.style.display = 'block';
         }
 
-        // Main game loop
-        function gameLoop() {
-            if (gameOver) return;
+        function startGame() {
+            gameStarted = true;
+            gameOver = false;
+            score = 0;
+            currentAnswer = '';
+            bullets.length = 0;
+            asteroids.length = 0;
+            initAsteroids();
+            startScreen.style.display = 'none';
+            gameLoop();
+        }
 
+        function gameLoop() {
+            if (!gameStarted) return;
+            
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             updateShip();
@@ -368,12 +421,36 @@
             drawAsteroids();
             drawBullets();
 
-            requestAnimationFrame(gameLoop);
+            if (!gameOver) {
+                requestAnimationFrame(gameLoop);
+            } else {
+                displayGameOver();
+            }
         }
 
-        // Initialize the game
-        initAsteroids();
-        gameLoop();
+        function displayGameOver() {
+            gameOverElement.style.display = 'block';
+            startScreen.style.display = 'flex';
+            startButton.textContent = 'Play Again';
+        }
+
+        // Event listener for the start button
+        startButton.addEventListener('click', startGame);
+
+        // Initial setup
+        function init() {
+            drawInitialScene();
+            startScreen.style.display = 'flex';
+        }
+
+        function drawInitialScene() {
+            ctx.fillStyle = 'black';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // You can add some static asteroids or other decorative elements here if you want
+        }
+
+        // Call init to set up the initial state
+        init();
     </script>
 </body>
 </html>
