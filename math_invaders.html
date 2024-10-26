@@ -179,16 +179,35 @@
         }
 
         function update(deltaTime) {
+            let gameOver = false;
             activeAliens.forEach((alien, index) => {
                 alien.y += 50 * deltaTime;
-                if (alien.y > CANVAS_HEIGHT) {
-                    activeAliens.splice(index, 1);
-                    spawnAlien();
+                if (alien.y > CANVAS_HEIGHT - CANNON_HEIGHT - 10) {
+                    gameOver = true;
                 }
             });
+
+            if (gameOver) {
+                endGame();
+                return;
+            }
+
+            // Spawn new aliens if needed
             if (activeAliens.length < 5 && Math.random() < 0.02) {
                 spawnAlien();
             }
+        }
+
+        function endGame() {
+            gameStarted = false;
+            displayGameOver();
+        }
+
+        function displayGameOver() {
+            document.getElementById('gameOverScreen').style.display = 'flex';
+            highScoreElement.textContent = `High Score: ${highScore}`;
+            startButton.style.display = 'block';
+            document.removeEventListener('keydown', handleKeyDown);
         }
 
         function render() {
@@ -266,14 +285,6 @@
 
         function updateInputDisplay() {
             inputDisplay.textContent = inputAnswer;
-        }
-
-        function displayGameOver() {
-            document.getElementById('gameOverScreen').style.display = 'flex';
-            highScoreElement.textContent = `High Score: ${highScore}`;
-            startButton.style.display = 'block';
-            gameStarted = false;
-            document.removeEventListener('keydown', handleKeyDown);
         }
 
         function drawInitialCannon() {
