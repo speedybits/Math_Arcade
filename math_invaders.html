@@ -140,6 +140,10 @@
         let currentCannonPosition = 'center';
         let inputAnswer = '';
 
+        const ALIEN_SPEED = 30; // pixels per second, adjust as needed
+        const SPAWN_INTERVAL = 3000; // milliseconds between spawns, adjust as needed
+        let lastSpawnTime = 0;
+
         function startGame() {
             gameStarted = true;
             score = 0;
@@ -153,6 +157,7 @@
             inputAnswer = '';
             updateInputDisplay();
             requestAnimationFrame(gameLoop);
+            lastSpawnTime = 0;
         }
 
         function spawnAlien() {
@@ -160,12 +165,17 @@
             const factor2 = Math.floor(Math.random() * 10) + 1;
             const positions = ['left', 'center', 'right'];
             const position = positions[Math.floor(Math.random() * positions.length)];
-            activeAliens.push({
-                x: POSITION_COORDS[position],
-                y: 0,
-                factor1: factor1,
-                factor2: factor2
-            });
+            
+            // Check if the position is already occupied
+            const isOccupied = activeAliens.some(alien => alien.x === POSITION_COORDS[position]);
+            if (!isOccupied) {
+                activeAliens.push({
+                    x: POSITION_COORDS[position],
+                    y: 0,
+                    factor1: factor1,
+                    factor2: factor2
+                });
+            }
         }
 
         function gameLoop(timestamp) {
@@ -181,7 +191,7 @@
         function update(deltaTime) {
             let gameOver = false;
             activeAliens.forEach((alien, index) => {
-                alien.y += 50 * deltaTime;
+                alien.y += ALIEN_SPEED * deltaTime;
                 if (alien.y > CANVAS_HEIGHT - CANNON_HEIGHT - 10) {
                     gameOver = true;
                 }
@@ -192,9 +202,11 @@
                 return;
             }
 
-            // Spawn new aliens if needed
-            if (activeAliens.length < 5 && Math.random() < 0.02) {
+            // Spawn new aliens at regular intervals
+            const currentTime = Date.now();
+            if (currentTime - lastSpawnTime > SPAWN_INTERVAL && activeAliens.length < 5) {
                 spawnAlien();
+                lastSpawnTime = currentTime;
             }
         }
 
