@@ -46,7 +46,7 @@
             font-size: 14px;
             color: #fff;
         }
-        #startScreen {
+        #mainScreen {
             position: absolute;
             top: 0;
             left: 0;
@@ -54,53 +54,84 @@
             height: 100%;
             background-color: rgba(0, 0, 0, 0.8);
             display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 10;
-        }
-        #startButton {
-            position: fixed !important;
-            top: 20% !important;
-            left: 50% !important;
-            transform: translate(-50%, -50%) !important;
-            font-size: 24px !important;
-            padding: 10px 20px !important;
-            background-color: #4CAF50 !important;
-            color: white !important;
-            border: none !important;
-            border-radius: 5px !important;
-            cursor: pointer !important;
-            z-index: 1000 !important;
-        }
-        #gameOverScreen {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.8);
-            display: none;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             z-index: 10;
         }
-        #gameOverScreen h2 {
+        #mainScreen h2 {
             font-size: 48px;
             color: #ff0000;
             margin-bottom: 20px;
+            display: none; /* Hide by default */
         }
-        #gameOverScreen p {
+        #mainScreen p {
             font-size: 24px;
             color: #ffffff;
             margin: 10px 0;
         }
         #highScoresList {
-            list-style-position: inside;
-            padding: 0;
+            position: fixed;
+            top: 35%;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            z-index: 1000;
+            color: white;
+        }
+        #highScoresList h3 {
+            margin-bottom: 10px;
         }
         #highScoresList li {
             margin-bottom: 5px;
+        }
+        /* Add new styles for initial high scores display */
+        #initialHighScores {
+            position: fixed;
+            top: 35%;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            z-index: 1000;
+        }
+        #initialHighScores h3 {
+            color: white;
+            margin-bottom: 10px;
+        }
+        .high-scores-container {
+            position: absolute;
+            left: 20px;  /* Adjust this value to move left/right */
+            top: 50%;
+            transform: translateY(-50%);
+            text-align: left;
+        }
+
+        .high-scores-container h3 {
+            color: white;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+
+        #highScoresList {
+            color: white;
+            padding: 0;
+            margin: 0;
+            list-style: none;
+        }
+
+        #highScoresList li {
+            margin-bottom: 5px;
+            font-size: 18px;
+        }
+        #startButton {
+            font-size: 32px;
+            padding: 15px 30px;
+            background-color: #4CAF50; /* Green */
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-bottom: 20px;
         }
     </style>
 </head>
@@ -111,14 +142,13 @@
     <div id="instructions">
         Use Left/Right Arrow Keys to Move | Type Answer | Press Spacebar to Fire
     </div>
-    <div id="gameOverScreen" style="display: none;">
-        <h2>Game Over</h2>
-        <p id="finalScore"></p>
-        <h3>High Scores</h3>
-        <ol id="highScoresList"></ol>
-        <button onclick="startGame()">Play Again</button>
+    <div id="mainScreen">
+        <button id="startButton">Start Game</button>
+        <div class="high-scores-container">
+            <h3>High Scores</h3>
+            <ol id="highScoresList"></ol>
+        </div>
     </div>
-    <button id="startButton">Start Game</button>
 
     <script>
         const canvas = document.getElementById('gameCanvas');
@@ -168,8 +198,7 @@
             gameStarted = true;
             score = 0;
             updateScoreDisplay();
-            document.getElementById('gameOverScreen').style.display = 'none';
-            startButton.style.display = 'none';
+            document.getElementById('mainScreen').style.display = 'none';
             activeAliens = [];
             spawnAlien();
             lastTime = 0;
@@ -182,7 +211,7 @@
             gameTime = 0;
             difficultyLevel = 0;
             descentSpeed = INITIAL_DESCENT_SPEED;
-            loadHighScores(); // Load high scores when starting the game
+            loadHighScores();
         }
 
         function spawnAlien() {
@@ -287,27 +316,23 @@
             gameStarted = false;
             document.removeEventListener('keydown', handleKeyDown);
             document.removeEventListener('keyup', handleKeyUp);
-            const gameOverScreen = document.getElementById('gameOverScreen');
-            gameOverScreen.style.display = 'flex';
+            
+            // Show main screen with game over state
+            const mainScreen = document.getElementById('mainScreen');
+            mainScreen.style.display = 'flex';
+            document.querySelector('#mainScreen h2').style.display = 'block'; // Show Game Over text
             document.getElementById('finalScore').textContent = `Your Score: ${score}`;
             
-            // Ask for player's initials
-            const initials = prompt("Enter your initials (3 characters):", "AAA").slice(0, 3).toUpperCase();
-            
-            // Add new score to high scores
-            highScores.push({ initials, score });
-            
-            // Sort high scores
-            highScores.sort((a, b) => b.score - a.score);
-            
-            // Keep only top 5 scores
-            highScores = highScores.slice(0, 5);
-            
-            // Save high scores to cookie
-            saveHighScores();
-            
-            // Display high scores
-            displayHighScores();
+            // Prompt for initials
+            let initials = prompt("Enter your initials (3 characters):", "AAA");
+            if (initials) {
+                initials = initials.slice(0, 3).toUpperCase();
+                highScores.push({ initials, score });
+                highScores.sort((a, b) => b.score - a.score);
+                highScores = highScores.slice(0, 10); // Keep top 10 scores
+                saveHighScores();
+                displayHighScores();
+            }
         }
 
         function saveHighScores() {
@@ -324,7 +349,7 @@
         function displayHighScores() {
             const highScoresList = document.getElementById('highScoresList');
             highScoresList.innerHTML = '';
-            highScores.forEach((entry, index) => {
+            highScores.slice(0, 10).forEach((entry, index) => {
                 const li = document.createElement('li');
                 li.textContent = `${index + 1}. ${entry.initials} - ${entry.score}`;
                 highScoresList.appendChild(li);
@@ -484,7 +509,13 @@
         startButton.addEventListener('click', startGame);
         updateScoreDisplay();
         drawInitialCannon();
-        window.onload = drawInitialCannon;
+        window.onload = function() {
+            drawInitialCannon();
+            loadHighScores();
+            displayHighScores();
+            // Ensure game over text is hidden on initial load
+            document.querySelector('#mainScreen h2').style.display = 'none';
+        };
     </script>
 </body>
 </html>
