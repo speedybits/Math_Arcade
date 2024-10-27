@@ -33,14 +33,46 @@
         }
         #gameOver {
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 50px;
-            color: red;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
             display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
             z-index: 2;
         }
+
+        #gameOver h1 {
+            color: red;
+            font-size: 60px;
+            margin-bottom: 30px;
+        }
+
+        #scoreInfo {
+            color: white;
+            font-size: 24px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        #playAgainButton {
+            font-size: 24px;
+            padding: 15px 30px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        #playAgainButton:hover {
+            background-color: #45a049;
+        }
+
         #startScreen {
             position: absolute;
             top: 0;
@@ -80,9 +112,15 @@
     <canvas id="gameCanvas"></canvas>
     <div id="score">Score: 0</div>
     <div id="currentAnswer"></div>
-    <div id="gameOver">Game Over</div>
+    <div id="gameOver">
+        <h1>Game Over</h1>
+        <div id="scoreInfo">
+            <p id="finalScore"></p>
+            <p id="highScore"></p>
+        </div>
+        <button id="playAgainButton">Play Again</button>
+    </div>
     
-    <!-- Add this new div for the start screen -->
     <div id="startScreen">
         <h1>Multiplication Asteroids</h1>
         <button id="startButton">Start Game</button>
@@ -96,6 +134,9 @@
         const gameOverElement = document.getElementById('gameOver');
         const startScreen = document.getElementById('startScreen');
         const startButton = document.getElementById('startButton');
+        const finalScoreElement = document.getElementById('finalScore');
+        const playAgainButton = document.getElementById('playAgainButton');
+        const highScoreElement = document.getElementById('highScore');
 
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
@@ -106,6 +147,7 @@
         const asteroids = [];
         let gameOver = false;
         let gameStarted = false;
+        let highScore = 0;
 
         // Ship object
         const ship = {
@@ -392,7 +434,14 @@
         // Function to end the game
         function endGame() {
             gameOver = true;
-            gameOverElement.style.display = 'block';
+            gameOverElement.style.display = 'flex';
+            finalScoreElement.textContent = `Your Score: ${score}`;
+            
+            if (score > highScore) {
+                highScore = score;
+            }
+            
+            highScoreElement.textContent = `High Score: ${highScore}`;
         }
 
         function startGame() {
@@ -404,6 +453,8 @@
             asteroids.length = 0;
             initAsteroids();
             startScreen.style.display = 'none';
+            gameOverElement.style.display = 'none';
+            scoreElement.textContent = 'Score: 0';
             gameLoop();
         }
 
@@ -429,13 +480,14 @@
         }
 
         function displayGameOver() {
-            gameOverElement.style.display = 'block';
-            startScreen.style.display = 'flex';
-            startButton.textContent = 'Play Again';
+            gameOverElement.style.display = 'flex';
         }
 
         // Event listener for the start button
         startButton.addEventListener('click', startGame);
+
+        // Event listener for the play again button
+        playAgainButton.addEventListener('click', startGame);
 
         // Initial setup
         function init() {
