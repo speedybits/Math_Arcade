@@ -141,7 +141,7 @@
         };
 
         let score = 0;
-        let highScore = 0;
+        let highScore = 0; // Highest score in current session
         let gameStarted = false;
         let lastTime = 0;
         let activeAliens = [];
@@ -162,11 +162,12 @@
         let descentSpeed = INITIAL_DESCENT_SPEED;
         let isFastDescent = false;
 
-        let highScores = [];
+        let highScores = []; // Array to store high score objects
 
         function startGame() {
             gameStarted = true;
             score = 0;
+            highScore = 0; // Reset session high score
             updateScoreDisplay();
             document.getElementById('mainScreen').style.display = 'none';
             activeAliens = [];
@@ -316,13 +317,21 @@
         }
 
         function saveHighScores() {
-            document.cookie = `highScores=${JSON.stringify(highScores)}; expires=Fri, 31 Dec 9999 23:59:59 GMT`;
+            localStorage.setItem('highScores', JSON.stringify(highScores));
         }
 
         function loadHighScores() {
-            const cookie = document.cookie.split('; ').find(row => row.startsWith('highScores='));
-            if (cookie) {
-                highScores = JSON.parse(decodeURIComponent(cookie.split('=')[1]));
+            const storedHighScores = localStorage.getItem('highScores');
+            if (storedHighScores) {
+                try {
+                    highScores = JSON.parse(storedHighScores);
+                    if (!Array.isArray(highScores)) {
+                        highScores = [];
+                    }
+                } catch (e) {
+                    console.error("Error parsing highScores from localStorage:", e);
+                    highScores = [];
+                }
             } else {
                 highScores = [];
             }
