@@ -63,62 +63,31 @@
             font-size: 48px;
             color: #ff0000;
             margin-bottom: 20px;
-            display: none; /* Hide by default */
+            display: none; /* Hidden initially */
         }
-        #mainScreen p {
+        #finalScore {
             font-size: 24px;
             color: #ffffff;
             margin: 10px 0;
         }
-        #highScoresList {
-            position: fixed;
-            top: 35%;
-            left: 50%;
-            transform: translateX(-50%);
-            text-align: center;
-            z-index: 1000;
-            color: white;
-        }
-        #highScoresList h3 {
-            margin-bottom: 10px;
-        }
-        #highScoresList li {
-            margin-bottom: 5px;
-        }
-        /* Add new styles for initial high scores display */
-        #initialHighScores {
-            position: fixed;
-            top: 35%;
-            left: 50%;
-            transform: translateX(-50%);
-            text-align: center;
-            z-index: 1000;
-        }
-        #initialHighScores h3 {
-            color: white;
-            margin-bottom: 10px;
-        }
         .high-scores-container {
             position: absolute;
-            left: 20px;  /* Adjust this value to move left/right */
+            left: 20px;  /* Positions the high scores on the left */
             top: 50%;
             transform: translateY(-50%);
             text-align: left;
         }
-
         .high-scores-container h3 {
-            color: white;
+            color: red; /* Red color for "High Scores" */
             margin-bottom: 10px;
             font-size: 24px;
         }
-
         #highScoresList {
             color: white;
             padding: 0;
             margin: 0;
             list-style: none;
         }
-
         #highScoresList li {
             margin-bottom: 5px;
             font-size: 18px;
@@ -143,6 +112,8 @@
         Use Left/Right Arrow Keys to Move | Type Answer | Press Spacebar to Fire
     </div>
     <div id="mainScreen">
+        <h2>Game Over</h2> <!-- Ensure this exists -->
+        <p id="finalScore"></p>
         <button id="startButton">Start Game</button>
         <div class="high-scores-container">
             <h3>High Scores</h3>
@@ -154,7 +125,6 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const scoreElement = document.getElementById('score');
-        const highScoreElement = document.getElementById('highScore');
         const startButton = document.getElementById('startButton');
         const inputDisplay = document.getElementById('inputDisplay');
 
@@ -313,6 +283,7 @@
         }
 
         function endGame() {
+            console.log("End game function called");
             gameStarted = false;
             document.removeEventListener('keydown', handleKeyDown);
             document.removeEventListener('keyup', handleKeyUp);
@@ -320,19 +291,28 @@
             // Show main screen with game over state
             const mainScreen = document.getElementById('mainScreen');
             mainScreen.style.display = 'flex';
-            document.querySelector('#mainScreen h2').style.display = 'block'; // Show Game Over text
+            
+            const gameOverText = document.querySelector('#mainScreen h2');
+            if (gameOverText) {
+                gameOverText.style.display = 'block'; // Show "Game Over" text
+            } else {
+                console.error("Error: '#mainScreen h2' element not found.");
+            }
+            
             document.getElementById('finalScore').textContent = `Your Score: ${score}`;
             
-            // Prompt for initials
-            let initials = prompt("Enter your initials (3 characters):", "AAA");
-            if (initials) {
-                initials = initials.slice(0, 3).toUpperCase();
-                highScores.push({ initials, score });
-                highScores.sort((a, b) => b.score - a.score);
-                highScores = highScores.slice(0, 10); // Keep top 10 scores
-                saveHighScores();
-                displayHighScores();
-            }
+            // Prompt for initials with a slight delay to ensure UI updates
+            setTimeout(() => {
+                let initials = prompt("Enter your initials (3 characters):", "AAA");
+                if (initials) {
+                    initials = initials.slice(0, 3).toUpperCase();
+                    highScores.push({ initials, score });
+                    highScores.sort((a, b) => b.score - a.score);
+                    highScores = highScores.slice(0, 10); // Keep top 10 scores
+                    saveHighScores();
+                    displayHighScores();
+                }
+            }, 100); // 100ms delay
         }
 
         function saveHighScores() {
@@ -342,7 +322,9 @@
         function loadHighScores() {
             const cookie = document.cookie.split('; ').find(row => row.startsWith('highScores='));
             if (cookie) {
-                highScores = JSON.parse(cookie.split('=')[1]);
+                highScores = JSON.parse(decodeURIComponent(cookie.split('=')[1]));
+            } else {
+                highScores = [];
             }
         }
 
@@ -513,8 +495,14 @@
             drawInitialCannon();
             loadHighScores();
             displayHighScores();
-            // Ensure game over text is hidden on initial load
-            document.querySelector('#mainScreen h2').style.display = 'none';
+            
+            // Hide the "Game Over" text initially
+            const gameOverText = document.querySelector('#mainScreen h2');
+            if (gameOverText) {
+                gameOverText.style.display = 'none';
+            } else {
+                console.error("Error: '#mainScreen h2' element not found.");
+            }
         };
     </script>
 </body>
