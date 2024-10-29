@@ -476,6 +476,9 @@
         }
 
         function updateScore(points) {
+            if (points === 0) {
+                points = 1; // Award 1 point instead of 0
+            }
             score += points;
             if (score > highScore) {
                 highScore = score;
