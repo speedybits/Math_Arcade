@@ -126,6 +126,29 @@
         #highScore li, #startScreen div li {
             margin-bottom: 5px;
         }
+
+        /* **New: Styles for Feedback Message** */
+        #feedback {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: red;
+            font-size: 36px;
+            font-weight: bold;
+            display: none; /* Hidden by default */
+            z-index: 3;
+        }
+
+        /* Animation for fading out the feedback */
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+
+        .fade-out {
+            animation: fadeOut 1s forwards;
+        }
     </style>
 </head>
 <body>
@@ -145,6 +168,9 @@
         <h1>Multiplication Asteroids</h1>
         <button id="startButton">Start Game</button>
     </div>
+
+    <!-- **New Feedback Element** -->
+    <div id="feedback"></div>
 
     <script>
         const canvas = document.getElementById('gameCanvas');
@@ -172,6 +198,12 @@
         // Initialize high scores from localStorage or set to empty array
         let highScores = JSON.parse(localStorage.getItem('highScores')) || [];
         const maxHighScores = 5; // Maximum number of high scores to keep
+
+        // **New: Initialize missed facts from localStorage or set to empty array**
+        let missedFacts = JSON.parse(localStorage.getItem('missedFacts')) || [];
+
+        // Constant to define exposure multiplier
+        const MISSED_FACT_MULTIPLIER = 3;
 
         // Ship object
         const ship = {
@@ -224,8 +256,34 @@
 
         // Function to create an asteroid
         function createAsteroid(x = Math.random() * canvas.width, y = Math.random() * canvas.height, size = maxAsteroidSize) {
-            const a = Math.floor(Math.random() * 10);
-            const b = Math.floor(Math.random() * 10);
+            let pickedFact = null;
+
+            // **New Logic: Prioritize missed facts**
+            if (missedFacts.length > 0) {
+                const totalMissed = missedFacts.reduce((acc, fact) => acc + MISSED_FACT_MULTIPLIER, 0);
+                const randomNum = Math.random() * (totalMissed + getTotalRandomFactors());
+
+                if (randomNum < totalMissed) {
+                    // Pick a missed fact
+                    let cumulative = 0;
+                    for (let fact of missedFacts) {
+                        cumulative += MISSED_FACT_MULTIPLIER;
+                        if (randomNum < cumulative) {
+                            pickedFact = { a: fact.a, b: fact.b };
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // **If no missed fact is picked, generate a random fact**
+            if (!pickedFact) {
+                const a = Math.floor(Math.random() * 10); // Adjust range as needed
+                const b = Math.floor(Math.random() * 10);
+                pickedFact = { a, b };
+            }
+
+            const { a, b } = pickedFact;
             return {
                 x,
                 y,
@@ -238,6 +296,13 @@
                 },
                 vertices: generateAsteroidVertices(size)
             };
+        }
+
+        // **Helper Function: Calculate total weight of random factors**
+        function getTotalRandomFactors() {
+            // Assuming regular facts have a weight of 1 each
+            // Adjust if you have a specific range
+            return 10 * 10; // Example: factors a and b from 0-9
         }
 
         // Function to generate irregular asteroid shape
@@ -294,8 +359,11 @@
                 ctx.translate(asteroid.x, asteroid.y);
                 ctx.rotate(asteroid.angle || 0); // Optional: Add rotation if desired
 
-                ctx.fillStyle = 'lightgray';
-                ctx.strokeStyle = 'white';
+                // **Change color based on if the fact is missed**
+                const isMissed = missedFacts.some(fact => fact.a === asteroid.a && fact.b === asteroid.b);
+                ctx.strokeStyle = isMissed ? 'orange' : 'white'; // Orange for missed facts
+                ctx.fillStyle = isMissed ? 'yellow' : 'lightgray'; // Yellow fill for missed facts
+
                 ctx.beginPath();
                 asteroid.vertices.forEach((vertex, index) => {
                     const x = vertex.distance * Math.cos(vertex.angle);
@@ -411,7 +479,7 @@
                     const asteroid = asteroids[j];
                     const dist = Math.hypot(bullet.x - asteroid.x, bullet.y - asteroid.y);
                     if (dist < asteroid.size) {
-                        // Check if entered answer matches the asteroid's product
+                        // **Correct Answer Handling**
                         if (parseInt(currentAnswer) === (asteroid.a * asteroid.b)) {
                             score += asteroid.a * asteroid.b;
                             scoreElement.textContent = `Score: ${score}`;
@@ -436,20 +504,56 @@
                             updateCurrentAnswerDisplay();
                             break; // Exit the asteroid loop
                         } else {
-                            // **New Logic: Incorrect Answer Handling**
+                            // **Incorrect Answer Handling**
                             // Clear the currentAnswer buffer
                             currentAnswer = '';
                             updateCurrentAnswerDisplay();
 
+                            // **Triplicate Exposure Logic**
+                            addMissedFact(asteroid.a, asteroid.b);
+
                             // Optionally, provide feedback to the player
                             // For example, flash the asteroid or display a message
-                            // You can implement this based on your preference
+                            displayIncorrectFeedback();
 
+                            bullets.splice(i, 1); // Remove the bullet
                             break; // Exit the asteroid loop since bullet has hit
                         }
                     }
                 }
             }
+        }
+
+        // **Function to Add Missed Facts**
+        function addMissedFact(a, b) {
+            // Check if the fact already exists in missedFacts
+            const existingFact = missedFacts.find(fact => fact.a === a && fact.b === b);
+            if (existingFact) {
+                // Increment timesMissed to increase exposure if needed
+                existingFact.timesMissed += 1;
+            } else {
+                // Add new missed fact with timesMissed initialized
+                missedFacts.push({ a, b, timesMissed: 1 });
+            }
+
+            // **Adjust the exposure multiplier based on timesMissed**
+            // This ensures that each missed fact is tripled in exposure
+            // You can modify this logic as needed
+            localStorage.setItem('missedFacts', JSON.stringify(missedFacts));
+        }
+
+        // **Function to Display Incorrect Answer Feedback**
+        function displayIncorrectFeedback() {
+            const feedbackElement = document.getElementById('feedback');
+            feedbackElement.textContent = 'Wrong Answer!';
+            feedbackElement.style.display = 'block';
+            feedbackElement.classList.add('fade-out');
+
+            // Remove the feedback after the animation completes
+            feedbackElement.addEventListener('animationend', () => {
+                feedbackElement.style.display = 'none';
+                feedbackElement.classList.remove('fade-out');
+            }, { once: true });
         }
 
         // Function to check collision between ship and asteroids
@@ -494,6 +598,13 @@
             
             // Update high score display
             displayHighScores();
+
+            // Optionally, reset missedFacts or keep them persisted
+            // Uncomment the next line to reset after each game
+            // missedFacts = [];
+
+            // Save the missedFacts to localStorage
+            localStorage.setItem('missedFacts', JSON.stringify(missedFacts));
         }
 
         // Function to display high scores
