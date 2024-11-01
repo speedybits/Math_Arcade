@@ -164,6 +164,9 @@
 
         let highScores = []; // Array to store high score objects
 
+        let missedFacts = JSON.parse(localStorage.getItem('missedFacts')) || [];
+        const MISSED_FACT_MULTIPLIER = 3; // How much to increase exposure when missed
+
         function startGame() {
             gameStarted = true;
             score = 0;
@@ -183,6 +186,10 @@
             difficultyLevel = 0;
             descentSpeed = INITIAL_DESCENT_SPEED;
             loadHighScores();
+
+            // Don't clear missed facts between games
+            // but do load them from localStorage
+            missedFacts = JSON.parse(localStorage.getItem('missedFacts')) || [];
         }
 
         function spawnAlien() {
@@ -352,7 +359,12 @@
 
             // Draw aliens
             activeAliens.forEach(alien => {
-                ctx.fillStyle = 'white';
+                // Check if this is a missed fact
+                const isMissed = missedFacts.some(fact => 
+                    fact.factor1 === alien.factor1 && fact.factor2 === alien.factor2
+                );
+                
+                ctx.fillStyle = isMissed ? 'orange' : 'white';
                 ctx.font = '20px Arial';
                 ctx.textAlign = 'center';
                 ctx.fillText(`${alien.factor1} × ${alien.factor2}`, alien.x, alien.y);
@@ -459,17 +471,26 @@
         function shootAnswer() {
             const cannonX = POSITION_COORDS[currentCannonPosition];
             const targetAlien = activeAliens.find(alien => 
-                Math.abs(alien.x - cannonX) < 20 && 
-                parseInt(inputAnswer) === alien.factor1 * alien.factor2
+                Math.abs(alien.x - cannonX) < 20
             );
 
-            // Create a new bullet
-            activeBullets.push({
-                x: cannonX,
-                y: CANNON_Y,
-                answer: inputAnswer,
-                targetAlien: targetAlien
-            });
+            if (targetAlien) {
+                const answer = parseInt(inputAnswer);
+                const correctAnswer = targetAlien.factor1 * targetAlien.factor2;
+                
+                // Create a new bullet regardless of answer
+                activeBullets.push({
+                    x: cannonX,
+                    y: CANNON_Y,
+                    answer: inputAnswer,
+                    targetAlien: answer === correctAnswer ? targetAlien : null
+                });
+
+                // If answer is wrong, add to missed facts
+                if (answer !== correctAnswer) {
+                    addMissedFact(targetAlien.factor1, targetAlien.factor2);
+                }
+            }
 
             inputAnswer = '';
             updateInputDisplay();
@@ -479,6 +500,22 @@
             if (points === 0) {
                 points = 1; // Award 1 point instead of 0
             }
+            
+            // Check if this was a missed fact
+            const isMissed = missedFacts.some(fact => 
+                fact.factor1 * fact.factor2 === points
+            );
+            
+            // Double points for correct answers to missed facts
+            if (isMissed) {
+                points *= 2;
+                // Optionally remove from missed facts after correct answer
+                missedFacts = missedFacts.filter(fact => 
+                    fact.factor1 * fact.factor2 !== points
+                );
+                localStorage.setItem('missedFacts', JSON.stringify(missedFacts));
+            }
+            
             score += points;
             if (score > highScore) {
                 highScore = score;
@@ -516,6 +553,16 @@
                 console.error("Error: '#mainScreen h2' element not found.");
             }
         };
+
+        function addMissedFact(factor1, factor2) {
+            const fact = missedFacts.find(f => f.factor1 === factor1 && f.factor2 === factor2);
+            if (fact) {
+                fact.exposureCount *= MISSED_FACT_MULTIPLIER;
+            } else {
+                missedFacts.push({ factor1, factor2, exposureCount: MISSED_FACT_MULTIPLIER });
+            }
+            localStorage.setItem('missedFacts', JSON.stringify(missedFacts));
+        }
     </script>
 </body>
 </html>
