@@ -106,6 +106,26 @@
         #startButton:hover {
             background-color: #45a049;
         }
+
+        #highScore, #startScreen div ol {
+            color: white;
+            font-size: 20px;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        #highScore h2, #startScreen div h2 {
+            margin-bottom: 10px;
+            color: #FFD700; /* Gold color for emphasis */
+        }
+
+        #highScore ol, #startScreen div ol {
+            padding-left: 20px;
+        }
+
+        #highScore li, #startScreen div li {
+            margin-bottom: 5px;
+        }
     </style>
 </head>
 <body>
@@ -148,6 +168,10 @@
         let gameOver = false;
         let gameStarted = false;
         let highScore = 0;
+
+        // Initialize high scores from localStorage or set to empty array
+        let highScores = JSON.parse(localStorage.getItem('highScores')) || [];
+        const maxHighScores = 5; // Maximum number of high scores to keep
 
         // Ship object
         const ship = {
@@ -437,11 +461,50 @@
             gameOverElement.style.display = 'flex';
             finalScoreElement.textContent = `Your Score: ${score}`;
             
-            if (score > highScore) {
-                highScore = score;
+            // Check if current score is a high score
+            const lowestHighScore = highScores.length < maxHighScores ? 0 : highScores[highScores.length - 1].score;
+            if (score > lowestHighScore) {
+                // Prompt for player name
+                let playerName = prompt('New High Score! Enter your name:');
+                if (playerName === null || playerName.trim() === '') {
+                    playerName = 'Anonymous';
+                }
+                
+                // Create new high score entry
+                const newHighScore = { name: playerName, score: score };
+                
+                // Add new high score and sort the list
+                highScores.push(newHighScore);
+                highScores.sort((a, b) => b.score - a.score);
+                
+                // Keep only top maxHighScores
+                highScores = highScores.slice(0, maxHighScores);
+                
+                // Save updated high scores to localStorage
+                localStorage.setItem('highScores', JSON.stringify(highScores));
             }
             
-            highScoreElement.textContent = `High Score: ${highScore}`;
+            // Update high score display
+            displayHighScores();
+        }
+
+        // Function to display high scores
+        function displayHighScores() {
+            if (highScores.length === 0) {
+                highScoreElement.innerHTML = '<h2>High Scores</h2><p>No high scores yet!</p>';
+                return;
+            }
+
+            let highScoresHTML = `<h2>High Scores</h2><ol>`;
+            highScores.forEach(scoreEntry => {
+                if (scoreEntry.name && scoreEntry.score !== undefined) {
+                    highScoresHTML += `<li>${scoreEntry.name}: ${scoreEntry.score}</li>`;
+                }
+            });
+            highScoresHTML += `</ol>`;
+            
+            // Insert into the highScoreElement
+            highScoreElement.innerHTML = highScoresHTML;
         }
 
         function startGame() {
@@ -493,12 +556,35 @@
         function init() {
             drawInitialScene();
             startScreen.style.display = 'flex';
+            
+            // Optionally display high scores on the start screen
+            displayStartScreenHighScores();
         }
 
         function drawInitialScene() {
             ctx.fillStyle = 'black';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             // You can add some static asteroids or other decorative elements here if you want
+        }
+
+        // Function to display high scores on the start screen
+        function displayStartScreenHighScores() {
+            if (highScores.length === 0) {
+                return; // Do not display anything if there are no high scores
+            }
+
+            let highScoresHTML = `<h2>High Scores</h2><ol>`;
+            highScores.forEach(scoreEntry => {
+                if (scoreEntry.name && scoreEntry.score !== undefined) {
+                    highScoresHTML += `<li>${scoreEntry.name}: ${scoreEntry.score}</li>`;
+                }
+            });
+            highScoresHTML += `</ol>`;
+            
+            // Create a new element or append to an existing one
+            const highScoresContainer = document.createElement('div');
+            highScoresContainer.innerHTML = highScoresHTML;
+            startScreen.appendChild(highScoresContainer);
         }
 
         // Call init to set up the initial state
