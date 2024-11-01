@@ -164,7 +164,7 @@
 
         let highScores = []; // Array to store high score objects
 
-        let missedFacts = JSON.parse(localStorage.getItem('missedFacts')) || [];
+        let missedFacts = JSON.parse(localStorage.getItem('mathInvaders_missedFacts')) || [];
         const MISSED_FACT_MULTIPLIER = 3; // How much to increase exposure when missed
 
         function startGame() {
@@ -189,7 +189,7 @@
 
             // Don't clear missed facts between games
             // but do load them from localStorage
-            missedFacts = JSON.parse(localStorage.getItem('missedFacts')) || [];
+            missedFacts = JSON.parse(localStorage.getItem('mathInvaders_missedFacts')) || [];
         }
 
         function spawnAlien() {
@@ -324,11 +324,11 @@
         }
 
         function saveHighScores() {
-            localStorage.setItem('highScores', JSON.stringify(highScores));
+            localStorage.setItem('mathInvaders_highScores', JSON.stringify(highScores));
         }
 
         function loadHighScores() {
-            const storedHighScores = localStorage.getItem('highScores');
+            const storedHighScores = localStorage.getItem('mathInvaders_highScores');
             if (storedHighScores) {
                 try {
                     highScores = JSON.parse(storedHighScores);
@@ -513,7 +513,7 @@
                 missedFacts = missedFacts.filter(fact => 
                     fact.factor1 * fact.factor2 !== points
                 );
-                localStorage.setItem('missedFacts', JSON.stringify(missedFacts));
+                localStorage.setItem('mathInvaders_missedFacts', JSON.stringify(missedFacts));
             }
             
             score += points;
@@ -561,7 +561,7 @@
             } else {
                 missedFacts.push({ factor1, factor2, exposureCount: MISSED_FACT_MULTIPLIER });
             }
-            localStorage.setItem('missedFacts', JSON.stringify(missedFacts));
+            localStorage.setItem('mathInvaders_missedFacts', JSON.stringify(missedFacts));
         }
     </script>
 </body>
