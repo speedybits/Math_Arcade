@@ -436,8 +436,16 @@
                             updateCurrentAnswerDisplay();
                             break; // Exit the asteroid loop
                         } else {
-                            // Incorrect answer: do not destroy asteroid or bullet
-                            // Optionally, you can provide feedback here
+                            // **New Logic: Incorrect Answer Handling**
+                            // Clear the currentAnswer buffer
+                            currentAnswer = '';
+                            updateCurrentAnswerDisplay();
+
+                            // Optionally, provide feedback to the player
+                            // For example, flash the asteroid or display a message
+                            // You can implement this based on your preference
+
+                            break; // Exit the asteroid loop since bullet has hit
                         }
                     }
                 }
