@@ -58,6 +58,95 @@
             height: 30px;
             margin-top: 5px;
         }
+        /* Add styles for the feature request button */
+        .feature-request-button {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            font-size: 1em;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .feature-request-button:hover {
+            background-color: #0056b3;
+        }
+
+        /* Dialog styles */
+        .custom-dialog {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #333;
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 1000;
+            display: none;
+            width: 80%;
+            max-width: 500px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        .dialog-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            z-index: 999;
+        }
+
+        .dialog-textarea {
+            width: 100%;
+            height: 200px;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            resize: none;
+            background: #444;
+            color: white;
+            border: 1px solid #555;
+        }
+
+        .dialog-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .dialog-button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .dialog-button-ok {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .dialog-button-cancel {
+            background-color: #f44336;
+            color: white;
+        }
+
+        .word-count {
+            color: #888;
+            font-size: 0.8em;
+            text-align: right;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
@@ -74,5 +163,94 @@
             <img src="https://cdn1.venmo.com/marketing/images/branding/venmo-icon.svg" alt="Venmo">
         </a>
     </div>
+
+    <!-- Add Feature Request Button -->
+    <button class="feature-request-button" onclick="showFeatureRequestDialog()">Request New Feature</button>
+
+    <!-- Dialog Overlay -->
+    <div class="dialog-overlay" id="dialogOverlay"></div>
+
+    <!-- Feature Request Dialog -->
+    <div class="custom-dialog" id="featureRequestDialog">
+        <h2>Request a New Feature</h2>
+        <p>Please describe the feature you'd like to see (up to 400 words):</p>
+        <textarea class="dialog-textarea" id="featureRequestText" 
+                  oninput="updateWordCount()" 
+                  placeholder="Describe your feature request here..."></textarea>
+        <div class="word-count" id="wordCount">0 / 400 words</div>
+        <div class="dialog-buttons">
+            <button class="dialog-button dialog-button-cancel" onclick="hideDialog()">Cancel</button>
+            <button class="dialog-button dialog-button-ok" onclick="submitFeatureRequest()">Submit</button>
+        </div>
+    </div>
+
+    <script>
+        function showFeatureRequestDialog() {
+            document.getElementById('dialogOverlay').style.display = 'block';
+            document.getElementById('featureRequestDialog').style.display = 'block';
+        }
+
+        function hideDialog() {
+            document.getElementById('dialogOverlay').style.display = 'none';
+            document.getElementById('featureRequestDialog').style.display = 'none';
+            document.getElementById('featureRequestText').value = '';
+            updateWordCount();
+        }
+
+        function updateWordCount() {
+            const text = document.getElementById('featureRequestText').value;
+            const wordCount = text.trim().split(/\s+/).filter(word => word.length > 0).length;
+            document.getElementById('wordCount').textContent = `${wordCount} / 400 words`;
+            
+            // Disable submission if word count exceeds 400
+            const submitButton = document.querySelector('.dialog-button-ok');
+            submitButton.disabled = wordCount > 400;
+        }
+
+        function submitFeatureRequest() {
+            const featureRequest = document.getElementById('featureRequestText').value;
+            
+            // Create a hidden form and submit it
+            const form = document.createElement('form');
+            form.action = 'https://formsubmit.co/mike.kindig@gmail.com';
+            form.method = 'POST';
+            form.style.display = 'none';
+
+            // Add the feature request
+            const featureInput = document.createElement('input');
+            featureInput.type = 'text';
+            featureInput.name = 'Feature Request';
+            featureInput.value = featureRequest;
+            form.appendChild(featureInput);
+
+            // Add form configuration
+            const subjectInput = document.createElement('input');
+            subjectInput.type = 'hidden';
+            subjectInput.name = '_subject';
+            subjectInput.value = 'New Feature Request';
+            form.appendChild(subjectInput);
+
+            // Disable captcha
+            const captchaInput = document.createElement('input');
+            captchaInput.type = 'hidden';
+            captchaInput.name = '_captcha';
+            captchaInput.value = 'false';
+            form.appendChild(captchaInput);
+
+            // Add the form to the document and submit it
+            document.body.appendChild(form);
+            form.submit();
+
+            // Hide the dialog
+            hideDialog();
+            
+            // Ask about donation
+            if (confirm('Would you like to donate to prioritize your feature request?')) {
+                window.open('https://venmo.com/speedybits', '_blank');
+            }
+            
+            alert('Thank you! Your feature request has been submitted. If this is the first submission, please check your email (including spam folder) for an activation link from FormSubmit.');
+        }
+    </script>
 </body>
 </html>
