@@ -258,11 +258,11 @@
             descentSpeed = INITIAL_DESCENT_SPEED;
             loadHighScores();
 
-            // Reset last spawn times for all columns
+            // Reset last spawn times for all columns to allow immediate spawn
             lastSpawnTimes = {
-                'left': 0,
-                'center': 0,
-                'right': 0
+                'left': Date.now(),
+                'center': Date.now(),
+                'right': Date.now()
             };
 
             // Show or hide controls based on device
@@ -397,85 +397,6 @@
             if (isTouchDevice) {
                 setupMultipleChoiceForCannon();
             }
-        }
-
-        function endGame() {
-            gameStarted = false;
-            if (animationFrameId) {
-                cancelAnimationFrame(animationFrameId);
-                animationFrameId = null;
-            }
-            
-            if (!isTouchDevice) {
-                document.removeEventListener('keydown', handleKeyDown);
-                document.removeEventListener('keyup', handleKeyUp);
-            }
-
-            // Remove touch event listeners
-            if (isTouchDevice) {
-                leftButton.removeEventListener('click', () => moveCannon('left'));
-                rightButton.removeEventListener('click', () => moveCannon('right'));
-                answerButtons.forEach(button => {
-                    button.removeEventListener('click', () => handleTouchAnswer(button.textContent));
-                });
-            }
-
-            // Show main screen with game over state
-            const mainScreen = document.getElementById('mainScreen');
-            mainScreen.style.display = 'flex';
-            
-            const gameOverText = document.querySelector('#mainScreen h2');
-            if (gameOverText) {
-                gameOverText.style.display = 'block'; // Show "Game Over" text
-            } else {
-                console.error("Error: '#mainScreen h2' element not found.");
-            }
-            
-            document.getElementById('finalScore').textContent = `Your Score: ${score}`;
-            
-            // Prompt for initials with a slight delay to ensure UI updates
-            setTimeout(() => {
-                let initials = prompt("Enter your initials (3 characters):", "AAA");
-                if (initials) {
-                    initials = initials.slice(0, 3).toUpperCase();
-                    highScores.push({ initials, score });
-                    highScores.sort((a, b) => b.score - a.score);
-                    highScores = highScores.slice(0, 10); // Keep top 10 scores
-                    saveHighScores();
-                    displayHighScores();
-                }
-            }, 100); // 100ms delay
-        }
-
-        function saveHighScores() {
-            localStorage.setItem('mathInvaders_highScores', JSON.stringify(highScores));
-        }
-
-        function loadHighScores() {
-            const storedHighScores = localStorage.getItem('mathInvaders_highScores');
-            if (storedHighScores) {
-                try {
-                    highScores = JSON.parse(storedHighScores);
-                    if (!Array.isArray(highScores)) {
-                        highScores = [];
-                    }
-                } catch (e) {
-                    console.error("Error parsing highScores from localStorage:", e);
-                    highScores = [];
-                }
-            } else {
-                highScores = [];
-            }
-        }
-
-        function displayHighScores() {
-            const highScoresList = document.getElementById('highScoresList');
-            highScoresList.innerHTML = '';
-            highScores.slice(0, 10).forEach((entry, index) => {
-                const li = document.createElement('li');
-                li.textContent = `${index + 1}. ${entry.initials} - ${entry.score}`;
-                highScoresList.appendChild(li);
-            });
         }
 
         function render() {
@@ -671,7 +592,7 @@
                 points *= 2;
                 // Optionally remove from missed facts after correct answer
                 missedFacts = missedFacts.filter(fact => 
-                    fact.factor1 * fact.factor2 !== (points / 2)
+                    fact.factor1 * fact.factor2 !== points
                 );
                 localStorage.setItem('mathInvaders_missedFacts', JSON.stringify(missedFacts));
             }
@@ -784,6 +705,86 @@
                 const j = Math.floor(Math.random() * (i + 1));
                 [array[i], array[j]] = [array[j], array[i]];
             }
+        }
+
+        // Handle End Game
+        function endGame() {
+            gameStarted = false;
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+            
+            if (!isTouchDevice) {
+                document.removeEventListener('keydown', handleKeyDown);
+                document.removeEventListener('keyup', handleKeyUp);
+            }
+
+            // Remove touch event listeners
+            if (isTouchDevice) {
+                leftButton.removeEventListener('click', () => moveCannon('left'));
+                rightButton.removeEventListener('click', () => moveCannon('right'));
+                answerButtons.forEach(button => {
+                    button.removeEventListener('click', () => handleTouchAnswer(button.textContent));
+                });
+            }
+
+            // Show main screen with game over state
+            const mainScreen = document.getElementById('mainScreen');
+            mainScreen.style.display = 'flex';
+            
+            const gameOverText = document.querySelector('#mainScreen h2');
+            if (gameOverText) {
+                gameOverText.style.display = 'block'; // Show "Game Over" text
+            } else {
+                console.error("Error: '#mainScreen h2' element not found.");
+            }
+            
+            document.getElementById('finalScore').textContent = `Your Score: ${score}`;
+            
+            // Prompt for initials with a slight delay to ensure UI updates
+            setTimeout(() => {
+                let initials = prompt("Enter your initials (3 characters):", "AAA");
+                if (initials) {
+                    initials = initials.slice(0, 3).toUpperCase();
+                    highScores.push({ initials, score });
+                    highScores.sort((a, b) => b.score - a.score);
+                    highScores = highScores.slice(0, 10); // Keep top 10 scores
+                    saveHighScores();
+                    displayHighScores();
+                }
+            }, 100); // 100ms delay
+        }
+
+        function saveHighScores() {
+            localStorage.setItem('mathInvaders_highScores', JSON.stringify(highScores));
+        }
+
+        function loadHighScores() {
+            const storedHighScores = localStorage.getItem('mathInvaders_highScores');
+            if (storedHighScores) {
+                try {
+                    highScores = JSON.parse(storedHighScores);
+                    if (!Array.isArray(highScores)) {
+                        highScores = [];
+                    }
+                } catch (e) {
+                    console.error("Error parsing highScores from localStorage:", e);
+                    highScores = [];
+                }
+            } else {
+                highScores = [];
+            }
+        }
+
+        function displayHighScores() {
+            const highScoresList = document.getElementById('highScoresList');
+            highScoresList.innerHTML = '';
+            highScores.slice(0, 10).forEach((entry, index) => {
+                const li = document.createElement('li');
+                li.textContent = `${index + 1}. ${entry.initials} - ${entry.score}`;
+                highScoresList.appendChild(li);
+            });
         }
     </script>
 </body>
