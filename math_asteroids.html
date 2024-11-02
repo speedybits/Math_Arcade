@@ -205,6 +205,9 @@
         // Constant to define exposure multiplier
         const MISSED_FACT_MULTIPLIER = 3;
 
+        // Add this constant near the top with other constants
+        const SAFE_ZONE_RADIUS = 150; // Adjust this value to change the size of the safe zone
+
         // Ship object
         const ship = {
             x: canvas.width / 2,
@@ -681,18 +684,48 @@
             highScoreElement.innerHTML = highScoresHTML;
         }
 
+        // Update the startGame function
         function startGame() {
-            gameStarted = true;
-            gameOver = false;
+            // Reset game state
             score = 0;
+            gameOver = false;
+            gameStarted = true;
             currentAnswer = '';
-            bullets.length = 0;
+            
+            // Reset ship position and velocity
+            ship.x = canvas.width / 2;
+            ship.y = canvas.height / 2;
+            ship.angle = 0;
+            ship.velocity = { x: 0, y: 0 };
+            
+            // Clear existing asteroids and bullets
             asteroids.length = 0;
-            initAsteroids();
+            bullets.length = 0;
+
+            // Create initial asteroids, ensuring they're outside the safe zone
+            const numAsteroids = 8; // Adjust this number as needed
+            for (let i = 0; i < numAsteroids; i++) {
+                let x, y;
+                do {
+                    x = Math.random() * canvas.width;
+                    y = Math.random() * canvas.height;
+                } while (isInSafeZone(x, y));
+                
+                asteroids.push(createAsteroid(x, y));
+            }
+
+            // Hide start screen and game over screen
             startScreen.style.display = 'none';
             gameOverElement.style.display = 'none';
-            scoreElement.textContent = 'Score: 0';
+
+            // Start game loop
             gameLoop();
+        }
+
+        // Add this helper function to check if a position is in the safe zone
+        function isInSafeZone(x, y) {
+            const distanceFromShip = Math.hypot(x - ship.x, y - ship.y);
+            return distanceFromShip < SAFE_ZONE_RADIUS;
         }
 
         function gameLoop() {
