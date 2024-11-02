@@ -167,9 +167,18 @@
         let missedFacts = JSON.parse(localStorage.getItem('mathInvaders_missedFacts')) || [];
         const MISSED_FACT_MULTIPLIER = 3; // How much to increase exposure when missed
 
+        let animationFrameId = null;
+
         function startGame() {
-            gameStarted = true;
+            // Cancel any existing animation frame
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+
+            // Reset game state
             score = 0;
+            gameStarted = true;
             highScore = 0; // Reset session high score
             updateScoreDisplay();
             document.getElementById('mainScreen').style.display = 'none';
@@ -180,7 +189,6 @@
             document.addEventListener('keyup', handleKeyUp);
             inputAnswer = '';
             updateInputDisplay();
-            requestAnimationFrame(gameLoop);
             lastSpawnTime = 0;
             gameTime = 0;
             difficultyLevel = 0;
@@ -190,6 +198,9 @@
             // Don't clear missed facts between games
             // but do load them from localStorage
             missedFacts = JSON.parse(localStorage.getItem('mathInvaders_missedFacts')) || [];
+
+            // Start the game loop
+            gameLoop();
         }
 
         function spawnAlien() {
@@ -231,7 +242,7 @@
             }
         }
 
-        function gameLoop(timestamp) {
+        function gameLoop() {
             if (!gameStarted) return;
             if (!lastTime) lastTime = timestamp;
             const deltaTime = (timestamp - lastTime) / 1000;
@@ -240,7 +251,7 @@
             updateDifficulty(deltaTime);
             update(deltaTime);
             render();
-            requestAnimationFrame(gameLoop);
+            animationFrameId = requestAnimationFrame(gameLoop);
         }
 
         function update(deltaTime) {
@@ -291,8 +302,12 @@
         }
 
         function endGame() {
-            console.log("End game function called");
             gameStarted = false;
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+            
             document.removeEventListener('keydown', handleKeyDown);
             document.removeEventListener('keyup', handleKeyUp);
             
