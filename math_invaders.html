@@ -102,6 +102,49 @@
             cursor: pointer;
             margin-bottom: 20px;
         }
+
+        /* Touch Controls Styles */
+        #touchControls {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            z-index: 20;
+        }
+        #touchControls button {
+            width: 60px;
+            height: 60px;
+            font-size: 24px;
+            border: none;
+            border-radius: 30px;
+            background-color: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            cursor: pointer;
+        }
+        #multipleChoiceAnswers {
+            position: absolute;
+            bottom: 150px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            z-index: 20;
+        }
+        #multipleChoiceAnswers button {
+            padding: 10px 20px;
+            font-size: 20px;
+            border: none;
+            border-radius: 5px;
+            background-color: #444;
+            color: #fff;
+            cursor: pointer;
+        }
+        /* Hide touch controls and multiple choice by default */
+        #touchControls, #multipleChoiceAnswers {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -121,12 +164,28 @@
         </div>
     </div>
 
+    <!-- Touch Controls -->
+    <div id="touchControls">
+        <button id="leftButton">◀️</button>
+        <button id="rightButton">▶️</button>
+    </div>
+    <!-- Multiple Choice Answers -->
+    <div id="multipleChoiceAnswers">
+        <button class="answerButton">Option 1</button>
+        <button class="answerButton">Option 2</button>
+        <button class="answerButton">Option 3</button>
+    </div>
+
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const scoreElement = document.getElementById('score');
         const startButton = document.getElementById('startButton');
         const inputDisplay = document.getElementById('inputDisplay');
+        const leftButton = document.getElementById('leftButton');
+        const rightButton = document.getElementById('rightButton');
+        const multipleChoiceContainer = document.getElementById('multipleChoiceAnswers');
+        const answerButtons = document.querySelectorAll('.answerButton');
 
         const CANVAS_WIDTH = canvas.width;
         const CANVAS_HEIGHT = canvas.height;
@@ -144,13 +203,17 @@
         let highScore = 0; // Highest score in current session
         let gameStarted = false;
         let lastTime = 0;
-        let activeAliens = [];
+        let activeAliens = []; // Array to hold all active aliens
         let currentCannonPosition = 'center';
         let inputAnswer = '';
 
-        const ALIEN_SPEED = 30; // pixels per second, adjust as needed
-        const SPAWN_INTERVAL = 3000; // milliseconds between spawns, adjust as needed
-        let lastSpawnTime = 0;
+        const ALIEN_SPEED = 30; // pixels per second
+        const SPAWN_INTERVAL = 1500; // milliseconds between spawns, decreased from 3000 for higher frequency
+        let lastSpawnTimes = {
+            'left': 0,
+            'center': 0,
+            'right': 0
+        };
 
         let activeBullets = [];
 
@@ -169,6 +232,9 @@
 
         let animationFrameId = null;
 
+        // Detect if the device is touch-enabled
+        const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
         function startGame() {
             // Cancel any existing animation frame
             if (animationFrameId) {
@@ -183,17 +249,37 @@
             updateScoreDisplay();
             document.getElementById('mainScreen').style.display = 'none';
             activeAliens = [];
-            spawnAlien();
+            activeBullets = [];
             lastTime = 0;
-            document.addEventListener('keydown', handleKeyDown);
-            document.addEventListener('keyup', handleKeyUp);
             inputAnswer = '';
             updateInputDisplay();
-            lastSpawnTime = 0;
             gameTime = 0;
             difficultyLevel = 0;
             descentSpeed = INITIAL_DESCENT_SPEED;
             loadHighScores();
+
+            // Reset last spawn times for all columns
+            lastSpawnTimes = {
+                'left': 0,
+                'center': 0,
+                'right': 0
+            };
+
+            // Show or hide controls based on device
+            if (isTouchDevice) {
+                document.removeEventListener('keydown', handleKeyDown);
+                document.removeEventListener('keyup', handleKeyUp);
+                document.getElementById('instructions').style.display = 'none';
+                document.getElementById('touchControls').style.display = 'flex';
+                multipleChoiceContainer.style.display = 'flex';
+                setupTouchControls();
+            } else {
+                document.addEventListener('keydown', handleKeyDown);
+                document.addEventListener('keyup', handleKeyUp);
+                document.getElementById('instructions').style.display = 'block';
+                document.getElementById('touchControls').style.display = 'none';
+                multipleChoiceContainer.style.display = 'none';
+            }
 
             // Don't clear missed facts between games
             // but do load them from localStorage
@@ -203,31 +289,40 @@
             gameLoop();
         }
 
-        function spawnAlien() {
+        function setupTouchControls() {
+            leftButton.addEventListener('click', () => moveCannon('left'));
+            rightButton.addEventListener('click', () => moveCannon('right'));
+            answerButtons.forEach(button => {
+                button.addEventListener('click', () => handleTouchAnswer(button.textContent));
+            });
+        }
+
+        function spawnAlien(position) {
             const factor1 = getRandomFactor();
             const factor2 = getRandomFactor();
-            const positions = ['left', 'center', 'right'];
-            const position = positions[Math.floor(Math.random() * positions.length)];
-            
+            const column = position; // 'left', 'center', or 'right'
+
             // Check if the position is already occupied
-            const isOccupied = activeAliens.some(alien => alien.x === POSITION_COORDS[position]);
+            const isOccupied = activeAliens.some(alien => alien.position === column);
             if (!isOccupied) {
                 activeAliens.push({
-                    x: POSITION_COORDS[position],
+                    x: POSITION_COORDS[column],
                     y: 0,
                     factor1: factor1,
-                    factor2: factor2
+                    factor2: factor2,
+                    position: column,
+                    exposed: false
                 });
             }
         }
 
         function getRandomFactor() {
             if (difficultyLevel === 0) {
-                return Math.floor(Math.random() * 4); // 0 to 3
+                return Math.floor(Math.random() * 4) + 1; // 1 to 4
             } else if (difficultyLevel === 1) {
-                return Math.floor(Math.random() * 7); // 0 to 6
+                return Math.floor(Math.random() * 7) + 1; // 1 to 7
             } else {
-                return Math.floor(Math.random() * 10); // 0 to 9
+                return Math.floor(Math.random() * 10) + 1; // 1 to 10
             }
         }
 
@@ -242,12 +337,12 @@
             }
         }
 
-        function gameLoop() {
+        function gameLoop(timestamp) {
             if (!gameStarted) return;
             if (!lastTime) lastTime = timestamp;
             const deltaTime = (timestamp - lastTime) / 1000;
             lastTime = timestamp;
-            
+
             updateDifficulty(deltaTime);
             update(deltaTime);
             render();
@@ -256,6 +351,8 @@
 
         function update(deltaTime) {
             let gameOver = false;
+
+            // Move aliens
             activeAliens.forEach((alien, index) => {
                 alien.y += descentSpeed * deltaTime;
                 if (alien.y > CANVAS_HEIGHT - CANNON_HEIGHT - 10) {
@@ -268,12 +365,14 @@
                 return;
             }
 
-            // Spawn new aliens at regular intervals
+            // Spawn new aliens for each column independently
             const currentTime = Date.now();
-            if (currentTime - lastSpawnTime > SPAWN_INTERVAL && activeAliens.length < 5) {
-                spawnAlien();
-                lastSpawnTime = currentTime;
-            }
+            ['left', 'center', 'right'].forEach(position => {
+                if (currentTime - lastSpawnTimes[position] > SPAWN_INTERVAL) {
+                    spawnAlien(position);
+                    lastSpawnTimes[position] = currentTime;
+                }
+            });
 
             // Update bullets
             activeBullets.forEach((bullet, index) => {
@@ -285,7 +384,7 @@
                     activeAliens = activeAliens.filter(alien => alien !== bullet.targetAlien);
                     activeBullets.splice(index, 1);
                     updateScore(bullet.targetAlien.factor1 * bullet.targetAlien.factor2);
-                    spawnAlien();
+                    spawnAlien(bullet.targetAlien.position);
                 }
 
                 // Remove bullet if it goes off screen
@@ -294,11 +393,10 @@
                 }
             });
 
-            // Update alien positions
-            const currentDescentSpeed = isFastDescent ? descentSpeed * FAST_DESCENT_MULTIPLIER : descentSpeed;
-            activeAliens.forEach(alien => {
-                alien.y += currentDescentSpeed * deltaTime;
-            });
+            // Setup multiple choice if on touch device and target alien exists
+            if (isTouchDevice) {
+                setupMultipleChoiceForCannon();
+            }
         }
 
         function endGame() {
@@ -308,9 +406,20 @@
                 animationFrameId = null;
             }
             
-            document.removeEventListener('keydown', handleKeyDown);
-            document.removeEventListener('keyup', handleKeyUp);
-            
+            if (!isTouchDevice) {
+                document.removeEventListener('keydown', handleKeyDown);
+                document.removeEventListener('keyup', handleKeyUp);
+            }
+
+            // Remove touch event listeners
+            if (isTouchDevice) {
+                leftButton.removeEventListener('click', () => moveCannon('left'));
+                rightButton.removeEventListener('click', () => moveCannon('right'));
+                answerButtons.forEach(button => {
+                    button.removeEventListener('click', () => handleTouchAnswer(button.textContent));
+                });
+            }
+
             // Show main screen with game over state
             const mainScreen = document.getElementById('mainScreen');
             mainScreen.style.display = 'flex';
@@ -440,11 +549,13 @@
             ctx.lineTo(cannonX + 13, cannonY + 2);
             ctx.stroke();
 
-            // Draw input answer on cannon
-            ctx.fillStyle = 'yellow';
-            ctx.font = '16px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText(inputAnswer, cannonX, cannonY - 25);
+            // Draw input answer on cannon (hide on touch devices)
+            if (!isTouchDevice) {
+                ctx.fillStyle = 'yellow';
+                ctx.font = '16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(inputAnswer, cannonX, cannonY - 25);
+            }
         }
 
         function handleKeyDown(e) {
@@ -456,12 +567,14 @@
             } else if (e.key === ' ' || e.code === 'Space') {
                 e.preventDefault();
                 shootAnswer();
-            } else if (!isNaN(e.key) && e.key !== ' ') {
+            } else if (!isTouchDevice && !isNaN(e.key) && e.key !== ' ') {
                 inputAnswer += e.key;
                 updateInputDisplay();
+                updateMultipleChoiceAnswers();
             } else if (e.key === 'Backspace') {
                 inputAnswer = inputAnswer.slice(0, -1);
                 updateInputDisplay();
+                updateMultipleChoiceAnswers();
             } else if (e.key === 'ArrowDown') {
                 isFastDescent = true;
             }
@@ -481,12 +594,17 @@
             } else if (direction === 'right' && currentIndex < positions.length - 1) {
                 currentCannonPosition = positions[currentIndex + 1];
             }
+
+            if (isTouchDevice) {
+                setupMultipleChoiceForCannon(); // Update multiple choice based on new position
+            }
         }
 
         function shootAnswer() {
+            if (isTouchDevice) return; // Prevent shooting on touch devices via spacebar
             const cannonX = POSITION_COORDS[currentCannonPosition];
             const targetAlien = activeAliens.find(alien => 
-                Math.abs(alien.x - cannonX) < 20
+                alien.position === currentCannonPosition && alien.y < CANNON_Y
             );
 
             if (targetAlien) {
@@ -509,6 +627,33 @@
 
             inputAnswer = '';
             updateInputDisplay();
+            updateMultipleChoiceAnswers();
+        }
+
+        function handleTouchAnswer(selectedAnswer) {
+            const cannonX = POSITION_COORDS[currentCannonPosition];
+            const targetAlien = activeAliens.find(alien => 
+                alien.position === currentCannonPosition && alien.y < CANNON_Y
+            );
+
+            if (targetAlien) {
+                const correctAnswer = targetAlien.factor1 * targetAlien.factor2;
+                const answer = parseInt(selectedAnswer);
+
+                activeBullets.push({
+                    x: cannonX,
+                    y: CANNON_Y,
+                    answer: selectedAnswer,
+                    targetAlien: answer === correctAnswer ? targetAlien : null
+                });
+
+                if (answer !== correctAnswer) {
+                    addMissedFact(targetAlien.factor1, targetAlien.factor2);
+                }
+            }
+
+            // Reset multiple choice answers after selection
+            generateMultipleChoiceAnswers();
         }
 
         function updateScore(points) {
@@ -526,7 +671,7 @@
                 points *= 2;
                 // Optionally remove from missed facts after correct answer
                 missedFacts = missedFacts.filter(fact => 
-                    fact.factor1 * fact.factor2 !== points
+                    fact.factor1 * fact.factor2 !== (points / 2)
                 );
                 localStorage.setItem('mathInvaders_missedFacts', JSON.stringify(missedFacts));
             }
@@ -543,7 +688,9 @@
         }
 
         function updateInputDisplay() {
-            inputDisplay.textContent = inputAnswer;
+            if (!isTouchDevice) {
+                inputDisplay.textContent = inputAnswer;
+            }
         }
 
         function drawInitialCannon() {
@@ -567,6 +714,11 @@
             } else {
                 console.error("Error: '#mainScreen h2' element not found.");
             }
+
+            // If touch device, initialize multiple choice answers
+            if (isTouchDevice) {
+                generateMultipleChoiceAnswers();
+            }
         };
 
         function addMissedFact(factor1, factor2) {
@@ -577,6 +729,61 @@
                 missedFacts.push({ factor1, factor2, exposureCount: MISSED_FACT_MULTIPLIER });
             }
             localStorage.setItem('mathInvaders_missedFacts', JSON.stringify(missedFacts));
+        }
+
+        // Generate multiple choice answers for touch devices
+        function generateMultipleChoiceAnswers() {
+            if (!isTouchDevice) return;
+
+            const targetAlien = activeAliens.find(alien => 
+                alien.position === currentCannonPosition && alien.y < CANNON_Y
+            );
+
+            if (!targetAlien) {
+                // If there's no alien in the current column, hide multiple choice answers
+                multipleChoiceContainer.style.display = 'none';
+                return;
+            }
+
+            const correctAnswer = targetAlien.factor1 * targetAlien.factor2;
+            const incorrectAnswers = new Set();
+
+            while (incorrectAnswers.size < 2) {
+                const rand = correctAnswer + Math.floor(Math.random() * 5) - 2;
+                if (rand !== correctAnswer && rand > 0) {
+                    incorrectAnswers.add(rand);
+                }
+            }
+
+            const answers = [correctAnswer, ...incorrectAnswers];
+            shuffleArray(answers);
+
+            answerButtons.forEach((button, index) => {
+                button.textContent = answers[index];
+            });
+        }
+
+        function setupMultipleChoiceForCannon() {
+            if (!isTouchDevice) return;
+
+            const targetAlien = activeAliens.find(alien => 
+                alien.position === currentCannonPosition && alien.y < CANNON_Y
+            );
+
+            if (targetAlien) {
+                multipleChoiceContainer.style.display = 'flex';
+                generateMultipleChoiceAnswers();
+            } else {
+                multipleChoiceContainer.style.display = 'none';
+            }
+        }
+
+        // Utility function to shuffle an array
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
         }
     </script>
 </body>
