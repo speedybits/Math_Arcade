@@ -10,11 +10,14 @@
             color: #fff;
             font-family: Arial, sans-serif;
             overflow: hidden;
+            height: 100vh;
+            width: 100vw;
         }
         #gameCanvas {
             display: block;
-            margin: 0 auto;
             background-color: #111;
+            width: 100%;
+            height: 100%;
         }
         #score {
             position: absolute;
@@ -23,6 +26,7 @@
             transform: translateX(-50%);
             font-size: 20px;
             color: #0f0;
+            z-index: 5;
         }
         #inputDisplay {
             position: absolute;
@@ -34,6 +38,7 @@
             background-color: rgba(0, 0, 0, 0.5);
             padding: 5px 10px;
             border-radius: 5px;
+            z-index: 5;
         }
         #instructions {
             position: absolute;
@@ -45,6 +50,7 @@
             text-align: center;
             font-size: 14px;
             color: #fff;
+            z-index: 5;
         }
         #mainScreen {
             position: absolute;
@@ -52,7 +58,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.8);
+            background-color: rgba(0, 0, 0, 0.85);
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -101,6 +107,10 @@
             border-radius: 5px;
             cursor: pointer;
             margin-bottom: 20px;
+            transition: background-color 0.3s;
+        }
+        #startButton:hover {
+            background-color: #45a049;
         }
 
         /* Touch Controls Styles */
@@ -110,242 +120,244 @@
             left: 50%;
             transform: translateX(-50%);
             display: flex;
-            gap: 20px;
+            gap: 30px; /* Increased gap for easier touch */
             z-index: 20;
         }
         #touchControls button {
-            width: 60px;
-            height: 60px;
-            font-size: 24px;
+            width: 80px; /* Increased width */
+            height: 80px; /* Increased height */
+            font-size: 32px; /* Increased font size */
             border: none;
-            border-radius: 30px;
-            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 40px; /* Circular buttons */
+            background-color: rgba(255, 255, 255, 0.3);
             color: #fff;
             cursor: pointer;
+            transition: background-color 0.3s, transform 0.1s;
+        }
+        #touchControls button:active {
+            background-color: rgba(255, 255, 255, 0.5);
+            transform: scale(0.95);
         }
         #multipleChoiceAnswers {
             position: absolute;
-            bottom: 150px;
+            bottom: 200px; /* Adjusted position for better visibility */
             left: 50%;
             transform: translateX(-50%);
-            display: flex;
+            display: none; /* Hidden by default */
             gap: 20px;
             z-index: 20;
         }
         #multipleChoiceAnswers button {
-            padding: 10px 20px;
+            padding: 15px 25px;
             font-size: 20px;
             border: none;
             border-radius: 5px;
-            background-color: #444;
-            color: #fff;
+            background-color: #4CAF50; /* Green */
+            color: white;
             cursor: pointer;
+            transition: background-color 0.3s;
         }
-        /* Hide touch controls and multiple choice by default */
-        #touchControls, #multipleChoiceAnswers {
-            display: none;
+        #multipleChoiceAnswers button:hover {
+            background-color: #45a049;
         }
     </style>
 </head>
 <body>
-    <canvas id="gameCanvas" width="600" height="600"></canvas>
+    <canvas id="gameCanvas"></canvas>
     <div id="score">Score: 0 | High Score: 0</div>
     <div id="inputDisplay"></div>
     <div id="instructions">
-        Use Left/Right Arrow Keys to Move | Type Answer | Press Spacebar to Fire
+        Use arrow keys to move and spacebar to shoot. For touch devices, use the on-screen buttons and select answers from the multiple-choice options.
     </div>
     <div id="mainScreen">
-        <h2>Game Over</h2> <!-- Ensure this exists -->
-        <p id="finalScore"></p>
+        <h2>Game Over</h2>
         <button id="startButton">Start Game</button>
+        <div id="finalScore"></div>
         <div class="high-scores-container">
             <h3>High Scores</h3>
-            <ol id="highScoresList"></ol>
+            <ul id="highScoresList"></ul>
         </div>
     </div>
 
     <!-- Touch Controls -->
-    <div id="touchControls">
-        <button id="leftButton">◀️</button>
-        <button id="rightButton">▶️</button>
+    <div id="touchControls" style="display: none;">
+        <button id="leftButton">←</button>
+        <button id="rightButton">→</button>
     </div>
-    <!-- Multiple Choice Answers -->
     <div id="multipleChoiceAnswers">
-        <button class="answerButton">Option 1</button>
-        <button class="answerButton">Option 2</button>
-        <button class="answerButton">Option 3</button>
+        <button class="answerButton">1</button>
+        <button class="answerButton">2</button>
+        <button class="answerButton">3</button>
     </div>
 
     <script>
+        // Constants and Global Variables
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const scoreElement = document.getElementById('score');
-        const startButton = document.getElementById('startButton');
         const inputDisplay = document.getElementById('inputDisplay');
-        const leftButton = document.getElementById('leftButton');
-        const rightButton = document.getElementById('rightButton');
-        const multipleChoiceContainer = document.getElementById('multipleChoiceAnswers');
-        const answerButtons = document.querySelectorAll('.answerButton');
+        const mainScreen = document.getElementById('mainScreen');
+        const startButton = document.getElementById('startButton');
+        const highScoresList = document.getElementById('highScoresList');
+        const finalScoreElement = document.getElementById('finalScore');
 
-        const CANVAS_WIDTH = canvas.width;
-        const CANVAS_HEIGHT = canvas.height;
-        const CANNON_WIDTH = 50;
+        // Game Constants
+        const CANNON_WIDTH = 30;
         const CANNON_HEIGHT = 30;
-        const CANNON_Y = CANVAS_HEIGHT - CANNON_HEIGHT - 10;
+        const BULLET_SPEED = 300;
+        const ALIEN_SPEED = 50;
+        const SPAWN_INTERVAL = 2000; // 2 seconds
+        const MISSED_FACT_MULTIPLIER = 2;
 
-        const POSITION_COORDS = {
-            'left': CANVAS_WIDTH / 4,
-            'center': CANVAS_WIDTH / 2,
-            'right': (3 * CANVAS_WIDTH) / 4
-        };
-
-        let score = 0;
-        let highScore = 0; // Highest score in current session
-        let gameStarted = false;
-        let lastTime = 0;
-        let activeAliens = []; // Array to hold all active aliens
-        let currentCannonPosition = 'center';
-        let inputAnswer = '';
-
-        const ALIEN_SPEED = 30; // pixels per second
-        const SPAWN_INTERVAL = 1500; // milliseconds between spawns, decreased from 3000 for higher frequency
-        let lastSpawnTimes = {
+        // Initialize POSITION_COORDS with default values
+        let POSITION_COORDS = {
             'left': 0,
             'center': 0,
             'right': 0
         };
 
+        // Game State Variables
+        let gameStarted = false;
+        let score = 0;
+        let highScore = 0;
+        let activeAliens = [];
         let activeBullets = [];
-
-        let gameTime = 0;
-        let difficultyLevel = 0;
-
-        const INITIAL_DESCENT_SPEED = 30; // pixels per second
-        const FAST_DESCENT_MULTIPLIER = 4; // How much faster when down arrow is pressed
-        let descentSpeed = INITIAL_DESCENT_SPEED;
-        let isFastDescent = false;
-
-        let highScores = []; // Array to store high score objects
-
-        let missedFacts = JSON.parse(localStorage.getItem('mathInvaders_missedFacts')) || [];
-        const MISSED_FACT_MULTIPLIER = 3; // How much to increase exposure when missed
-
+        let inputAnswer = '';
+        let currentCannonPosition = 'center';
         let animationFrameId = null;
+        let lastTime = 0;
+        let lastSpawnTimes = {
+            'left': 0,
+            'center': 0,
+            'right': 0
+        };
+        let missedFacts = [];
+        let highScores = [];
 
-        // Detect if the device is touch-enabled
-        const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        // Device Detection
+        const isTouchDevice = ('ontouchstart' in window) || 
+            (navigator.maxTouchPoints > 0);
 
-        function startGame() {
-            // Cancel any existing animation frame
-            if (animationFrameId) {
-                cancelAnimationFrame(animationFrameId);
-                animationFrameId = null;
-            }
-
-            // Reset game state
-            score = 0;
-            gameStarted = true;
-            highScore = 0; // Reset session high score
-            updateScoreDisplay();
-            document.getElementById('mainScreen').style.display = 'none';
-            activeAliens = [];
-            activeBullets = [];
-            lastTime = 0;
-            inputAnswer = '';
-            updateInputDisplay();
-            gameTime = 0;
-            difficultyLevel = 0;
-            descentSpeed = INITIAL_DESCENT_SPEED;
-            loadHighScores();
-
-            // Reset last spawn times for all columns to allow immediate spawn
-            lastSpawnTimes = {
-                'left': Date.now(),
-                'center': Date.now(),
-                'right': Date.now()
-            };
-
-            // Show or hide controls based on device
-            if (isTouchDevice) {
-                document.removeEventListener('keydown', handleKeyDown);
-                document.removeEventListener('keyup', handleKeyUp);
-                document.getElementById('instructions').style.display = 'none';
-                document.getElementById('touchControls').style.display = 'flex';
-                multipleChoiceContainer.style.display = 'flex';
-                setupTouchControls();
-            } else {
-                document.addEventListener('keydown', handleKeyDown);
-                document.addEventListener('keyup', handleKeyUp);
-                document.getElementById('instructions').style.display = 'block';
-                document.getElementById('touchControls').style.display = 'none';
-                multipleChoiceContainer.style.display = 'none';
-            }
-
-            // Don't clear missed facts between games
-            // but do load them from localStorage
-            missedFacts = JSON.parse(localStorage.getItem('mathInvaders_missedFacts')) || [];
-
-            // Start the game loop
-            gameLoop();
+        // Resize Canvas Function
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            
+            // Update POSITION_COORDS based on new canvas size
+            POSITION_COORDS.left = canvas.width / 4;
+            POSITION_COORDS.center = canvas.width / 2;
+            POSITION_COORDS.right = (3 * canvas.width) / 4;
+            inputDisplay.style.bottom = isTouchDevice ? '150px' : '60px';
+            inputDisplay.style.left = '50%';
+            inputDisplay.style.transform = 'translateX(-50%)';
         }
 
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas(); // Initial call
+
+        // Named Event Handlers for Proper Removal
+        function handleLeftClick() {
+            moveCannon('left');
+        }
+
+        function handleRightClick() {
+            moveCannon('right');
+        }
+
+        function handleAnswerClick(event) {
+            handleTouchAnswer(event.target.textContent);
+        }
+
+        // Initialize Touch Controls if Device is Touch-Enabled
+        if (isTouchDevice) {
+            touchControls.style.display = 'flex';
+        }
+
+        // Keyboard Controls
+        function setupKeyboardControls() {
+            document.addEventListener('keydown', handleKeyDown);
+            document.addEventListener('keyup', handleKeyUp);
+        }
+
+        function handleKeyDown(event) {
+            if (!gameStarted) return;
+
+            if (event.key === 'ArrowLeft') {
+                moveCannon('left');
+            } else if (event.key === 'ArrowRight') {
+                moveCannon('right');
+            } else if (event.key === ' ' && inputAnswer !== '') {
+                fireBullet();
+                event.preventDefault();
+            } else if (/^\d$/.test(event.key)) {
+                inputAnswer += event.key;
+                inputDisplay.textContent = inputAnswer;
+            }
+        }
+
+        function handleKeyUp(e) {
+            // Implement if you have continuous movement
+        }
+
+        // Touch Controls Setup
         function setupTouchControls() {
-            leftButton.addEventListener('click', () => moveCannon('left'));
-            rightButton.addEventListener('click', () => moveCannon('right'));
+            leftButton.addEventListener('click', handleLeftClick);
+            rightButton.addEventListener('click', handleRightClick);
             answerButtons.forEach(button => {
-                button.addEventListener('click', () => handleTouchAnswer(button.textContent));
+                button.addEventListener('click', handleAnswerClick);
             });
         }
 
-        function spawnAlien(position) {
-            const factor1 = getRandomFactor();
-            const factor2 = getRandomFactor();
-            const column = position; // 'left', 'center', or 'right'
+        // Game Functions
+        function startGame() {
+            // Reset game state
+            gameStarted = true;
+            score = 0;
+            activeAliens = [];
+            activeBullets = [];
+            currentCannonPosition = 'center';
+            inputAnswer = '';
+            lastTime = performance.now();
+            
+            // Reset spawn times for immediate spawning
+            const currentTime = Date.now();
+            lastSpawnTimes = {
+                'left': currentTime,
+                'center': currentTime,
+                'right': currentTime
+            };
 
-            // Check if the position is already occupied
-            const isOccupied = activeAliens.some(alien => alien.position === column);
-            if (!isOccupied) {
-                activeAliens.push({
-                    x: POSITION_COORDS[column],
-                    y: 0,
-                    factor1: factor1,
-                    factor2: factor2,
-                    position: column,
-                    exposed: false
-                });
-            }
-        }
+            // Hide main screen and show game elements
+            mainScreen.style.display = 'none';
+            scoreElement.textContent = `Score: ${score} | High Score: ${highScore}`;
+            inputDisplay.textContent = inputAnswer;
 
-        function getRandomFactor() {
-            if (difficultyLevel === 0) {
-                return Math.floor(Math.random() * 4) + 1; // 1 to 4
-            } else if (difficultyLevel === 1) {
-                return Math.floor(Math.random() * 7) + 1; // 1 to 7
+            // Setup device-specific controls
+            if (isTouchDevice) {
+                document.getElementById('touchControls').style.display = 'flex';
+                setupTouchControls();
             } else {
-                return Math.floor(Math.random() * 10) + 1; // 1 to 10
+                document.getElementById('touchControls').style.display = 'none';
+                document.addEventListener('keydown', handleKeyDown);
+                document.addEventListener('keyup', handleKeyUp);
             }
-        }
 
-        function updateDifficulty(deltaTime) {
-            gameTime += deltaTime;
-            if (gameTime >= 120) { // 2 minutes
-                difficultyLevel = 2;
-                descentSpeed = INITIAL_DESCENT_SPEED * 2; // Double the initial speed
-            } else if (gameTime >= 60) { // 1 minute
-                difficultyLevel = 1;
-                descentSpeed = INITIAL_DESCENT_SPEED * 1.5; // 1.5 times the initial speed
+            // Start the game loop
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
             }
+            animationFrameId = requestAnimationFrame(gameLoop);
         }
 
         function gameLoop(timestamp) {
             if (!gameStarted) return;
-            if (!lastTime) lastTime = timestamp;
+
             const deltaTime = (timestamp - lastTime) / 1000;
             lastTime = timestamp;
 
-            updateDifficulty(deltaTime);
             update(deltaTime);
             render();
+
             animationFrameId = requestAnimationFrame(gameLoop);
         }
 
@@ -354,8 +366,8 @@
 
             // Move aliens
             activeAliens.forEach((alien, index) => {
-                alien.y += descentSpeed * deltaTime;
-                if (alien.y > CANVAS_HEIGHT - CANNON_HEIGHT - 10) {
+                alien.y += ALIEN_SPEED * deltaTime;
+                if (alien.y > canvas.height - CANNON_HEIGHT - 10) {
                     gameOver = true;
                 }
             });
@@ -376,15 +388,16 @@
 
             // Update bullets
             activeBullets.forEach((bullet, index) => {
-                bullet.y -= 525 * deltaTime; // Slowed down bullet speed
+                bullet.y -= bullet.speed * deltaTime; // Bullet speed
 
                 // Check for collision with target alien
-                if (bullet.targetAlien && Math.abs(bullet.y - bullet.targetAlien.y) < 10) {
+                const targetAlien = activeAliens.find(alien => alien.x === bullet.targetX && Math.abs(alien.y - bullet.y) < 20);
+                if (targetAlien) {
                     // Remove the alien and the bullet
-                    activeAliens = activeAliens.filter(alien => alien !== bullet.targetAlien);
+                    activeAliens = activeAliens.filter(alien => alien !== targetAlien);
                     activeBullets.splice(index, 1);
-                    updateScore(bullet.targetAlien.factor1 * bullet.targetAlien.factor2);
-                    spawnAlien(bullet.targetAlien.position);
+                    updateScore(targetAlien.factor1 * targetAlien.factor2);
+                    spawnAlien(targetAlien.position);
                 }
 
                 // Remove bullet if it goes off screen
@@ -399,8 +412,29 @@
             }
         }
 
+        function spawnAlien(position) {
+            // Check if the position is already occupied
+            const isOccupied = activeAliens.some(alien => alien.position === position);
+            if (!isOccupied) {
+                const factor1 = getRandomFactor();
+                const factor2 = getRandomFactor();
+                activeAliens.push({
+                    x: POSITION_COORDS[position],
+                    y: 0,
+                    factor1: factor1,
+                    factor2: factor2,
+                    position: position
+                });
+            }
+        }
+
+        function getRandomFactor() {
+            // Returns a random integer between 1 and 12
+            return Math.floor(Math.random() * 12) + 1;
+        }
+
         function render() {
-            ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             // Draw aliens
             activeAliens.forEach(alien => {
@@ -419,17 +453,13 @@
             activeBullets.forEach(bullet => {
                 ctx.fillStyle = 'yellow';
                 ctx.beginPath();
-                ctx.arc(bullet.x, bullet.y, 10, 0, Math.PI * 2);
+                ctx.arc(bullet.x, bullet.y, 5, 0, Math.PI * 2);
                 ctx.fill();
-                ctx.fillStyle = 'black';
-                ctx.font = '12px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText(bullet.answer, bullet.x, bullet.y + 4);
             });
 
             // Draw futuristic cannon
             const cannonX = POSITION_COORDS[currentCannonPosition];
-            const cannonY = CANNON_Y;
+            const cannonY = canvas.height - 50;
             
             // Cannon base
             ctx.fillStyle = '#333';
@@ -479,104 +509,140 @@
             }
         }
 
-        function handleKeyDown(e) {
-            if (!gameStarted) return;
-            if (e.key === 'ArrowLeft') {
-                moveCannon('left');
-            } else if (e.key === 'ArrowRight') {
-                moveCannon('right');
-            } else if (e.key === ' ' || e.code === 'Space') {
-                e.preventDefault();
-                shootAnswer();
-            } else if (!isTouchDevice && !isNaN(e.key) && e.key !== ' ') {
-                inputAnswer += e.key;
-                updateInputDisplay();
-                updateMultipleChoiceAnswers();
-            } else if (e.key === 'Backspace') {
-                inputAnswer = inputAnswer.slice(0, -1);
-                updateInputDisplay();
-                updateMultipleChoiceAnswers();
-            } else if (e.key === 'ArrowDown') {
-                isFastDescent = true;
-            }
-        }
-
-        function handleKeyUp(e) {
-            if (e.key === 'ArrowDown') {
-                isFastDescent = false;
-            }
-        }
-
         function moveCannon(direction) {
             const positions = ['left', 'center', 'right'];
             const currentIndex = positions.indexOf(currentCannonPosition);
+            
             if (direction === 'left' && currentIndex > 0) {
                 currentCannonPosition = positions[currentIndex - 1];
             } else if (direction === 'right' && currentIndex < positions.length - 1) {
                 currentCannonPosition = positions[currentIndex + 1];
             }
-
-            if (isTouchDevice) {
-                setupMultipleChoiceForCannon(); // Update multiple choice based on new position
-            }
         }
 
-        function shootAnswer() {
-            if (isTouchDevice) return; // Prevent shooting on touch devices via spacebar
-            const cannonX = POSITION_COORDS[currentCannonPosition];
-            const targetAlien = activeAliens.find(alien => 
-                alien.position === currentCannonPosition && alien.y < CANNON_Y
-            );
+        function fireBullet() {
+            if (inputAnswer === '') return; // Don't fire if there's no answer
 
-            if (targetAlien) {
-                const answer = parseInt(inputAnswer);
-                const correctAnswer = targetAlien.factor1 * targetAlien.factor2;
-                
-                // Create a new bullet regardless of answer
-                activeBullets.push({
-                    x: cannonX,
-                    y: CANNON_Y,
-                    answer: inputAnswer,
-                    targetAlien: answer === correctAnswer ? targetAlien : null
-                });
+            const bulletX = POSITION_COORDS[currentCannonPosition];
+            const bulletY = canvas.height - 50;
+            const speed = 300; // pixels per second
 
-                // If answer is wrong, add to missed facts
-                if (answer !== correctAnswer) {
-                    addMissedFact(targetAlien.factor1, targetAlien.factor2);
-                }
-            }
+            activeBullets.push({
+                x: bulletX,
+                y: bulletY,
+                speed: speed,
+                targetX: bulletX,
+                answer: inputAnswer // Store the answer with the bullet
+            });
 
+            // Clear the input answer and update display
             inputAnswer = '';
-            updateInputDisplay();
-            updateMultipleChoiceAnswers();
+            inputDisplay.textContent = '';
         }
 
         function handleTouchAnswer(selectedAnswer) {
-            const cannonX = POSITION_COORDS[currentCannonPosition];
             const targetAlien = activeAliens.find(alien => 
-                alien.position === currentCannonPosition && alien.y < CANNON_Y
+                alien.position === currentCannonPosition && alien.y < canvas.height - 100
             );
 
             if (targetAlien) {
                 const correctAnswer = targetAlien.factor1 * targetAlien.factor2;
-                const answer = parseInt(selectedAnswer);
-
-                activeBullets.push({
-                    x: cannonX,
-                    y: CANNON_Y,
-                    answer: selectedAnswer,
-                    targetAlien: answer === correctAnswer ? targetAlien : null
-                });
-
-                if (answer !== correctAnswer) {
+                if (parseInt(selectedAnswer) === correctAnswer) {
+                    // Correct answer: destroy alien and update score
+                    activeAliens = activeAliens.filter(alien => alien !== targetAlien);
+                    updateScore(correctAnswer);
+                    spawnAlien(targetAlien.position);
+                } else {
+                    // Incorrect answer: add to missed facts
                     addMissedFact(targetAlien.factor1, targetAlien.factor2);
                 }
+                // Regenerate multiple choice answers
+                generateMultipleChoiceAnswers();
             }
-
-            // Reset multiple choice answers after selection
-            generateMultipleChoiceAnswers();
         }
 
+        // End Game Function
+        function endGame() {
+            gameStarted = false;
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+            
+            if (!isTouchDevice) {
+                document.removeEventListener('keydown', handleKeyDown);
+                document.removeEventListener('keyup', handleKeyUp);
+            }
+
+            // Remove touch event listeners
+            if (isTouchDevice) {
+                leftButton.removeEventListener('click', handleLeftClick);
+                rightButton.removeEventListener('click', handleRightClick);
+                answerButtons.forEach(button => {
+                    button.removeEventListener('click', handleAnswerClick);
+                });
+            }
+
+            // Show main screen with game over state
+            mainScreen.style.display = 'flex';
+            
+            const gameOverText = document.querySelector('#mainScreen h2');
+            if (gameOverText) {
+                gameOverText.style.display = 'block'; // Show "Game Over" text
+            } else {
+                console.error("Error: '#mainScreen h2' element not found.");
+            }
+            
+            finalScoreElement.textContent = `Your Score: ${score}`;
+            
+            // Prompt for initials with a slight delay to ensure UI updates
+            setTimeout(() => {
+                let initials = prompt("Enter your initials (3 characters):", "AAA");
+                if (initials) {
+                    initials = initials.slice(0, 3).toUpperCase();
+                    highScores.push({ initials, score });
+                    highScores.sort((a, b) => b.score - a.score);
+                    highScores = highScores.slice(0, 10); // Keep top 10 scores
+                    saveHighScores();
+                    displayHighScores();
+                }
+            }, 100); // 100ms delay
+        }
+
+        // Save High Scores
+        function saveHighScores() {
+            localStorage.setItem('mathInvaders_highScores', JSON.stringify(highScores));
+        }
+
+        // Load High Scores
+        function loadHighScores() {
+            const storedHighScores = localStorage.getItem('mathInvaders_highScores');
+            if (storedHighScores) {
+                try {
+                    highScores = JSON.parse(storedHighScores);
+                    if (!Array.isArray(highScores)) {
+                        highScores = [];
+                    }
+                } catch (e) {
+                    console.error("Error parsing highScores from localStorage:", e);
+                    highScores = [];
+                }
+            } else {
+                highScores = [];
+            }
+        }
+
+        // Display High Scores
+        function displayHighScores() {
+            highScoresList.innerHTML = '';
+            highScores.slice(0, 10).forEach((entry, index) => {
+                const li = document.createElement('li');
+                li.textContent = `${index + 1}. ${entry.initials} - ${entry.score}`;
+                highScoresList.appendChild(li);
+            });
+        }
+
+        // Update Score
         function updateScore(points) {
             if (points === 0) {
                 points = 1; // Award 1 point instead of 0
@@ -592,7 +658,7 @@
                 points *= 2;
                 // Optionally remove from missed facts after correct answer
                 missedFacts = missedFacts.filter(fact => 
-                    fact.factor1 * fact.factor2 !== points
+                    fact.factor1 * fact.factor2 !== (points / 2)
                 );
                 localStorage.setItem('mathInvaders_missedFacts', JSON.stringify(missedFacts));
             }
@@ -600,48 +666,13 @@
             score += points;
             if (score > highScore) {
                 highScore = score;
-            }
-            updateScoreDisplay();
-        }
-
-        function updateScoreDisplay() {
-            scoreElement.textContent = `Score: ${score} | High Score: ${highScore}`;
-        }
-
-        function updateInputDisplay() {
-            if (!isTouchDevice) {
-                inputDisplay.textContent = inputAnswer;
-            }
-        }
-
-        function drawInitialCannon() {
-            const cannonX = POSITION_COORDS['center'];
-            ctx.fillStyle = 'green';
-            ctx.fillRect(cannonX - CANNON_WIDTH / 2, CANNON_Y, CANNON_WIDTH, CANNON_HEIGHT);
-        }
-
-        startButton.addEventListener('click', startGame);
-        updateScoreDisplay();
-        drawInitialCannon();
-        window.onload = function() {
-            drawInitialCannon();
-            loadHighScores();
-            displayHighScores();
-            
-            // Hide the "Game Over" text initially
-            const gameOverText = document.querySelector('#mainScreen h2');
-            if (gameOverText) {
-                gameOverText.style.display = 'none';
+                scoreElement.textContent = `Score: ${score} | High Score: ${highScore}`;
             } else {
-                console.error("Error: '#mainScreen h2' element not found.");
+                scoreElement.textContent = `Score: ${score} | High Score: ${highScore}`;
             }
+        }
 
-            // If touch device, initialize multiple choice answers
-            if (isTouchDevice) {
-                generateMultipleChoiceAnswers();
-            }
-        };
-
+        // Add Missed Fact
         function addMissedFact(factor1, factor2) {
             const fact = missedFacts.find(f => f.factor1 === factor1 && f.factor2 === factor2);
             if (fact) {
@@ -657,7 +688,7 @@
             if (!isTouchDevice) return;
 
             const targetAlien = activeAliens.find(alien => 
-                alien.position === currentCannonPosition && alien.y < CANNON_Y
+                alien.position === currentCannonPosition && alien.y < canvas.height - 100
             );
 
             if (!targetAlien) {
@@ -684,11 +715,12 @@
             });
         }
 
+        // Setup Multiple Choice for Cannon
         function setupMultipleChoiceForCannon() {
             if (!isTouchDevice) return;
 
             const targetAlien = activeAliens.find(alien => 
-                alien.position === currentCannonPosition && alien.y < CANNON_Y
+                alien.position === currentCannonPosition && alien.y < canvas.height - 100
             );
 
             if (targetAlien) {
@@ -699,7 +731,7 @@
             }
         }
 
-        // Utility function to shuffle an array
+        // Utility Function to Shuffle Array
         function shuffleArray(array) {
             for (let i = array.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -707,85 +739,23 @@
             }
         }
 
-        // Handle End Game
-        function endGame() {
-            gameStarted = false;
-            if (animationFrameId) {
-                cancelAnimationFrame(animationFrameId);
-                animationFrameId = null;
-            }
-            
-            if (!isTouchDevice) {
-                document.removeEventListener('keydown', handleKeyDown);
-                document.removeEventListener('keyup', handleKeyUp);
-            }
-
-            // Remove touch event listeners
-            if (isTouchDevice) {
-                leftButton.removeEventListener('click', () => moveCannon('left'));
-                rightButton.removeEventListener('click', () => moveCannon('right'));
-                answerButtons.forEach(button => {
-                    button.removeEventListener('click', () => handleTouchAnswer(button.textContent));
-                });
-            }
-
-            // Show main screen with game over state
-            const mainScreen = document.getElementById('mainScreen');
-            mainScreen.style.display = 'flex';
-            
-            const gameOverText = document.querySelector('#mainScreen h2');
-            if (gameOverText) {
-                gameOverText.style.display = 'block'; // Show "Game Over" text
-            } else {
-                console.error("Error: '#mainScreen h2' element not found.");
-            }
-            
-            document.getElementById('finalScore').textContent = `Your Score: ${score}`;
-            
-            // Prompt for initials with a slight delay to ensure UI updates
-            setTimeout(() => {
-                let initials = prompt("Enter your initials (3 characters):", "AAA");
-                if (initials) {
-                    initials = initials.slice(0, 3).toUpperCase();
-                    highScores.push({ initials, score });
-                    highScores.sort((a, b) => b.score - a.score);
-                    highScores = highScores.slice(0, 10); // Keep top 10 scores
-                    saveHighScores();
-                    displayHighScores();
-                }
-            }, 100); // 100ms delay
+        // Draw Initial Cannon
+        function drawInitialCannon() {
+            const cannonX = POSITION_COORDS['center'];
+            const cannonY = canvas.height - 50;
+            ctx.fillStyle = 'green';
+            ctx.fillRect(cannonX - CANNON_WIDTH / 2, cannonY, CANNON_WIDTH, CANNON_HEIGHT);
         }
 
-        function saveHighScores() {
-            localStorage.setItem('mathInvaders_highScores', JSON.stringify(highScores));
-        }
+        // Event Listener for Start Button
+        startButton.addEventListener('click', startGame);
 
-        function loadHighScores() {
-            const storedHighScores = localStorage.getItem('mathInvaders_highScores');
-            if (storedHighScores) {
-                try {
-                    highScores = JSON.parse(storedHighScores);
-                    if (!Array.isArray(highScores)) {
-                        highScores = [];
-                    }
-                } catch (e) {
-                    console.error("Error parsing highScores from localStorage:", e);
-                    highScores = [];
-                }
-            } else {
-                highScores = [];
-            }
-        }
+        // Initialize High Scores and Display
+        loadHighScores();
+        displayHighScores();
 
-        function displayHighScores() {
-            const highScoresList = document.getElementById('highScoresList');
-            highScoresList.innerHTML = '';
-            highScores.slice(0, 10).forEach((entry, index) => {
-                const li = document.createElement('li');
-                li.textContent = `${index + 1}. ${entry.initials} - ${entry.score}`;
-                highScoresList.appendChild(li);
-            });
-        }
+        // Initial Cannon Drawing
+        drawInitialCannon();
     </script>
 </body>
 </html>
