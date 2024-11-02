@@ -160,6 +160,60 @@
         #multipleChoiceAnswers button:hover {
             background-color: #45a049;
         }
+
+        /* Mobile-only styles - won't affect PC version */
+        @media (hover: none) and (pointer: coarse) {
+            #touchControls {
+                position: fixed;
+                bottom: 20px;
+                left: 0;
+                right: 0;
+                display: flex;
+                justify-content: space-around;
+                padding: 20px;
+                z-index: 20;
+            }
+
+            #touchControls button {
+                width: 130px;
+                height: 130px;
+                font-size: 48px;
+                background-color: rgba(255, 255, 255, 0.2);
+                border: 3px solid rgba(255, 255, 255, 0.4);
+                border-radius: 65px;
+                color: white;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            #touchControls button:active {
+                background-color: rgba(255, 255, 255, 0.4);
+                transform: scale(0.95);
+            }
+
+            #multipleChoiceAnswers {
+                position: fixed;
+                bottom: 180px;
+                left: 0;
+                right: 0;
+                display: flex;
+                justify-content: center;
+                gap: 20px;
+                padding: 10px;
+                z-index: 20;
+            }
+
+            #multipleChoiceAnswers button {
+                width: 100px;
+                height: 70px;
+                font-size: 28px;
+                background-color: rgba(76, 175, 80, 0.8);
+                border: none;
+                border-radius: 10px;
+                color: white;
+            }
+        }
     </style>
 </head>
 <body>
@@ -756,6 +810,22 @@
 
         // Initial Cannon Drawing
         drawInitialCannon();
+
+        // Only modify mobile positioning if on a touch device
+        if (isTouchDevice) {
+            const mobileResizeCanvas = () => {
+                // Leave more space at the bottom for touch controls
+                const bottomPadding = 280; // Increased space for larger controls
+                const gameHeight = window.innerHeight - bottomPadding;
+                
+                // Move cannon up higher in the game area
+                CANNON_Y = gameHeight - 50;
+            };
+
+            // Add mobile-specific resize listener
+            window.addEventListener('resize', mobileResizeCanvas);
+            mobileResizeCanvas(); // Initial call
+        }
     </script>
 </body>
 </html>
