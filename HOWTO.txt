@@ -1,0 +1,33 @@
+Running Math Games Tests
+=======================
+
+Prerequisites:
+- Node.js installed
+- npm dependencies installed (run `npm install` first)
+- Local server running (run `npm run serve` in a separate terminal)
+
+Test Profiles
+------------
+
+1. Run Math Invaders tests:
+   npx cucumber-js --profile invaders
+
+2. Run Math Asteroids tests:
+   npx cucumber-js --profile asteroids
+
+3. Run all tests:
+   npx cucumber-js
+
+Test Reports
+-----------
+HTML reports are generated after each test run:
+- math-invaders-report.html
+- math-asteroids-report.html
+- cucumber-report.html (all tests)
+
+Troubleshooting
+--------------
+If tests fail with browser errors:
+1. Ensure the local server is running on port 8080
+2. Try reinstalling Playwright browsers:
+   npx playwright install chromium
