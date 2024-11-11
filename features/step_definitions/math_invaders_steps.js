@@ -13,7 +13,9 @@ Before(async function () {
 });
 
 After(async function () {
-    await browser.close();
+    if (browser) {
+        await browser.close();
+    }
 });
 
 Given('I am playing Math Invaders', async function () {
