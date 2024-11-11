@@ -2,19 +2,49 @@
 Feature: Math Invaders Game
   As a player
   I want to play Math Invaders
-  So that I can practice math while having fun
+  So that I can practice multiplication facts while having fun
 
-  Scenario: Generate an addition problem in Math Invaders
+  Scenario: Generate a multiplication problem at Level 0
     Given I am playing Math Invaders
-    And the game difficulty is set to 1
-    When I generate an addition problem
+    And I have played for less than 60 seconds
+    When I generate a multiplication problem
     Then I should see a problem with two numbers
-    And the numbers should be between 1 and 10
+    And the numbers should be between 0 and 3
 
-  Scenario: Score calculation in Math Invaders
+  Scenario: Generate a multiplication problem at Level 1
     Given I am playing Math Invaders
-    And the game difficulty is set to 1
+    And I have played between 60 and 120 seconds
+    When I generate a multiplication problem
+    Then I should see a problem with two numbers
+    And the numbers should be between 0 and 6
+
+  Scenario: Generate a multiplication problem at Level 2
+    Given I am playing Math Invaders
+    And I have played for more than 120 seconds
+    When I generate a multiplication problem
+    Then I should see a problem with two numbers
+    And the numbers should be between 0 and 9
+
+  Scenario: Learning optimization for missed problems
+    Given I am playing Math Invaders
+    And I have previously missed the problem "6 × 7"
+    When this problem appears again
+    Then it should be displayed as an orange alien
+    And solving it correctly should give double points
+
+  Scenario: Basic score calculation
+    Given I am playing Math Invaders
     And I solved a problem correctly
-    When it took me 3 seconds to answer
-    Then my score should be positive
-    And it should be higher than if I took 6 seconds
+    When the problem was "4 × 5"
+    Then my score should increase by at least 20 points
+
+  Scenario: Double points for missed facts
+    Given I am playing Math Invaders
+    And I have previously missed the problem "8 × 9"
+    When I solve this problem correctly
+    Then my score should increase by 144 points
+
+  Scenario: Alien descent speed
+    Given I am playing Math Invaders
+    When I press the down arrow
+    Then the aliens should descend 4 times faster
