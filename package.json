@@ -1,0 +1,14 @@
+{
+  "name": "math-games-tests",
+  "version": "1.0.0",
+  "description": "BDD tests for Math Games",
+  "scripts": {
+    "test": "cucumber-js",
+    "serve": "node server.js"
+  },
+  "devDependencies": {
+    "@cucumber/cucumber": "^9.1.2",
+    "playwright": "^1.35.0",
+    "jest": "^29.5.0"
+  }
+}
