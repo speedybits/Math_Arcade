@@ -3,6 +3,7 @@ module.exports = {
         requireModule: ['ts-node/register'],
         require: ['features/step_definitions/*.js'],
         format: ['progress-bar', 'html:cucumber-report.html'],
+        formatOptions: {"snippetInterface": "synchronous"},
         publishQuiet: true
     },
     asteroids: {

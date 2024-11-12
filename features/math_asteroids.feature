@@ -46,3 +46,28 @@ Feature: Math Asteroids Game
     And I hit a large asteroid correctly
     Then it should split into two smaller asteroids
     And the smaller asteroids should maintain momentum
+
+  Scenario: Answer length validation
+    Given I am playing Math Asteroids
+    When I enter a 10-digit number as an answer
+    Then the answer input should be limited to 3 digits
+
+  Scenario: Split asteroid problem inheritance
+    Given I am playing Math Asteroids
+    And I hit a large asteroid with problem "6 × 7"
+    Then the split asteroids should have related problems
+    And their answers should sum to 42
+
+  Scenario: High score validation
+    Given I am playing Math Asteroids
+    When I try to submit a negative score
+    Then the score should be rejected
+    And when I try to submit a score above 999999
+    Then the score should be rejected
+
+  Scenario: Screen boundary wrapping
+    Given I am playing Math Asteroids
+    When an asteroid moves beyond the right edge
+    Then it should appear on the left edge
+    And when an asteroid moves beyond the bottom edge
+    Then it should appear on the top edge
