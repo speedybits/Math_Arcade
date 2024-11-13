@@ -32,35 +32,41 @@ Feature: Math Asteroids Game
     When I solve this problem correctly
     Then my score should increase by 144 points
 
+  @ship_movement_physics
   Scenario: Ship movement physics
     Given I am playing Math Asteroids
     When I press the up arrow
     Then the ship should accelerate forward
     And maintain momentum when thrust is released
 
+  @safe_spawn_zones
   Scenario: Safe spawn zones
     Given I am playing Math Asteroids
     When a new asteroid is spawned
     Then it should appear outside the safe zone radius
     And the safe zone radius should be 150 pixels
 
+  @asteroid_splitting
   Scenario: Asteroid splitting
     Given I am playing Math Asteroids
     And I hit a large asteroid correctly
     Then it should split into two smaller asteroids
     And the smaller asteroids should maintain momentum
 
+  @answer_length_validation
   Scenario: Answer length validation
     Given I am playing Math Asteroids
     When I enter a 10-digit number as an answer
     Then the answer input should be limited to 3 digits
 
+  @split_asteroid_problem_inheritance
   Scenario: Split asteroid problem inheritance
     Given I am playing Math Asteroids
     And I hit a large asteroid with problem "6 × 7"
     Then the split asteroids should have related problems
     And their answers should sum to 42
 
+  @high_score_validation
   Scenario: High score validation
     Given I am playing Math Asteroids
     When I try to submit a negative score
@@ -68,6 +74,7 @@ Feature: Math Asteroids Game
     And when I try to submit a score above 999999
     Then the score should be rejected
 
+  @screen_boundary_wrapping
   Scenario: Screen boundary wrapping
     Given I am playing Math Asteroids
     When an asteroid moves beyond the right edge
