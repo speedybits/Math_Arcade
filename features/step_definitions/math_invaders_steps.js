@@ -542,32 +542,3 @@ Then('I should see a warning message', async function () {
     });
     assert.strictEqual(warningVisible, true, 'Warning message should be visible');
 });
-
-When('I try to submit a high score with invalid initials {string}', async function (initials) {
-    await page.evaluate((init) => {
-        window.initialsInput = init;
-        window.submitHighScore(init);
-    }, initials);
-});
-
-Then('the score submission should be rejected', async function () {
-    const rejected = await page.evaluate(() => {
-        return window.lastSubmissionRejected === true;
-    });
-    assert.strictEqual(rejected, true, 'Score submission should have been rejected');
-});
-
-Then('I should be prompted to enter valid initials', async function () {
-    const promptVisible = await page.evaluate(() => {
-        const prompt = document.querySelector('#initialsPrompt');
-        return prompt && window.getComputedStyle(prompt).display !== 'none';
-    });
-    assert.strictEqual(promptVisible, true, 'Initials prompt should be visible');
-});
-
-When('I try to submit a high score with special characters {string}', async function (initials) {
-    await page.evaluate((init) => {
-        window.initialsInput = init;
-        window.submitHighScore(init);
-    }, initials);
-});

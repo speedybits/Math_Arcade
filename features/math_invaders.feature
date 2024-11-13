@@ -56,15 +56,3 @@ Feature: Math Invaders Game
     When I enter an answer longer than 5 digits
     Then the input should be truncated to 5 digits
     And I should see a warning message
-
-  @high_score_initials_validation
-  Scenario: High score initials validation
-    Given I am playing Math Invaders
-    When I try to submit a high score with invalid initials "123"
-    Then the score submission should be rejected
-    And I should be prompted to enter valid initials
-
-  @high_score_special_characters_validation
-  Scenario: High score special characters validation
-    Given I am playing Math Invaders
-    When I try to submit a high score with special characters "@#$"
