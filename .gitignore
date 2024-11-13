@@ -1,0 +1,7 @@
+.aider*
+.env
+node_modules
+.vscode/settings.json
+cucumber-report-asteroids.html
+cucumber-report-invaders.html
+cucumber-report.html

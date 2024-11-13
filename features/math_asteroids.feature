@@ -10,6 +10,7 @@ Feature: Math Asteroids Game
     Then I should see a problem with two numbers
     And the numbers should be between 0 and 9
 
+  @learning_optimization
   Scenario: Learning optimization for missed problems
     Given I am playing Math Asteroids
     And I have previously missed the problem "6 × 7"
@@ -17,12 +18,14 @@ Feature: Math Asteroids Game
     Then it should be displayed as an orange asteroid
     And solving it correctly should give double points
 
+  @basic_score_calculation
   Scenario: Basic score calculation
     Given I am playing Math Asteroids
     And I solved a problem correctly
     When the problem was "4 × 5"
     Then my score should increase by at least 20 points
 
+  @double_points_for_missed_facts
   Scenario: Double points for missed facts
     Given I am playing Math Asteroids
     And I have previously missed the problem "8 × 9"

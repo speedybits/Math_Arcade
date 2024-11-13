@@ -1,0 +1,597 @@
+commit 400092560f185a9bb042f82ff039d7a0dabb8ee7
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Mon Nov 18 14:24:27 2024 -0600
+
+    Fix
+
+commit c4586cfff54f00a60ab9b5b12f3728d869463c01
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Mon Nov 18 14:15:13 2024 -0600
+
+    All tests passing
+
+commit bb273302afe9c32ac72037876e1b7dca3e7eeebc
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Mon Nov 18 08:24:19 2024 -0600
+
+    Passing multiple choice tests
+
+commit 21367b09146c405b69058285370cebb39447139a
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Sun Nov 17 10:53:16 2024 -0600
+
+    Multiple choice positioned below math fact on PC
+
+commit b770db7c17c75677b3aace95c3bc9b99241ab6e8
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Sun Nov 17 09:59:57 2024 -0600
+
+    Multiple choice falling with aliens
+
+commit 208d7a77ad6bd644c1fce8f01a1aa8b54f8a9745
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Sun Nov 17 09:45:08 2024 -0600
+
+    Tests passing
+
+commit 79f5a612e1013e8a69f6463f8e46cba497910518
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Sun Nov 17 09:20:47 2024 -0600
+
+    Update README
+
+commit 448952c521fa1fdccdc37d72de1d60695787f5be
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Sun Nov 17 07:36:41 2024 -0600
+
+    Answer bubbles are appearing now
+
+commit 43b7d1aefc89954f454a37f880a53f72dedb7bb7
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Thu Nov 14 19:49:14 2024 -0600
+
+    Cannon movement with mouse
+
+commit a00a36b8b810815e8aace1073fa4ac55266bfc53
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Thu Nov 14 18:38:32 2024 -0600
+
+    Mouse and touch control only, initial version
+
+commit df4c18889567887f3d3b7907258725ec4bfca50e
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Wed Nov 13 21:23:05 2024 -0600
+
+    Mobile tap left right working
+
+commit fc35e4dc7b4cd551929cb9d6a23580e2bacb3cbb
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Wed Nov 13 21:05:58 2024 -0600
+
+    Mobile math invaders passing all tests
+
+commit e847816f376f8e6590c68dca5e95e6fb89e80c0a
+Author: speedybits (aider) <57099692+speedybits@users.noreply.github.com>
+Date:   Wed Nov 13 20:57:00 2024 -0600
+
+    refactor: Update getRandomFactor to use game time for difficulty scaling
+
+commit b26836e21467361cc12b551158be221c43324b77
+Author: speedybits (aider) <57099692+speedybits@users.noreply.github.com>
+Date:   Wed Nov 13 20:56:40 2024 -0600
+
+    feat: Improve game initialization and difficulty scaling
+
+commit ddf327a249fd343cb1e69a714591c0f8d40c0150
+Author: speedybits (aider) <57099692+speedybits@users.noreply.github.com>
+Date:   Wed Nov 13 20:56:16 2024 -0600
+
+    fix: Update score calculation in math_invaders.html
+
+commit 2be471bd26ffd555a5eda8f06007b7871ea144c3
+Author: speedybits (aider) <57099692+speedybits@users.noreply.github.com>
+Date:   Wed Nov 13 20:56:08 2024 -0600
+
+    test: Fix math invaders test initialization and validation
+
+commit f17fcae7fb54636ba676cc0d36dd6d6c5d0d4380
+Author: speedybits (aider) <57099692+speedybits@users.noreply.github.com>
+Date:   Wed Nov 13 20:53:00 2024 -0600
+
+    refactor: Improve mobile UI initialization and game state management
+
+commit 331b4fd749009fe70eb3d2d93512b458fecc0192
+Author: speedybits (aider) <57099692+speedybits@users.noreply.github.com>
+Date:   Wed Nov 13 20:52:34 2024 -0600
+
+    refactor: Improve mobile touch event simulation and button interaction
+
+commit cbb4ec6d8cf7cd5faa38e6de95e9012579b4f6fa
+Author: speedybits (aider) <57099692+speedybits@users.noreply.github.com>
+Date:   Wed Nov 13 20:47:12 2024 -0600
+
+    refactor: Improve multiple choice answer generation and touch event simulation
+
+commit 839475a10eb5d920f8860e658125b20ed1bf0750
+Author: speedybits (aider) <57099692+speedybits@users.noreply.github.com>
+Date:   Wed Nov 13 20:46:32 2024 -0600
+
+    refactor: Improve multiple choice answer generation and UI styling
+
+commit cf812a3d3bde42182a76924013cae9f9082c86dd
+Author: speedybits (aider) <57099692+speedybits@users.noreply.github.com>
+Date:   Wed Nov 13 20:46:00 2024 -0600
+
+    fix: Improve mobile UI initialization and answer choice population
+
+commit 29c43a5a681a7a2e9ca658eea8a9b467cb27b71e
+Author: speedybits (aider) <57099692+speedybits@users.noreply.github.com>
+Date:   Wed Nov 13 20:45:04 2024 -0600
+
+    feat: Add mobile UI initialization for multiple choice answers in Math Invaders
+
+commit 2e5d2333e61b9746585232969cf7d08a3cd0c191
+Author: speedybits (aider) <57099692+speedybits@users.noreply.github.com>
+Date:   Wed Nov 13 20:43:18 2024 -0600
+
+    fix: Improve game initialization and browser handling in Cucumber tests
+
+commit 0ef5c3471c679fb2815aadecbe5679dbe4490cde
+Author: speedybits (aider) <57099692+speedybits@users.noreply.github.com>
+Date:   Wed Nov 13 20:40:29 2024 -0600
+
+    feat: Modify mobile controls and add multiple choice container setup
+
+commit 3d26adb5363a6d4ad897defa8080ceedc13d6067
+Author: speedybits (aider) <57099692+speedybits@users.noreply.github.com>
+Date:   Wed Nov 13 20:40:14 2024 -0600
+
+    fix: Resolve mobile mode and multiple choice rendering issues
+
+commit b3a3c140ce2c0019363feaef5a827d8acc911112
+Author: speedybits (aider) <57099692+speedybits@users.noreply.github.com>
+Date:   Wed Nov 13 20:38:55 2024 -0600
+
+    fix: Resolve mobile mode and touch interaction issues in Math Invaders
+
+commit d83d69d3617672c255970bfd6020f127e622e47d
+Author: speedybits (aider) <57099692+speedybits@users.noreply.github.com>
+Date:   Wed Nov 13 20:37:56 2024 -0600
+
+    feat: Add step definitions for cannon movement and alien interactions
+
+commit 5d2530eb08546931975749d7540f8af1cb414abd
+Author: speedybits (aider) <57099692+speedybits@users.noreply.github.com>
+Date:   Wed Nov 13 20:37:36 2024 -0600
+
+    fix: Resolve mobile touch event and step definition issues
+
+commit a2a740dc89e5c3bbe1ac333aa29adf121310666f
+Author: speedybits (aider) <57099692+speedybits@users.noreply.github.com>
+Date:   Wed Nov 13 20:36:30 2024 -0600
+
+    refactor: Fix Cucumber feature file structure for mobile scenarios
+
+commit 7a6cb3fc3e47b4027529764b7ca5ea7226523dcd
+Author: speedybits (aider) <57099692+speedybits@users.noreply.github.com>
+Date:   Wed Nov 13 19:56:57 2024 -0600
+
+    feat: Add mobile controls and multiple choice support for touch devices
+
+commit edb4ff20cba6a50c15cb588b3fd52957615da43e
+Author: speedybits (aider) <57099692+speedybits@users.noreply.github.com>
+Date:   Wed Nov 13 19:56:34 2024 -0600
+
+    fix: Add mobile support with touch controls and multiple choice mode
+
+commit 93cedb22077579c68de8750a4b455bcb6e0bb37f
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Wed Nov 13 19:26:26 2024 -0600
+
+    High score changes
+
+commit 0bc3053b978c258ea504b96077589c693f6ab304
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Wed Nov 13 19:25:03 2024 -0600
+
+    Asteroids tests passing
+
+commit 8f1009839d2419c1509de033731a6633100275d6
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Wed Nov 13 07:16:44 2024 -0600
+
+    Removed debug
+
+commit 0003ad3a2205c77192b1e3942aa93297768e44f9
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Wed Nov 13 07:11:36 2024 -0600
+
+    Remove unneeded features for high score name checks
+
+commit a6b9117a3b62472be5ade68161faa111045fd16c
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Wed Nov 13 07:03:59 2024 -0600
+
+    @input_length_validation working
+
+commit 47b04d62ce9f9aa63c5ec52e04a3187a4b1aea7d
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Wed Nov 13 07:00:37 2024 -0600
+
+    Fixed another delay
+
+commit a1b7f285bd8bfe2a59a13ae46256c4bc58a65ef3
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Wed Nov 13 06:44:40 2024 -0600
+
+    Fix for long delay in middle of test
+
+commit 894f1adb8887a1227a37a90bcebae73d2d13069f
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Tue Nov 12 21:03:59 2024 -0600
+
+    Asteroids tests pass, but incomplete
+
+commit b0af3b903aa29ffbb753d0e3f490be4e098d86e1
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Tue Nov 12 20:28:25 2024 -0600
+
+    Tests are WIP
+
+commit 074b3015e1c1290c43fc6534bebe0eb6569db794
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Mon Nov 11 21:59:03 2024 -0600
+
+    Tests are WIP
+
+commit 08408f6f12130ee960797631554e9132b1b67502
+Author: speedybits (aider) <57099692+speedybits@users.noreply.github.com>
+Date:   Mon Nov 11 12:30:19 2024 -0600
+
+    I'll help you create the HOWTO.txt file with instructions for running the tests. Here's a comprehensive guide:
+    
+    ```
+    Running Math Games Tests
+    =======================
+    
+    Prerequisites:
+    - Node.js installed (version 18+ recommended)
+    - npm dependencies installed
+    - Playwright browsers installed
+    
+    Setup
+    -----
+    1. Clone the repository
+    2. Install dependencies:
+       npm install
+    
+    3. Install Playwright browsers:
+       npx playwright install chromium
+    
+    Running Tests
+    -------------
+    1. Math Invaders Tests:
+       npx cucumber-js --profile invaders
+    
+    2. Math Asteroids Tests:
+       npx cucumber-js --profile asteroids
+    
+    3. Run All Tests:
+       npx cucumber-js
+    
+    Test Configuration
+    -----------------
+    - Test profiles are defined in cucumber.js configuration
+    - Cucumber.js uses Playwright for browser automation
+    - Tests require a local development server running
+    
+    Troubleshooting
+    ---------------
+    - Ensure local server is running on port 8080
+    - Check Node.js and npm versions
+    - Reinstall Playwright:
+      npx playwright install chromium
+    
+    Test Reports
+    ------------
+    - HTML and JSON reports generated automatically
+    - Check project root for report files after test run
+    
+    Common Issues
+    -------------
+    - Browser launch failures: Update Playwright
+    - Undefined steps: Implement missing step definitions
+    - Network issues: Check server connectivity
+    ```
+    
+    Would you like me to commit this file to the repository?
+
+commit f3d19504ec9124d0e0f67261dd653d7e5024b51f
+Author: speedybits (aider) <57099692+speedybits@users.noreply.github.com>
+Date:   Mon Nov 11 12:17:12 2024 -0600
+
+    Here's a commit message for this change:
+    
+    ```
+    feat: Add separate test profiles for Math Asteroids and Math Invaders
+    ```
+    
+    Would you like me to help you add the appropriate tags to your feature files to match the new configuration?
+
+commit 6c0151159b4022edba595a734b78b0621d9e2815
+Author: speedybits (aider) <57099692+speedybits@users.noreply.github.com>
+Date:   Mon Nov 11 11:02:17 2024 -0600
+
+    Based on the diff, I'll generate a concise commit message:
+    
+    feat: Add Cucumber step definitions for Math Asteroids game testing
+
+commit e2e57a157eca6fa845d9f2dcd54974836ecfc391
+Author: speedybits (aider) <57099692+speedybits@users.noreply.github.com>
+Date:   Mon Nov 11 10:57:03 2024 -0600
+
+    chore: Update Playwright After hook to safely close browser
+
+commit 553b1f952ecc5fabf34b5027ada07741b1b82c22
+Author: speedybits (aider) <57099692+speedybits@users.noreply.github.com>
+Date:   Mon Nov 11 10:51:27 2024 -0600
+
+    test: Add Cucumber testing setup for Math Invaders game
+
+commit 450bdbe3027a5ef983916203cd09eee80e5137e0
+Author: speedybits (aider) <57099692+speedybits@users.noreply.github.com>
+Date:   Mon Nov 11 10:41:54 2024 -0600
+
+    test: Update Math Asteroids feature file to align with documentation
+
+commit 9c974895d13d98f859ccd3119aa8f601b496c1e8
+Author: speedybits (aider) <57099692+speedybits@users.noreply.github.com>
+Date:   Mon Nov 11 10:39:46 2024 -0600
+
+    test: Update Math Invaders feature file to align with documentation
+
+commit 3682246fb8cc9d6e2283dd2ca860c2bca1f7bdc6
+Author: speedybits (aider) <57099692+speedybits@users.noreply.github.com>
+Date:   Mon Nov 11 09:58:45 2024 -0600
+
+    docs: Add comprehensive markdown documentation for Math Asteroids game
+
+commit 929d78c7b3a1d9e176c13e9eb2701c615d2cb483
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Mon Nov 11 09:54:54 2024 -0600
+
+    docs: Add comprehensive markdown description for Math Asteroids game
+
+commit b657364469b030158326d4614dfb41fbc42782c1
+Author: speedybits (aider) <57099692+speedybits@users.noreply.github.com>
+Date:   Mon Nov 11 09:53:15 2024 -0600
+
+    docs: Add comprehensive markdown description for Math Invaders game
+
+commit 03cffc72a2a74c0e4dbadf2a6e79b750e4e2fe8f
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Mon Nov 11 09:53:13 2024 -0600
+
+    docs: Add math_invaders.md documentation file
+
+commit 0a0e0e96b56eed4fe3b8365a79bab968ac3b3351
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Sat Nov 2 20:36:21 2024 -0500
+
+    Undo mobile changes that broke the PC version
+
+commit d9512d74e989909d885a0cee7964fd9f2f9fc8b7
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Sat Nov 2 18:13:49 2024 -0500
+
+    Try to use full screen on mobile
+
+commit d48485b61726ad4813d2e37cfb0d3498654d0b3f
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Sat Nov 2 18:07:11 2024 -0500
+
+    Launch chrome with developer pane
+
+commit b2327b7e904a38e628b5a13eb0fefaddd2ac1c1f
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Sat Nov 2 18:06:58 2024 -0500
+
+    More fixes for mobile
+
+commit adbbcb331509c9587603166dc5592c5a34a7771b
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Sat Nov 2 17:39:43 2024 -0500
+
+    Fix for mobile
+
+commit f766c80f006e7558f27ba51c9fbb3a6fdf12333e
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Sat Nov 2 17:32:56 2024 -0500
+
+    Initial changes to support mobile
+
+commit 503c1e93080b46eedfb858086f250b23ec8b549d
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Sat Nov 2 17:05:50 2024 -0500
+
+    Change email to thinkstormllc
+
+commit 793d5bbde7c402ccf9fe6c5c6fd7b48d0e03db61
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Fri Nov 1 19:55:43 2024 -0500
+
+    Ship starts in middle with safe zone around it.
+
+commit bf53cb3230eb98429d7a31c471986d2425b431e5
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Fri Nov 1 19:51:57 2024 -0500
+
+    Fix for math facts speeding up unexpectedly after 1st game
+
+commit 6398ab795beb821b6aad2a9af16c18fd856bbcac
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Fri Nov 1 19:44:12 2024 -0500
+
+    Test formsubmit
+
+commit 2e2555ae039ba42c614b90487a3b86768a543639
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Fri Nov 1 18:48:35 2024 -0500
+
+    Enhancements to orange color and right/wrong answer
+
+commit 3396292b6c2bf5ff311277650808332c6e3466bc
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Fri Nov 1 18:40:28 2024 -0500
+
+    Use dedicated local storage for math invaders high scores
+
+commit a67f7937563ba483f9a2ccc8bcbdc69601adae89
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Fri Nov 1 18:37:24 2024 -0500
+
+    Heuristic and orange color for challenging math facts.
+
+commit 2c19363b819111bc017a49f6a8d1e5676e80ccda
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Fri Nov 1 17:58:27 2024 -0500
+
+    Wrong answer heuristic with different color for asteroids with missed facts
+
+commit 3c5b51cab07fef0a27e7f38247cf70a4e24145df
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Fri Nov 1 17:43:33 2024 -0500
+
+    Clear buffer on incorrect answer
+
+commit cb37fb2e3ed1715986ab76296a96198ef3cb2e2b
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Fri Nov 1 17:34:12 2024 -0500
+
+    Added high score screen
+
+commit 31ebf6c1ba940e5c565348f4f2287c5f80e245bf
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Tue Oct 29 18:32:39 2024 -0500
+
+    At least 1 point for all correct answers.
+
+commit 57e729ed0941784a19cf1fcbcd3f257366471bb0
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Mon Oct 28 08:20:30 2024 -0500
+
+    Launch index.html
+
+commit 014a1ad92c43e26d7d02dce29ed0871efa8e127e
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Sun Oct 27 19:37:36 2024 -0500
+
+    Remove paypal
+
+commit bcdd5dc7c88fc74205002d720274548a7f4eac5f
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Sun Oct 27 19:26:59 2024 -0500
+
+    High scores working!
+
+commit c4aacbed30977650fb619326b94a72719461416f
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Sun Oct 27 19:19:27 2024 -0500
+
+    Fixes from o1-mini
+
+commit 025b017b5e5af9878109fe3ce2be2d79fb5a2b74
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Sun Oct 27 18:55:46 2024 -0500
+
+    In process of fixing High Scores
+
+commit e6c13abad86583e1c39f4fc4eb40992209593af6
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Sun Oct 27 10:31:59 2024 -0500
+
+    Add high score with initials. Down arrow key functionality.
+
+commit bda0b619a866d10e6a98327819ff213844dfc9ad
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Sun Oct 27 10:25:33 2024 -0500
+
+    Math facts increase in difficulty and speed
+
+commit 9e33bbaf3a7e508e207024ff2119ac3809023805
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Sat Oct 26 22:22:15 2024 -0500
+
+    Game over screen working
+
+commit e938085ed2e099d267e7a68d0ea232b30b791024
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Sat Oct 26 12:08:17 2024 -0500
+
+    Start screen
+
+commit e34f1255c5983298b5239662c6ca9f5328088b1b
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Sat Oct 26 11:58:50 2024 -0500
+
+    Black text inside asteroid
+
+commit 789af557334ddd930d271d6e1853d70cfcad108b
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Sat Oct 26 11:56:50 2024 -0500
+
+    Venmo works
+
+commit f9926197f93b6ccd56af6bacc04838bb26e5941b
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Sat Oct 26 11:54:35 2024 -0500
+
+    Better looking cannon
+
+commit 9d015a391c46affe6a930375311ba90c7ca68d31
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Sat Oct 26 09:19:32 2024 -0500
+
+    Answer is 'fired' at the problem
+
+commit 02028a1de50e8f8d1ba081429f7d5ab73074d042
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Fri Oct 25 21:38:19 2024 -0500
+
+    Added Paypal & Venmo buttons
+
+commit c663001fa5ba0672cf8a7946d6b51040409d27ac
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Fri Oct 25 21:29:17 2024 -0500
+
+    Adjusted gap between facts
+
+commit c3b08068ad19a53d8750b24ef1370ba2ecfab63b
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Fri Oct 25 21:26:10 2024 -0500
+
+    Game over working
+
+commit 370ec69f85cc9b3fcf71707b46b6f33dc98d8c9e
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Fri Oct 25 21:23:56 2024 -0500
+
+    Game doesn't end yet, but high score works and math facts are smooth.
+
+commit e10ca2a0ff7fa28c52c06cc64ab8e74c80df0ce7
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Fri Oct 25 20:40:16 2024 -0500
+
+    Moved start button
+
+commit fb92934df8884657911482c7b195c4d8311815d6
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Fri Oct 25 18:16:10 2024 -0500
+
+    Game select screen. Start button.
+
+commit eeca3eae7ca3a3f214d671057ce42224166545b6
+Author: speedybits <57099692+speedybits@users.noreply.github.com>
+Date:   Fri Oct 25 17:23:47 2024 -0500
+
+    Initial version
