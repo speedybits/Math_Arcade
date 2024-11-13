@@ -12,38 +12,25 @@ let testCompleted = false;
 
 Before(async function () {
     try {
-        console.log('Step 1: Launching browser...');
         browser = await puppeteer.launch({
             headless: 'new',
             args: ['--no-sandbox', '--disable-setuid-sandbox'],
-            timeout: 5000 // Add browser launch timeout
+            timeout: 5000
         });
         
-        console.log('Step 2: Creating new page...');
         page = await browser.newPage();
-        
-        console.log('Step 3: Setting viewport...');
         await page.setViewport({ width: 1280, height: 720 });
-        
-        console.log('Step 4: Setting default navigation timeout...');
         page.setDefaultNavigationTimeout(5000);
         
-        console.log('Step 5: Attempting to navigate to page...');
         try {
             await page.goto('http://localhost:8080/math_invaders.html', {
                 waitUntil: 'domcontentloaded',
                 timeout: 5000
             });
         } catch (navError) {
-            console.error('Navigation error:', navError);
             throw navError;
         }
         
-        console.log('Step 6: Checking if page is loaded...');
-        const pageTitle = await page.title().catch(e => 'Unable to get title');
-        console.log('Page title:', pageTitle);
-        
-        console.log('Step 7: Waiting for start button...');
         try {
             await page.waitForSelector('#startButton', { 
                 timeout: 5000,
@@ -51,27 +38,18 @@ Before(async function () {
                 polling: 100
             });
         } catch (selectorError) {
-            console.error('Selector error:', selectorError);
-            // Take a screenshot and dump HTML if selector fails
             await page.screenshot({ path: 'selector-error.png' });
-            const html = await page.content();
-            console.log('Page HTML:', html);
             throw selectorError;
         }
         
-        console.log('Step 8: Start button found successfully');
-        
     } catch (error) {
-        console.error('Setup failed at step:', error);
         if (page) {
-            console.log('Current URL:', await page.url().catch(() => 'Unable to get URL'));
-            await page.screenshot({ path: 'error-screenshot.png' }).catch(() => console.log('Unable to take screenshot'));
+            await page.screenshot({ path: 'error-screenshot.png' }).catch(() => {});
         }
         throw error;
     }
     
     gameStartTime = Date.now();
-    console.log('Step 9: Setup complete, gameStartTime set to:', gameStartTime);
 });
 
 After(async function () {
@@ -180,10 +158,6 @@ Given('I have played for more than {int} seconds', async function (seconds) {
 
 When('I generate a multiplication problem', async function () {
     try {
-        console.log('Step 1: Starting problem generation...');
-        
-        // Recreate the page
-        console.log('Step 2: Recreating page...');
         if (page) {
             await page.close();
         }
@@ -194,12 +168,8 @@ When('I generate a multiplication problem', async function () {
             timeout: 5000
         });
         
-        // Use CDP session
-        console.log('Step 3: Creating CDP session...');
         const client = await page.target().createCDPSession();
         
-        // Execute script
-        console.log('Step 4: Executing script...');
         await client.send('Runtime.evaluate', {
             expression: `
                 window.activeAliens = window.activeAliens || [];
@@ -212,18 +182,13 @@ When('I generate a multiplication problem', async function () {
                 window.activeAliens.length;
             `
         });
-        
-        console.log('Step 5: Alien created successfully');
-        
     } catch (error) {
-        console.error('Problem generation error:', error);
         throw error;
     }
 });
 
 Then('I should see a problem with two numbers', async function () {
     try {
-        console.log('Step 1: Checking for problem...');
         const client = await page.target().createCDPSession();
         
         const result = await client.send('Runtime.evaluate', {
@@ -237,35 +202,19 @@ Then('I should see a problem with two numbers', async function () {
             `
         });
         
-        // Parse the stringified result
         const checkResult = JSON.parse(result.result.value);
-        console.log('Step 2: Check result:', checkResult);
         
         if (!checkResult.hasAliens) {
             throw new Error('No aliens found in game state');
         }
         
-        // Verify the alien has the required properties
         if (!checkResult.firstAlien || 
             typeof checkResult.firstAlien.factor1 !== 'number' || 
             typeof checkResult.firstAlien.factor2 !== 'number') {
             throw new Error('Alien does not have required properties');
         }
         
-        console.log('Step 3: Problem verification successful');
-        
     } catch (error) {
-        console.error('Problem check error:', error);
-        // Get current state for debugging
-        try {
-            const client = await page.target().createCDPSession();
-            const debug = await client.send('Runtime.evaluate', {
-                expression: 'JSON.stringify({ activeAliens: window.activeAliens })'
-            });
-            console.log('Debug state:', JSON.parse(debug.result.value));
-        } catch (debugError) {
-            console.error('Debug error:', debugError);
-        }
         throw error;
     }
 });
@@ -297,55 +246,40 @@ Given('I have previously missed the problem {string}', async function (problem) 
 });
 
 When('this problem appears again', async function () {
-    try {
-        console.log('Step 1: Making problem appear...');
-        
-        // Get the last problem from the World object
-        const [factor1, factor2] = this.lastProblem.split('×').map(n => parseInt(n.trim()));
-        console.log('Last missed problem:', { factor1, factor2 });
+    const [factor1, factor2] = this.lastProblem.split('×').map(n => parseInt(n.trim()));
 
-        // Force spawn this specific problem with missed properties
-        await page.evaluate(({ f1, f2 }) => {
-            window.activeAliens = [];  // Clear existing aliens
-            const alienElement = document.createElement('div');
-            alienElement.className = 'alien missed';
-            alienElement.style.backgroundColor = 'orange'; // Explicitly set color
-            
-            const alien = {
-                factor1: f1,
-                factor2: f2,
-                x: 100,
-                y: 0,
-                isMissed: true,  // Make sure this is set
-                element: alienElement
-            };
-            
-            alienElement.textContent = `${f1} × ${f2}`;
-            document.body.appendChild(alienElement);
-            window.activeAliens.push(alien);
-            
-            return {
-                success: true,
-                alienCount: window.activeAliens.length,
-                newAlien: {
-                    ...alien,
-                    element: undefined  // Don't try to stringify DOM element
-                }
-            };
-        }, { f1: factor1, f2: factor2 });
+    await page.evaluate(({ f1, f2 }) => {
+        window.activeAliens = [];
+        const alienElement = document.createElement('div');
+        alienElement.className = 'alien missed';
+        alienElement.style.backgroundColor = 'orange';
         
-        console.log('Step 2: Problem spawned');
-
-    } catch (error) {
-        console.error('Error making problem appear:', error);
-        throw error;
-    }
+        const alien = {
+            factor1: f1,
+            factor2: f2,
+            x: 100,
+            y: 0,
+            isMissed: true,
+            element: alienElement
+        };
+        
+        alienElement.textContent = `${f1} × ${f2}`;
+        document.body.appendChild(alienElement);
+        window.activeAliens.push(alien);
+        
+        return {
+            success: true,
+            alienCount: window.activeAliens.length,
+            newAlien: {
+                ...alien,
+                element: undefined
+            }
+        };
+    }, { f1: factor1, f2: factor2 });
 });
 
 Then('it should be displayed as an orange alien', async function () {
     try {
-        console.log('Step 1: Checking alien appearance...');
-        
         const result = await page.evaluate(() => {
             const alien = window.activeAliens[0];
             return {
@@ -355,8 +289,6 @@ Then('it should be displayed as an orange alien', async function () {
                 problem: alien ? `${alien.factor1} × ${alien.factor2}` : 'none'
             };
         });
-        
-        console.log('Alien check result:', result);
         
         if (!result.exists || !result.isMissed || !result.hasMissedClass) {
             throw new Error(`Alien not properly marked as missed: ${JSON.stringify(result)}`);
@@ -370,8 +302,6 @@ Then('it should be displayed as an orange alien', async function () {
 
 Then('solving it correctly should give double points', async function () {
     try {
-        console.log('Step 1: Simulating correct solution...');
-        
         const result = await page.evaluate(() => {
             const alien = window.activeAliens[0];
             const basePoints = alien.factor1 * alien.factor2;
@@ -387,8 +317,6 @@ Then('solving it correctly should give double points', async function () {
                 totalScore: window.score
             };
         });
-        
-        console.log('Points calculation:', result);
         
         if (result.doublePoints !== result.basePoints * 2) {
             throw new Error('Points were not doubled correctly');
