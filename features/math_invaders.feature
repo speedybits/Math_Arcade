@@ -25,6 +25,7 @@ Feature: Math Invaders Game
     Then I should see a problem with two numbers
     And the numbers should be between 0 and 9
 
+  @learning_optimization
   Scenario: Learning optimization for missed problems
     Given I am playing Math Invaders
     And I have previously missed the problem "6 × 7"
@@ -48,3 +49,22 @@ Feature: Math Invaders Game
     Given I am playing Math Invaders
     When I press the down arrow
     Then the aliens should descend 4 times faster
+
+  @input_length_validation
+  Scenario: Input length validation
+    Given I am playing Math Invaders
+    When I enter an answer longer than 5 digits
+    Then the input should be truncated to 5 digits
+    And I should see a warning message
+
+  @high_score_initials_validation
+  Scenario: High score initials validation
+    Given I am playing Math Invaders
+    When I try to submit a high score with invalid initials "123"
+    Then the score submission should be rejected
+    And I should be prompted to enter valid initials
+
+  @high_score_special_characters_validation
+  Scenario: High score special characters validation
+    Given I am playing Math Invaders
+    When I try to submit a high score with special characters "@#$"

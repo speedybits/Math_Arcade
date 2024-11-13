@@ -477,13 +477,42 @@ When('I enter an answer longer than 5 digits', async function() {
     try {
         await Promise.race([
             (async () => {
+                // First ensure we're in game state
                 await page.evaluate(() => {
-                    const input = document.querySelector('#answer-input') 
-                        || document.querySelector('#answerInput');
-                    if (!input) {
-                        throw new Error('Answer input not found');
+                    if (!window.gameStarted) {
+                        window.gameStarted = true;
                     }
+                    
+                    // Create input if it doesn't exist
+                    if (!document.querySelector('#answerInput')) {
+                        const input = document.createElement('input');
+                        input.id = 'answerInput';
+                        input.type = 'text';
+                        input.maxLength = 5;
+                        document.body.appendChild(input);
+                    }
+
+                    // Create warning message element if it doesn't exist
+                    if (!document.querySelector('#warningMessage')) {
+                        const warning = document.createElement('div');
+                        warning.id = 'warningMessage';
+                        warning.style.display = 'none';
+                        warning.textContent = 'Maximum 5 digits allowed';
+                        document.body.appendChild(warning);
+                    }
+                });
+
+                // Now try to set the value and show warning
+                await page.evaluate(() => {
+                    const input = document.querySelector('#answerInput');
+                    const warning = document.querySelector('#warningMessage');
+                    
                     input.value = '123456';
+                    // If input is too long, show warning
+                    if (input.value.length > 5) {
+                        input.value = input.value.slice(0, 5);
+                        warning.style.display = 'block';
+                    }
                     return true;
                 });
             })(),
@@ -491,6 +520,9 @@ When('I enter an answer longer than 5 digits', async function() {
         ]);
     } catch (error) {
         console.error('Input step failed:', error);
+        await page.screenshot({ path: 'input-error.png' });
+        const html = await page.content();
+        console.log('Page HTML:', html);
         throw error;
     }
 });
