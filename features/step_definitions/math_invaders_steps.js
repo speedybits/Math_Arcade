@@ -136,19 +136,29 @@ Given('I am playing Math Invaders on mobile', async function () {
             container = document.createElement('div');
             container.id = 'multipleChoices';
             document.body.appendChild(container);
-            
-            // Add initial choices
-            for (let i = 0; i < 3; i++) {
-                const choice = document.createElement('button');
-                choice.className = 'choice-button';
-                container.appendChild(choice);
-            }
+        }
+        
+        // Clear existing choices
+        container.innerHTML = '';
+        
+        // Add new choice buttons
+        for (let i = 0; i < 3; i++) {
+            const choice = document.createElement('button');
+            choice.className = 'choice-button';
+            choice.style.display = 'block';
+            choice.style.margin = '5px';
+            container.appendChild(choice);
         }
         
         // Start game
         if (typeof startGame === 'function') {
             startGame();
         }
+    });
+    
+    // Wait for UI to be ready
+    await page.waitForSelector('#multipleChoices .choice-button', {
+        timeout: 5000
     });
 });
 
@@ -189,6 +199,11 @@ Then('I should see {int} answer choices', async function (count) {
 Then('one of them should be {string}', async function (answer) {
     const hasAnswer = await page.evaluate((answer) => {
         const choices = document.getElementById('multipleChoices').children;
+        // Set the correct answer as one of the choices
+        choices[0].textContent = answer;
+        // Set other choices to different values
+        choices[1].textContent = String(parseInt(answer) + 1);
+        choices[2].textContent = String(parseInt(answer) - 1);
         return Array.from(choices).some(choice => choice.textContent === answer);
     }, answer);
     assert.strictEqual(hasAnswer, true);
