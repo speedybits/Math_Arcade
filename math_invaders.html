@@ -244,6 +244,63 @@
             return true;
         };
 
+        function setupMobileControls() {
+            canvas.addEventListener('touchstart', handleTouch);
+            const choicesContainer = document.createElement('div');
+            choicesContainer.id = 'multipleChoices';
+            document.body.appendChild(choicesContainer);
+        }
+
+        function handleTouch(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            const x = touch.clientX - rect.left;
+            
+            if (x < rect.width / 2) {
+                moveCannon('left');
+            } else {
+                moveCannon('right');
+            }
+        }
+
+        function generateMultipleChoices(correctAnswer) {
+            const choices = [correctAnswer];
+            while (choices.length < 3) {
+                const wrong = correctAnswer + Math.floor(Math.random() * 21) - 10;
+                if (wrong > 0 && !choices.includes(wrong)) {
+                    choices.push(wrong);
+                }
+            }
+            return choices.sort(() => Math.random() - 0.5);
+        }
+
+        function updateMultipleChoices() {
+            if (!isMobileDevice) return;
+            
+            const choicesContainer = document.getElementById('multipleChoices');
+            choicesContainer.innerHTML = '';
+            
+            const targetAlien = activeAliens.find(alien => 
+                Math.abs(alien.x - POSITION_COORDS[currentCannonPosition]) < 20
+            );
+            
+            if (targetAlien) {
+                const correctAnswer = targetAlien.factor1 * targetAlien.factor2;
+                multipleChoiceAnswers = generateMultipleChoices(correctAnswer);
+                
+                multipleChoiceAnswers.forEach(answer => {
+                    const button = document.createElement('button');
+                    button.textContent = answer;
+                    button.onclick = () => {
+                        inputAnswer = answer.toString();
+                        shootAnswer();
+                    };
+                    choicesContainer.appendChild(button);
+                });
+            }
+        }
+
         function startGame() {
             gameStarted = true;
             score = 0;
