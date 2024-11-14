@@ -278,40 +278,67 @@ Then('one of them should be {string}', async function (answer) {
 
 When('I tap the correct answer', async function () {
     await page.evaluate(() => {
-        const choices = document.getElementById('multipleChoices').children;
-        const correctChoice = choices[window.correctAnswerIndex];
-        
-        // Simulate touch events for mobile
-        const rect = correctChoice.getBoundingClientRect();
-        const touch = new Touch({
-            identifier: Date.now(),
-            target: correctChoice,
-            clientX: rect.left + rect.width / 2,
-            clientY: rect.top + rect.height / 2,
-            radiusX: 2.5,
-            radiusY: 2.5,
-            rotationAngle: 0,
-            force: 0.5
-        });
-        
-        // Send touch events sequence
-        ['touchstart', 'touchend'].forEach(eventType => {
-            const touchEvent = new TouchEvent(eventType, {
+        return new Promise((resolve) => {
+            const choices = document.getElementById('multipleChoices').children;
+            const correctChoice = choices[window.correctAnswerIndex];
+            
+            if (!correctChoice) {
+                throw new Error('Could not find correct choice button');
+            }
+            
+            // Visual feedback
+            correctChoice.style.backgroundColor = '#45a049';
+            correctChoice.style.transform = 'scale(0.95)';
+            
+            // Simulate touch events for mobile
+            const rect = correctChoice.getBoundingClientRect();
+            const touch = new Touch({
+                identifier: Date.now(),
+                target: correctChoice,
+                clientX: rect.left + rect.width / 2,
+                clientY: rect.top + rect.height / 2,
+                radiusX: 2.5,
+                radiusY: 2.5,
+                rotationAngle: 0,
+                force: 0.5
+            });
+            
+            // Send touch events sequence with proper timing
+            const touchstart = new TouchEvent('touchstart', {
                 bubbles: true,
                 cancelable: true,
-                touches: eventType === 'touchend' ? [] : [touch],
-                targetTouches: eventType === 'touchend' ? [] : [touch],
+                touches: [touch],
+                targetTouches: [touch],
                 changedTouches: [touch]
             });
-            correctChoice.dispatchEvent(touchEvent);
+            
+            const touchend = new TouchEvent('touchend', {
+                bubbles: true,
+                cancelable: true,
+                touches: [],
+                targetTouches: [],
+                changedTouches: [touch]
+            });
+            
+            correctChoice.dispatchEvent(touchstart);
+            
+            // Add slight delay between events
+            setTimeout(() => {
+                correctChoice.dispatchEvent(touchend);
+                correctChoice.click(); // For compatibility
+                
+                // Reset button style
+                setTimeout(() => {
+                    correctChoice.style.backgroundColor = '#4CAF50';
+                    correctChoice.style.transform = 'scale(1)';
+                    resolve(true);
+                }, 100);
+            }, 50);
         });
-        
-        // Also trigger click for compatibility
-        correctChoice.click();
     });
     
-    // Wait for any animations or state updates
-    await page.waitForTimeout(100);
+    // Wait for animations and state updates
+    await page.waitForTimeout(200);
 });
 
 After(async function () {
