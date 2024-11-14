@@ -247,15 +247,17 @@
         function setupMobileControls() {
             canvas.addEventListener('touchstart', handleTouch);
     
-            // Create multiple choice container if it doesn't exist
-            let choicesContainer = document.getElementById('multipleChoices');
-            if (!choicesContainer) {
-                choicesContainer = document.createElement('div');
-                choicesContainer.id = 'multipleChoices';
-                document.body.appendChild(choicesContainer);
+            // Always create a fresh multiple choice container
+            const existingContainer = document.getElementById('multipleChoices');
+            if (existingContainer) {
+                existingContainer.remove();
             }
     
-            // Initialize with some choices
+            const choicesContainer = document.createElement('div');
+            choicesContainer.id = 'multipleChoices';
+            document.body.appendChild(choicesContainer);
+    
+            // Initialize with choices
             updateMultipleChoices();
         }
 
@@ -271,6 +273,9 @@
                 currentCannonPosition = 'right';
             }
             render(); // Re-render to show cannon movement
+    
+            // Update multiple choice answers after movement
+            updateMultipleChoices();
         }
 
         function generateMultipleChoices(correctAnswer) {
