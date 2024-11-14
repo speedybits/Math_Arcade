@@ -697,9 +697,14 @@
             displayHighScores();
             
             window.isMobileDevice = true; // Force mobile mode for testing
+            setupMobileControls(); // Always setup mobile controls in test mode
             
-            if (isMobileDevice) {
-                setupMobileControls();
+            // Create multiple choice container if needed
+            if (!document.getElementById('multipleChoices')) {
+                const choicesContainer = document.createElement('div');
+                choicesContainer.id = 'multipleChoices';
+                document.body.appendChild(choicesContainer);
+                updateMultipleChoices();
             }
             
             // Hide the "Game Over" text initially
