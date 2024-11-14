@@ -389,20 +389,10 @@ After(async function () {
 Given('I am playing Math Invaders', async function () {
     this.context = this.context || {};
     try {
-        // Wait for start button with retry
-        const maxRetries = 3;
-        for (let i = 0; i < maxRetries; i++) {
-            try {
-                await page.waitForSelector('#startButton', { 
-                    visible: true,
-                    timeout: 2000
-                });
-                break;
-            } catch (err) {
-                if (i === maxRetries - 1) throw err;
-                await page.reload();
-            }
-        }
+        await page.waitForSelector('#startButton', { 
+            visible: true,
+            timeout: 5000
+        });
 
         // Click start and initialize game state
         await Promise.all([
@@ -686,6 +676,7 @@ Given('I solved a problem correctly', async function () {
         window.score = 0;
         window.lastProblemScore = 0;
         window.gameStarted = true;
+        window.gameStartTime = Date.now();
     });
 });
 
