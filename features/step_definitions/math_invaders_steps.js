@@ -147,41 +147,76 @@ Then('the cannon should fire at the alien', async function () {
 
 Given('I am playing Math Invaders on mobile', async function () {
     await page.evaluate(() => {
+        // Clean up any existing state
+        const oldContainer = document.getElementById('multipleChoices');
+        if (oldContainer) {
+            oldContainer.remove();
+        }
+        
+        // Reset game state
+        window.score = 0;
+        window.activeAliens = [];
+        window.gameStarted = false;
+        
         // Set mobile device flags
         window.ontouchstart = function(){};
         window.navigator.maxTouchPoints = 1;
         window.isMobileDevice = true;
         
-        // Initialize mobile UI
-        let container = document.getElementById('multipleChoices');
-        if (!container) {
-            container = document.createElement('div');
-            container.id = 'multipleChoices';
-            document.body.appendChild(container);
-        }
+        // Initialize mobile UI with improved styling
+        const container = document.createElement('div');
+        container.id = 'multipleChoices';
+        container.style.position = 'fixed';
+        container.style.bottom = '20px';
+        container.style.left = '50%';
+        container.style.transform = 'translateX(-50%)';
+        container.style.display = 'flex';
+        container.style.flexDirection = 'column';
+        container.style.gap = '10px';
+        container.style.zIndex = '1000';
+        document.body.appendChild(container);
         
-        // Clear existing choices
-        container.innerHTML = '';
-        
-        // Add new choice buttons
+        // Add new choice buttons with better styling
         for (let i = 0; i < 3; i++) {
             const choice = document.createElement('button');
             choice.className = 'choice-button';
-            choice.style.display = 'block';
+            choice.style.padding = '15px 30px';
+            choice.style.fontSize = '20px';
             choice.style.margin = '5px';
+            choice.style.borderRadius = '8px';
+            choice.style.backgroundColor = '#4CAF50';
+            choice.style.color = 'white';
+            choice.style.border = 'none';
+            choice.style.cursor = 'pointer';
+            choice.style.transition = 'transform 0.1s, background-color 0.2s';
+            choice.style.userSelect = 'none';
+            choice.style.touchAction = 'manipulation';
             container.appendChild(choice);
         }
         
-        // Start game
-        if (typeof startGame === 'function') {
+        // Start game if not already started
+        if (typeof startGame === 'function' && !window.gameStarted) {
             startGame();
         }
+        
+        return true;
     });
     
-    // Wait for UI to be ready
-    await page.waitForSelector('#multipleChoices .choice-button', {
-        timeout: 5000
-    });
+    // Wait for UI to be ready with retry
+    let retries = 3;
+    while (retries > 0) {
+        try {
+            await page.waitForSelector('#multipleChoices .choice-button', {
+                visible: true,
+                timeout: 2000
+            });
+            break;
+        } catch (err) {
+            retries--;
+            if (retries === 0) throw err;
+            await page.waitForTimeout(500);
+        }
+    }
 });
 
 When('I tap the {word} side of the screen', async function (side) {
