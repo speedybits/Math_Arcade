@@ -91,9 +91,23 @@ When('I tap the {word} side of the screen', async function (side) {
         const canvas = document.getElementById('gameCanvas');
         const rect = canvas.getBoundingClientRect();
         const x = side === 'left' ? rect.width * 0.25 : rect.width * 0.75;
+        const touch = new Touch({
+            identifier: Date.now(),
+            target: canvas,
+            clientX: x + rect.left,
+            clientY: rect.top + rect.height / 2,
+            radiusX: 2.5,
+            radiusY: 2.5,
+            rotationAngle: 0,
+            force: 0.5
+        });
+        
         const touchEvent = new TouchEvent('touchstart', {
             bubbles: true,
-            touches: [{ clientX: x + rect.left }]
+            cancelable: true,
+            touches: [touch],
+            targetTouches: [touch],
+            changedTouches: [touch]
         });
         canvas.dispatchEvent(touchEvent);
     }, side);
