@@ -219,46 +219,99 @@ Then('I should see {int} answer choices', async function (count) {
 });
 
 Then('one of them should be {string}', async function (answer) {
-    const hasAnswer = await page.evaluate((answer) => {
+    const hasAnswer = await page.evaluate((correctAnswer) => {
         const choices = document.getElementById('multipleChoices').children;
-        const correctAnswer = parseInt(answer);
+        const correct = parseInt(correctAnswer);
         
-        // Generate wrong answers that are different from correct answer
-        const wrongAnswer1 = correctAnswer + Math.floor(Math.random() * 5) + 1;
-        const wrongAnswer2 = Math.max(0, correctAnswer - (Math.floor(Math.random() * 5) + 1));
+        // Generate distinct wrong answers within reasonable range
+        const generateWrongAnswer = (avoid) => {
+            let wrong;
+            do {
+                // Generate answer within ±10 of correct, but not equal
+                wrong = correct + (Math.floor(Math.random() * 21) - 10);
+            } while (wrong === correct || avoid.includes(wrong) || wrong < 0);
+            return wrong;
+        };
+        
+        const wrongAnswer1 = generateWrongAnswer([correct]);
+        const wrongAnswer2 = generateWrongAnswer([correct, wrongAnswer1]);
         
         // Randomize position of correct answer
-        const answers = [correctAnswer, wrongAnswer1, wrongAnswer2];
+        const answers = [correct, wrongAnswer1, wrongAnswer2];
         for (let i = answers.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [answers[i], answers[j]] = [answers[j], answers[i]];
         }
         
-        // Set button text and store correct index
+        // Update buttons with new styling
         answers.forEach((value, index) => {
-            choices[index].textContent = String(value);
-            if (value === correctAnswer) {
+            const button = choices[index];
+            button.textContent = String(value);
+            button.style.backgroundColor = '#4CAF50';
+            button.style.transform = 'scale(1)';
+            button.style.transition = 'transform 0.1s';
+            
+            // Add hover effect
+            button.onmouseenter = () => button.style.transform = 'scale(1.05)';
+            button.onmouseleave = () => button.style.transform = 'scale(1)';
+            
+            if (value === correct) {
                 window.correctAnswerIndex = index;
             }
         });
         
-        return Array.from(choices).some(choice => choice.textContent === answer);
+        return Array.from(choices).some(choice => choice.textContent === correctAnswer);
     }, answer);
+    
     assert.strictEqual(hasAnswer, true);
     
-    // Wait for buttons to have content
+    // Wait for buttons to be fully styled and interactive
     await page.waitForFunction(() => {
-        return Array.from(document.querySelectorAll('.choice-button'))
-            .every(button => button.textContent.length > 0);
+        const buttons = document.querySelectorAll('.choice-button');
+        return Array.from(buttons).every(button => 
+            button.textContent.length > 0 &&
+            button.style.backgroundColor === 'rgb(76, 175, 80)' &&
+            typeof button.onmouseenter === 'function'
+        );
     }, { timeout: 5000 });
 });
 
 When('I tap the correct answer', async function () {
     await page.evaluate(() => {
         const choices = document.getElementById('multipleChoices').children;
-        const correctChoice = Array.from(choices)[0]; // First choice is correct in test
+        const correctChoice = choices[window.correctAnswerIndex];
+        
+        // Simulate touch events for mobile
+        const rect = correctChoice.getBoundingClientRect();
+        const touch = new Touch({
+            identifier: Date.now(),
+            target: correctChoice,
+            clientX: rect.left + rect.width / 2,
+            clientY: rect.top + rect.height / 2,
+            radiusX: 2.5,
+            radiusY: 2.5,
+            rotationAngle: 0,
+            force: 0.5
+        });
+        
+        // Send touch events sequence
+        ['touchstart', 'touchend'].forEach(eventType => {
+            const touchEvent = new TouchEvent(eventType, {
+                bubbles: true,
+                cancelable: true,
+                touches: eventType === 'touchend' ? [] : [touch],
+                targetTouches: eventType === 'touchend' ? [] : [touch],
+                changedTouches: [touch]
+            });
+            correctChoice.dispatchEvent(touchEvent);
+        });
+        
+        // Also trigger click for compatibility
         correctChoice.click();
     });
+    
+    // Wait for any animations or state updates
+    await page.waitForTimeout(100);
 });
 
 After(async function () {
