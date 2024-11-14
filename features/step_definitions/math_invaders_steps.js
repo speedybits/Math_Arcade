@@ -167,66 +167,67 @@ When('I tap the correct answer', async function () {
 });
 
 After(async function () {
-    if (browser && testCompleted) {
-        await browser.close();
+    try {
+        if (browser) {
+            await browser.close();
+        }
+    } catch (error) {
+        console.error('Error closing browser:', error);
     }
 });
 
 Given('I am playing Math Invaders', async function () {
-    // Set a timeout for the entire step
-    const stepTimeout = 5000;
-    const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Step timeout')), stepTimeout);
-    });
-
     try {
-        await Promise.race([
-            (async () => {
-                // Basic click
-                await page.click('#startButton');
+        // Wait for start button with retry
+        const maxRetries = 3;
+        for (let i = 0; i < maxRetries; i++) {
+            try {
+                await page.waitForSelector('#startButton', { 
+                    visible: true,
+                    timeout: 2000
+                });
+                break;
+            } catch (err) {
+                if (i === maxRetries - 1) throw err;
+                await page.reload();
+            }
+        }
 
-                // Minimal game setup
-                await page.evaluate(() => {
+        // Click start and initialize game state
+        await Promise.all([
+            page.click('#startButton'),
+            page.evaluate(() => {
+                return new Promise((resolve) => {
                     window.gameStarted = true;
+                    window.score = 0;
                     window.activeAliens = [{
                         factor1: 5,
                         factor2: 2,
                         x: 100,
                         y: 0
                     }];
+                    window.missedFacts = [];
+                    window.gameStartTime = Date.now();
+                    
+                    // Clear any existing timers
+                    const highestId = window.setTimeout(() => {}, 0);
+                    for (let i = 0; i <= highestId; i++) {
+                        clearTimeout(i);
+                        clearInterval(i);
+                    }
+                    resolve(true);
                 });
-
-                // Force any pending promises to resolve
-                await page.evaluate(() => Promise.resolve());
-                
-                // Signal step completion
-                return true;
-            })(),
-            timeoutPromise
+            })
         ]);
 
-        // Immediately mark as complete
-        testCompleted = true;
         gameStartTime = Date.now();
-        
-        // Force garbage collection and clear any timers
-        await page.evaluate(() => {
-            window.gc && window.gc();
-            const highestId = window.setTimeout(() => {}, 0);
-            for (let i = 0; i <= highestId; i++) {
-                clearTimeout(i);
-                clearInterval(i);
-            }
-        });
+        testCompleted = true;
 
     } catch (error) {
-        console.error('Step failed:', error);
-        testCompleted = true;
+        console.error('Failed to initialize game:', error);
+        await page.screenshot({ path: 'game-init-error.png' });
         throw error;
     }
-
-    // Force step completion
-    return Promise.resolve();
 });
 
 Given('I have played for less than {int} seconds', async function (seconds) {
