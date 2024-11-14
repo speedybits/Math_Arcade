@@ -56,3 +56,30 @@ Feature: Math Invaders Game
     When I enter an answer longer than 5 digits
     Then the input should be truncated to 5 digits
     And I should see a warning message
+
+  @mobile
+  Feature: Mobile Support for Math Invaders
+    As a mobile player
+    I want to play Math Invaders on my touchscreen device
+    So that I can practice multiplication without needing a keyboard
+
+    Scenario: Detect touchscreen device
+      Given I am using a touchscreen device
+      When I load Math Invaders
+      Then the game should switch to mobile mode
+      And I should see multiple choice answers
+
+    Scenario: Move cannon by tapping
+      Given I am playing Math Invaders on mobile
+      When I tap the left side of the screen
+      Then the cannon should move left
+      When I tap the right side of the screen
+      Then the cannon should move right
+
+    Scenario: Multiple choice answers
+      Given I am playing Math Invaders on mobile
+      And there is an alien with the problem "3 × 4"
+      Then I should see 3 answer choices
+      And one of them should be "12"
+      When I tap the correct answer
+      Then the cannon should fire at the alien

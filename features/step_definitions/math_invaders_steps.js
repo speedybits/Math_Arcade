@@ -52,6 +52,76 @@ Before(async function () {
     gameStartTime = Date.now();
 });
 
+Given('I am using a touchscreen device', async function () {
+    await page.evaluate(() => {
+        window.ontouchstart = function(){};
+        window.navigator.maxTouchPoints = 1;
+    });
+});
+
+When('I load Math Invaders', async function () {
+    await page.reload();
+    await page.waitForSelector('#startButton');
+});
+
+Then('the game should switch to mobile mode', async function () {
+    const isMobile = await page.evaluate(() => window.isMobileDevice);
+    assert.strictEqual(isMobile, true);
+});
+
+Then('I should see multiple choice answers', async function () {
+    const choicesVisible = await page.evaluate(() => {
+        const container = document.getElementById('multipleChoices');
+        return container && container.children.length === 3;
+    });
+    assert.strictEqual(choicesVisible, true);
+});
+
+Given('I am playing Math Invaders on mobile', async function () {
+    await page.evaluate(() => {
+        window.ontouchstart = function(){};
+        window.navigator.maxTouchPoints = 1;
+        window.isMobileDevice = true;
+        startGame();
+    });
+});
+
+When('I tap the {word} side of the screen', async function (side) {
+    await page.evaluate((side) => {
+        const canvas = document.getElementById('gameCanvas');
+        const rect = canvas.getBoundingClientRect();
+        const x = side === 'left' ? rect.width * 0.25 : rect.width * 0.75;
+        const touchEvent = new TouchEvent('touchstart', {
+            bubbles: true,
+            touches: [{ clientX: x + rect.left }]
+        });
+        canvas.dispatchEvent(touchEvent);
+    }, side);
+});
+
+Then('I should see {int} answer choices', async function (count) {
+    const choicesCount = await page.evaluate(() => {
+        return document.getElementById('multipleChoices').children.length;
+    });
+    assert.strictEqual(choicesCount, count);
+});
+
+Then('one of them should be {string}', async function (answer) {
+    const hasAnswer = await page.evaluate((answer) => {
+        const choices = document.getElementById('multipleChoices').children;
+        return Array.from(choices).some(choice => choice.textContent === answer);
+    }, answer);
+    assert.strictEqual(hasAnswer, true);
+});
+
+When('I tap the correct answer', async function () {
+    await page.evaluate(() => {
+        const choices = document.getElementById('multipleChoices').children;
+        const correctChoice = Array.from(choices)[0]; // First choice is correct in test
+        correctChoice.click();
+    });
+});
+
 After(async function () {
     if (browser && testCompleted) {
         await browser.close();
