@@ -102,6 +102,24 @@
             cursor: pointer;
             margin-bottom: 20px;
         }
+        #initials {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            color: #fff;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 5px 10px;
+            border-radius: 5px;
+            display: none;
+        }
+        #initialsPrompt {
+            display: none;
+            color: red;
+            margin-top: 10px;
+            font-size: 16px;
+        }
     </style>
 </head>
 <body>
@@ -119,6 +137,7 @@
             <h3>High Scores</h3>
             <ol id="highScoresList"></ol>
         </div>
+        <div id="initials"></div>
     </div>
 
     <script>
@@ -166,6 +185,31 @@
 
         let missedFacts = JSON.parse(localStorage.getItem('mathInvaders_missedFacts')) || [];
         const MISSED_FACT_MULTIPLIER = 3; // How much to increase exposure when missed
+
+        window.submitHighScore = function(initials) {
+            // Validate initials are exactly 3 letters
+            if (!/^[A-Za-z]{3}$/.test(initials)) {
+                window.lastSubmissionRejected = true;
+                
+                // Create or show the initials prompt
+                let prompt = document.getElementById('initialsPrompt');
+                if (!prompt) {
+                    prompt = document.createElement('div');
+                    prompt.id = 'initialsPrompt';
+                    prompt.style.color = 'red';
+                    prompt.style.textAlign = 'center';
+                    prompt.style.marginTop = '10px';
+                    document.getElementById('mainScreen').appendChild(prompt);
+                }
+                prompt.textContent = 'Please enter exactly 3 letters (A-Z)';
+                prompt.style.display = 'block';
+                
+                return false;
+            }
+            
+            window.lastSubmissionRejected = false;
+            return true;
+        };
 
         function startGame() {
             gameStarted = true;
