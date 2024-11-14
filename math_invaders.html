@@ -682,7 +682,7 @@
             loadHighScores();
             displayHighScores();
             
-            isMobileDevice = ('ontouchstart' in window) || 
+            window.isMobileDevice = ('ontouchstart' in window) || 
                            (navigator.maxTouchPoints > 0) ||
                            (navigator.msMaxTouchPoints > 0);
             

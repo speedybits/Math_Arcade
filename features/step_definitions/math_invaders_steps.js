@@ -77,6 +77,36 @@ Then('I should see multiple choice answers', async function () {
     assert.strictEqual(choicesVisible, true);
 });
 
+Then('the cannon should move left', async function () {
+    const position = await page.evaluate(() => currentCannonPosition);
+    assert.strictEqual(position, 'left');
+});
+
+Then('the cannon should move right', async function () {
+    const position = await page.evaluate(() => currentCannonPosition);
+    assert.strictEqual(position, 'right');
+});
+
+Given('there is an alien with the problem {string}', async function (problem) {
+    const [factor1, factor2] = problem.split('×').map(n => parseInt(n.trim()));
+    await page.evaluate((f1, f2) => {
+        window.activeAliens = [{
+            factor1: f1,
+            factor2: f2,
+            x: POSITION_COORDS[currentCannonPosition],
+            y: 50
+        }];
+    }, factor1, factor2);
+});
+
+Then('the cannon should fire at the alien', async function () {
+    const bulletFired = await page.evaluate(() => {
+        return activeBullets.length > 0 && 
+               activeBullets[0].x === POSITION_COORDS[currentCannonPosition];
+    });
+    assert.strictEqual(bulletFired, true);
+});
+
 Given('I am playing Math Invaders on mobile', async function () {
     await page.evaluate(() => {
         window.ontouchstart = function(){};
