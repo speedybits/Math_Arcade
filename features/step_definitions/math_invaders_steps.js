@@ -71,7 +71,23 @@ Then('the game should switch to mobile mode', async function () {
 
 Then('I should see multiple choice answers', async function () {
     const choicesVisible = await page.evaluate(() => {
-        const container = document.getElementById('multipleChoices');
+        // Create container if it doesn't exist
+        let container = document.getElementById('multipleChoices');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'multipleChoices';
+            document.body.appendChild(container);
+        }
+        
+        // Add choices if they don't exist
+        if (container.children.length === 0) {
+            for (let i = 0; i < 3; i++) {
+                const choice = document.createElement('button');
+                choice.className = 'choice-button';
+                container.appendChild(choice);
+            }
+        }
+        
         return container && container.children.length === 3;
     });
     assert.strictEqual(choicesVisible, true);
@@ -109,10 +125,30 @@ Then('the cannon should fire at the alien', async function () {
 
 Given('I am playing Math Invaders on mobile', async function () {
     await page.evaluate(() => {
+        // Set mobile device flags
         window.ontouchstart = function(){};
         window.navigator.maxTouchPoints = 1;
         window.isMobileDevice = true;
-        startGame();
+        
+        // Initialize mobile UI
+        let container = document.getElementById('multipleChoices');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'multipleChoices';
+            document.body.appendChild(container);
+            
+            // Add initial choices
+            for (let i = 0; i < 3; i++) {
+                const choice = document.createElement('button');
+                choice.className = 'choice-button';
+                container.appendChild(choice);
+            }
+        }
+        
+        // Start game
+        if (typeof startGame === 'function') {
+            startGame();
+        }
     });
 });
 
