@@ -638,7 +638,8 @@ Then('solving it correctly should give double points', async function () {
             
             // Simulate solving
             window.score = window.score || 0;
-            window.score += doublePoints;
+            window.score = (window.score || 0) + doublePoints;
+            window.lastProblemScore = doublePoints;
             
             return {
                 basePoints,
