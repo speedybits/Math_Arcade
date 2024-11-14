@@ -387,6 +387,7 @@ After(async function () {
 });
 
 Given('I am playing Math Invaders', async function () {
+    this.context = this.context || {};
     try {
         // Wait for start button with retry
         const maxRetries = 3;
@@ -546,12 +547,15 @@ Then('I should see a problem with two numbers', async function () {
 
 Then('the numbers should be between {int} and {int}', async function (min, max) {
     const validNumbers = await page.evaluate((min, max) => {
+        if (!window.activeAliens || window.activeAliens.length === 0) {
+            return false;
+        }
         return window.activeAliens.every(alien => 
             alien.factor1 >= min && alien.factor1 <= max &&
             alien.factor2 >= min && alien.factor2 <= max
         );
     }, min, max);
-    assert.strictEqual(validNumbers, true);
+    assert.strictEqual(validNumbers, true, `Numbers should be between ${min} and ${max}`);
 });
 
 Given('I have previously missed the problem {string}', async function (problem) {
@@ -678,8 +682,9 @@ Then('the aliens should descend {int} times faster', async function (multiplier)
 
 Given('I solved a problem correctly', async function () {
     await page.evaluate(() => {
-        window.score = window.score || 0;
+        window.score = 0;
         window.lastProblemScore = 0;
+        window.gameStarted = true;
     });
 });
 
