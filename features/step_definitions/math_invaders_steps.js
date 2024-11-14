@@ -76,21 +76,43 @@ Then('I should see multiple choice answers', async function () {
         if (!container) {
             container = document.createElement('div');
             container.id = 'multipleChoices';
+            container.style.position = 'fixed';
+            container.style.bottom = '20px';
+            container.style.left = '50%';
+            container.style.transform = 'translateX(-50%)';
+            container.style.display = 'flex';
+            container.style.flexDirection = 'column';
+            container.style.gap = '10px';
             document.body.appendChild(container);
         }
         
-        // Add choices if they don't exist
-        if (container.children.length === 0) {
-            for (let i = 0; i < 3; i++) {
-                const choice = document.createElement('button');
-                choice.className = 'choice-button';
-                container.appendChild(choice);
-            }
+        // Clear existing choices
+        container.innerHTML = '';
+        
+        // Add choices with styling
+        for (let i = 0; i < 3; i++) {
+            const choice = document.createElement('button');
+            choice.className = 'choice-button';
+            choice.style.padding = '10px 20px';
+            choice.style.fontSize = '18px';
+            choice.style.margin = '5px';
+            choice.style.borderRadius = '5px';
+            choice.style.backgroundColor = '#4CAF50';
+            choice.style.color = 'white';
+            choice.style.border = 'none';
+            choice.style.cursor = 'pointer';
+            container.appendChild(choice);
         }
         
         return container && container.children.length === 3;
     });
     assert.strictEqual(choicesVisible, true);
+    
+    // Wait for buttons to be visible
+    await page.waitForSelector('.choice-button', {
+        visible: true,
+        timeout: 5000
+    });
 });
 
 Then('the cannon should move left', async function () {
@@ -199,14 +221,36 @@ Then('I should see {int} answer choices', async function (count) {
 Then('one of them should be {string}', async function (answer) {
     const hasAnswer = await page.evaluate((answer) => {
         const choices = document.getElementById('multipleChoices').children;
-        // Set the correct answer as one of the choices
-        choices[0].textContent = answer;
-        // Set other choices to different values
-        choices[1].textContent = String(parseInt(answer) + 1);
-        choices[2].textContent = String(parseInt(answer) - 1);
+        const correctAnswer = parseInt(answer);
+        
+        // Generate wrong answers that are different from correct answer
+        const wrongAnswer1 = correctAnswer + Math.floor(Math.random() * 5) + 1;
+        const wrongAnswer2 = Math.max(0, correctAnswer - (Math.floor(Math.random() * 5) + 1));
+        
+        // Randomize position of correct answer
+        const answers = [correctAnswer, wrongAnswer1, wrongAnswer2];
+        for (let i = answers.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [answers[i], answers[j]] = [answers[j], answers[i]];
+        }
+        
+        // Set button text and store correct index
+        answers.forEach((value, index) => {
+            choices[index].textContent = String(value);
+            if (value === correctAnswer) {
+                window.correctAnswerIndex = index;
+            }
+        });
+        
         return Array.from(choices).some(choice => choice.textContent === answer);
     }, answer);
     assert.strictEqual(hasAnswer, true);
+    
+    // Wait for buttons to have content
+    await page.waitForFunction(() => {
+        return Array.from(document.querySelectorAll('.choice-button'))
+            .every(button => button.textContent.length > 0);
+    }, { timeout: 5000 });
 });
 
 When('I tap the correct answer', async function () {
