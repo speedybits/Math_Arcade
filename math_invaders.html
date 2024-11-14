@@ -359,11 +359,13 @@
         }
 
         function getRandomFactor() {
-            if (difficultyLevel === 0) {
+            const gameTime = (Date.now() - window.gameStartTime) / 1000;
+            
+            if (gameTime < 60) { // Level 0
                 return Math.floor(Math.random() * 4); // 0 to 3
-            } else if (difficultyLevel === 1) {
+            } else if (gameTime < 120) { // Level 1
                 return Math.floor(Math.random() * 7); // 0 to 6
-            } else {
+            } else { // Level 2
                 return Math.floor(Math.random() * 10); // 0 to 9
             }
         }
