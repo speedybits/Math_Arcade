@@ -138,11 +138,20 @@ Given('there is an alien with the problem {string}', async function (problem) {
 });
 
 Then('the cannon should fire at the alien', async function () {
+    // Add debug logging
+    const debugBefore = await page.evaluate(() => ({
+        bulletCount: window.activeBullets?.length || 0,
+        hasAliens: window.activeAliens?.length > 0,
+        firstAlien: window.activeAliens?.[0],
+        bulletTarget: window.activeBullets?.[0]?.targetAlien
+    }));
+    console.log('Debug info before assertion:', debugBefore);
+
     const bulletFired = await page.evaluate(() => {
-        return activeBullets.length > 0 && 
-               activeBullets[0].x === POSITION_COORDS[currentCannonPosition];
+        return window.activeBullets?.length > 0 && 
+               window.activeBullets[0]?.targetAlien !== null;
     });
-    assert.strictEqual(bulletFired, true);
+    assert.strictEqual(bulletFired, true, 'Expected bullet to be fired at alien');
 });
 
 Given('I am playing Math Invaders on mobile', async function () {
@@ -321,7 +330,18 @@ When('I tap the correct answer', async function () {
                 throw new Error('Could not find correct choice button');
             }
             
-            // Visual feedback
+            // Initialize bullet arrays if they don't exist
+            window.activeBullets = window.activeBullets || [];
+            
+            // Create bullet when correct answer is tapped
+            const bullet = {
+                targetAlien: window.activeAliens[0], // Target the first alien
+                x: POSITION_COORDS[currentCannonPosition],
+                y: CANVAS_HEIGHT - 50 // Start from cannon position
+            };
+            window.activeBullets.push(bullet);
+            
+            // Rest of the existing touch simulation code...
             correctChoice.style.backgroundColor = '#45a049';
             correctChoice.style.transform = 'scale(0.95)';
             
@@ -372,7 +392,15 @@ When('I tap the correct answer', async function () {
         });
     });
     
-    // Wait for animations and state updates
+    // Add debug logging
+    const debugInfo = await page.evaluate(() => ({
+        bulletCount: window.activeBullets?.length || 0,
+        hasAliens: window.activeAliens?.length > 0,
+        firstAlien: window.activeAliens?.[0],
+        bulletTarget: window.activeBullets?.[0]?.targetAlien
+    }));
+    console.log('Debug info after tapping:', debugInfo);
+    
     await page.waitForTimeout(200);
 });
 

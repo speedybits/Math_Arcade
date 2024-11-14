@@ -632,12 +632,13 @@
                 const correctAnswer = targetAlien.factor1 * targetAlien.factor2;
                 
                 // Create a new bullet regardless of answer
-                activeBullets.push({
+                const bullet = {
                     x: cannonX,
                     y: CANNON_Y,
                     answer: inputAnswer,
                     targetAlien: answer === correctAnswer ? targetAlien : null
-                });
+                };
+                activeBullets.push(bullet);
 
                 // If answer is wrong, add to missed facts
                 if (answer !== correctAnswer) {
@@ -647,6 +648,7 @@
 
             inputAnswer = '';
             updateInputDisplay();
+            return activeBullets.length > 0; // Add return value for testing
         }
 
         function updateScore(points) {
