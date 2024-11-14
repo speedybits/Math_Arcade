@@ -80,3 +80,21 @@ Feature: Math Invaders Game
     And one of them should be "12"
     When I tap the correct answer
     Then the cannon should fire at the alien
+
+  @mobile
+  Scenario: Mobile cannon movement with three positions
+    Given I am playing Math Invaders on mobile
+    When I tap the left third of the screen
+    Then the cannon should move to the left position
+    When I tap the middle third of the screen
+    Then the cannon should move to the center position
+    When I tap the right third of the screen
+    Then the cannon should move to the right position
+
+  @mobile
+  Scenario: Multiple choice visibility
+    Given I am playing Math Invaders on mobile
+    And there is an alien with the problem "3 × 4"
+    Then the multiple choice container should be visible
+    And the multiple choice buttons should be clickable
+    And the choices should update when the cannon moves

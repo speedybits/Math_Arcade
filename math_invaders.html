@@ -245,7 +245,10 @@
         };
 
         function setupMobileControls() {
+            // Remove any existing listeners first
+            canvas.removeEventListener('touchstart', handleTouch);
             canvas.addEventListener('touchstart', handleTouch);
+            canvas.style.touchAction = 'manipulation'; // Prevent default touch behaviors
     
             // Always create a fresh multiple choice container
             const existingContainer = document.getElementById('multipleChoices');
@@ -267,14 +270,14 @@
             const rect = canvas.getBoundingClientRect();
             const x = touch.clientX - rect.left;
     
-            if (x < rect.width / 2) {
+            if (x < rect.width / 3) {
                 currentCannonPosition = 'left';
-            } else {
+            } else if (x > rect.width * 2/3) {
                 currentCannonPosition = 'right';
+            } else {
+                currentCannonPosition = 'center';
             }
-            render(); // Re-render to show cannon movement
-    
-            // Update multiple choice answers after movement
+            render();
             updateMultipleChoices();
         }
 

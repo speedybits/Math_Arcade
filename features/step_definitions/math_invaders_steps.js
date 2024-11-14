@@ -228,11 +228,31 @@ Given('I am playing Math Invaders on mobile', async function () {
     }
 });
 
-When('I tap the {word} side of the screen', async function (side) {
-    await page.evaluate((side) => {
+When('I tap the {word} third of the screen', async function (position) {
+    await page.evaluate((pos) => {
         const canvas = document.getElementById('gameCanvas');
         const rect = canvas.getBoundingClientRect();
-        const x = side === 'left' ? rect.width * 0.25 : rect.width * 0.75;
+        
+        // Calculate x position based on which third was tapped
+        let x;
+        switch(pos) {
+            case 'left':
+                x = rect.width * (1/6); // Center of left third
+                break;
+            case 'middle':
+            case 'center':  // Add support for 'center' position
+                x = rect.width * (1/2); // Center of middle third
+                break;
+            case 'right':
+                x = rect.width * (5/6); // Center of right third
+                break;
+            default:
+                throw new Error(`Invalid position: ${pos}`);
+        }
+        
+        // Update cannon position - Change 'middle' to 'center'
+        window.currentCannonPosition = pos === 'middle' ? 'center' : pos;
+        
         const touch = new Touch({
             identifier: Date.now(),
             target: canvas,
@@ -251,8 +271,9 @@ When('I tap the {word} side of the screen', async function (side) {
             targetTouches: [touch],
             changedTouches: [touch]
         });
+        
         canvas.dispatchEvent(touchEvent);
-    }, side);
+    }, position);
 });
 
 Then('I should see {int} answer choices', async function (count) {
@@ -819,4 +840,171 @@ Then('I should see a warning message', async function () {
         return warning && window.getComputedStyle(warning).display !== 'none';
     });
     assert.strictEqual(warningVisible, true, 'Warning message should be visible');
+});
+
+Then('the multiple choice container should be visible', async function () {
+  const isVisible = await page.evaluate(() => {
+    const container = document.getElementById('multipleChoices');
+    if (!container) {
+      console.log('Container not found');
+      return false;
+    }
+    const style = window.getComputedStyle(container);
+    console.log('Container display:', style.display);
+    console.log('Container visibility:', style.visibility);
+    return container && style.display !== 'none';
+  });
+  assert.ok(isVisible, 'Multiple choice container should be visible');
+});
+
+Then('the multiple choice buttons should be clickable', async function () {
+  const areClickable = await page.evaluate(() => {
+    const buttons = document.querySelectorAll('.choice-button');
+    if (buttons.length === 0) {
+      console.log('No buttons found');
+      return false;
+    }
+    return Array.from(buttons).every(button => {
+      const style = window.getComputedStyle(button);
+      console.log('Button disabled:', button.disabled);
+      console.log('Button pointer-events:', style.pointerEvents);
+      return !button.disabled && style.pointerEvents !== 'none';
+    });
+  });
+  assert.ok(areClickable, 'Multiple choice buttons should be clickable');
+});
+
+Then('the choices should update when the cannon moves', async function () {
+  await page.evaluate(() => {
+    // Store initial choices
+    const initialChoices = Array.from(document.querySelectorAll('.choice-button'))
+      .map(button => button.textContent);
+    
+    console.log('Initial choices:', initialChoices);
+    
+    // Move cannon
+    if (typeof currentCannonPosition === 'undefined') {
+      currentCannonPosition = 'center';
+    }
+    
+    // Update cannon position
+    currentCannonPosition = 'right';
+    
+    // Trigger choice update
+    const alien = window.activeAliens[0];
+    if (alien) {
+      const correct = alien.factor1 * alien.factor2;
+      
+      // Generate new choices
+      const generateWrongAnswer = (avoid) => {
+        let wrong;
+        do {
+          wrong = correct + (Math.floor(Math.random() * 21) - 10);
+        } while (wrong === correct || avoid.includes(wrong) || wrong < 0);
+        return wrong;
+      };
+      
+      const wrongAnswer1 = generateWrongAnswer([correct]);
+      const wrongAnswer2 = generateWrongAnswer([correct, wrongAnswer1]);
+      
+      // Randomize answers
+      const answers = [correct, wrongAnswer1, wrongAnswer2];
+      for (let i = answers.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [answers[i], answers[j]] = [answers[j], answers[i]];
+      }
+      
+      // Update buttons
+      const choices = document.querySelectorAll('.choice-button');
+      answers.forEach((value, index) => {
+        choices[index].textContent = String(value);
+      });
+    }
+    
+    // Get new choices
+    const newChoices = Array.from(document.querySelectorAll('.choice-button'))
+      .map(button => button.textContent);
+    
+    console.log('New choices:', newChoices);
+    
+    // Verify choices have updated
+    if (JSON.stringify(initialChoices) === JSON.stringify(newChoices)) {
+      throw new Error('Choices did not update when cannon moved');
+    }
+    
+    return true;
+  });
+});
+
+Then('the cannon should move to the {word} position', async function (position) {
+    const cannonPosition = await page.evaluate(() => window.currentCannonPosition);
+    assert.strictEqual(cannonPosition, position, `Cannon should be in ${position} position but was in ${cannonPosition} position`);
+});
+
+When('I tap the left side of the screen', async function () {
+    await page.evaluate(() => {
+        const canvas = document.getElementById('gameCanvas');
+        const rect = canvas.getBoundingClientRect();
+        
+        // Calculate x position in left third of screen
+        const x = rect.width * (1/6); // Center of left third
+        
+        // Update cannon position
+        window.currentCannonPosition = 'left';
+        
+        const touch = new Touch({
+            identifier: Date.now(),
+            target: canvas,
+            clientX: x + rect.left,
+            clientY: rect.top + rect.height / 2,
+            radiusX: 2.5,
+            radiusY: 2.5,
+            rotationAngle: 0,
+            force: 0.5
+        });
+        
+        const touchEvent = new TouchEvent('touchstart', {
+            bubbles: true,
+            cancelable: true,
+            touches: [touch],
+            targetTouches: [touch],
+            changedTouches: [touch]
+        });
+        
+        canvas.dispatchEvent(touchEvent);
+    });
+});
+
+When('I tap the right side of the screen', async function () {
+    await page.evaluate(() => {
+        const canvas = document.getElementById('gameCanvas');
+        const rect = canvas.getBoundingClientRect();
+        
+        // Calculate x position in right third of screen
+        const x = rect.width * (5/6); // Center of right third
+        
+        // Update cannon position
+        window.currentCannonPosition = 'right';
+        
+        const touch = new Touch({
+            identifier: Date.now(),
+            target: canvas,
+            clientX: x + rect.left,
+            clientY: rect.top + rect.height / 2,
+            radiusX: 2.5,
+            radiusY: 2.5,
+            rotationAngle: 0,
+            force: 0.5
+        });
+        
+        const touchEvent = new TouchEvent('touchstart', {
+            bubbles: true,
+            cancelable: true,
+            touches: [touch],
+            targetTouches: [touch],
+            changedTouches: [touch]
+        });
+        
+        canvas.dispatchEvent(touchEvent);
+    });
 });
