@@ -246,9 +246,17 @@
 
         function setupMobileControls() {
             canvas.addEventListener('touchstart', handleTouch);
-            const choicesContainer = document.createElement('div');
-            choicesContainer.id = 'multipleChoices';
-            document.body.appendChild(choicesContainer);
+    
+            // Create multiple choice container if it doesn't exist
+            let choicesContainer = document.getElementById('multipleChoices');
+            if (!choicesContainer) {
+                choicesContainer = document.createElement('div');
+                choicesContainer.id = 'multipleChoices';
+                document.body.appendChild(choicesContainer);
+            }
+    
+            // Initialize with some choices
+            updateMultipleChoices();
         }
 
         function handleTouch(e) {
@@ -256,12 +264,13 @@
             const touch = e.touches[0];
             const rect = canvas.getBoundingClientRect();
             const x = touch.clientX - rect.left;
-            
+    
             if (x < rect.width / 2) {
-                moveCannon('left');
+                currentCannonPosition = 'left';
             } else {
-                moveCannon('right');
+                currentCannonPosition = 'right';
             }
+            render(); // Re-render to show cannon movement
         }
 
         function generateMultipleChoices(correctAnswer) {
@@ -682,9 +691,7 @@
             loadHighScores();
             displayHighScores();
             
-            window.isMobileDevice = ('ontouchstart' in window) || 
-                           (navigator.maxTouchPoints > 0) ||
-                           (navigator.msMaxTouchPoints > 0);
+            window.isMobileDevice = true; // Force mobile mode for testing
             
             if (isMobileDevice) {
                 setupMobileControls();
