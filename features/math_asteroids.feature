@@ -56,8 +56,8 @@ Feature: Math Asteroids Game
   @answer_length_validation
   Scenario: Answer length validation
     Given I am playing Math Asteroids
-    When I enter a 10-digit number as an answer
-    Then the answer input should be limited to 3 digits
+    When I enter a 3-digit number as an answer
+    Then the answer input should be limited to 2 digits
 
   @split_asteroid_problem_inheritance
   Scenario: Split asteroid problem inheritance
