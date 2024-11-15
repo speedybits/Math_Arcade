@@ -89,3 +89,40 @@ Feature: Math Invaders Game
     And I can see the answer circles
     When I move the cannon to a different position
     Then the answer circles should disappear
+
+  Scenario: Saving high scores
+    Given I am playing Math Invaders
+    When I complete a game with a score of 100
+    And I enter my initials "ABC"
+    Then my score should appear in the high scores list
+    And the high scores should be sorted highest first
+    And only the top 10 scores should be shown
+
+  Scenario: Increasing descent speed with difficulty
+    Given I am playing Math Invaders
+    When I reach level 1
+    Then the aliens should descend faster than in level 0
+    When I reach level 2
+    Then the aliens should descend even faster
+
+  Scenario: Bullet animation
+    Given I am playing Math Invaders
+    When I fire an answer at an alien
+    Then I should see an animated bullet with the answer
+    And it should travel from the cannon to the alien
+
+  Scenario: Futuristic cannon appearance
+    Given I am playing Math Invaders
+    Then I should see a cannon with a glowing core
+    And it should have metallic highlights
+
+  Scenario: Persisting missed facts
+    Given I am playing Math Invaders
+    When I miss the problem "5 × 6"
+    And I reload the game
+    Then the problem "5 × 6" should still be tracked as missed
+
+  @facts_appear_quickly
+  Scenario: Math facts appear quickly
+    Given I am playing Math Invaders
+    Then I should see math facts within 5 seconds of starting the game

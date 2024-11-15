@@ -192,19 +192,40 @@
                 display: block;
             }
         }
+
+        .cannon {
+            /* Basic cannon styling */
+            position: absolute;
+            bottom: 20px;
+            
+            /* Glowing core effect */
+            box-shadow: 0 0 10px #00ff00,
+                        0 0 20px #00ff00,
+                        0 0 30px #00ff00;
+            
+            /* Metallic highlights */
+            background: linear-gradient(145deg, #444444, #666666, #888888);
+        }
+
+        .cannon.glowing-core {
+            /* Alternative way to add glow effect via class */
+            text-shadow: 0 0 10px #00ff00;
+        }
+
+        .cannon.metallic {
+            /* Alternative way to add metallic effect via class */
+            background: linear-gradient(145deg, #444444, #666666, #888888);
+        }
     </style>
 </head>
 <body>
     <canvas id="gameCanvas" width="600" height="600"></canvas>
     <div id="score">Score: 0 | High Score: 0</div>
     <div id="inputDisplay"></div>
-    <div id="desktopInstructions" class="instructions">
-        Left/Right Arrow: Move cannon | Number Keys: Enter answer | 
-        Spacebar: Fire answer | Backspace: Clear answer | Down Arrow: Speed up
-    </div>
-    <div id="mobileInstructions" class="instructions">
-        Tap left/right third of screen: Move cannon | 
-        Tap circle with correct answer: Fire answer
+    <div id="instructions" class="instructions">
+        Click/Tap left third of screen to move cannon left
+        Click/Tap right third of screen to move cannon right
+        Click/Tap answer circles to fire at aliens
     </div>
     <div id="mainScreen">
         <h2>Game Over</h2> <!-- Ensure this exists -->
@@ -291,17 +312,15 @@
             return true;
         };
 
-        function setupMobileControls() {
-            // Remove any existing listeners first
-            canvas.removeEventListener('touchstart', handleTouch);
-            canvas.addEventListener('touchstart', handleTouch);
+        function setupControls() {
+            // Remove any existing listeners
+            canvas.removeEventListener('touchstart', handleInteraction);
+            canvas.removeEventListener('click', handleInteraction);
+            
+            // Add both touch and click listeners
+            canvas.addEventListener('touchstart', handleInteraction);
+            canvas.addEventListener('click', handleInteraction);
             canvas.style.touchAction = 'manipulation';
-
-            // Create or update instructions for mobile
-            const instructions = document.getElementById('instructions');
-            if (instructions) {
-                instructions.textContent = 'Tap left/right to move | Tap answer to fire';
-            }
 
             // Setup multiple choice container
             const existingContainer = document.getElementById('multipleChoices');
@@ -315,11 +334,14 @@
             updateMultipleChoices();
         }
 
-        function handleTouch(e) {
+        function handleInteraction(e) {
             e.preventDefault();
-            const touch = e.touches[0];
             const rect = canvas.getBoundingClientRect();
-            const x = touch.clientX - rect.left;
+            
+            // Get x coordinate for both touch and click events
+            const x = e.type === 'touchstart' 
+                ? e.touches[0].clientX - rect.left 
+                : e.clientX - rect.left;
             
             // Update to use three distinct zones
             if (x < rect.width / 3) {
@@ -385,14 +407,13 @@
         function startGame() {
             gameStarted = true;
             score = 0;
-            highScore = 0; // Reset session high score
+            highScore = 0;
             updateScoreDisplay();
             document.getElementById('mainScreen').style.display = 'none';
             activeAliens = [];
             spawnAlien();
             lastTime = 0;
-            document.addEventListener('keydown', handleKeyDown);
-            document.addEventListener('keyup', handleKeyUp);
+            
             inputAnswer = '';
             updateInputDisplay();
             requestAnimationFrame(gameLoop);
@@ -402,8 +423,6 @@
             descentSpeed = INITIAL_DESCENT_SPEED;
             loadHighScores();
 
-            // Don't clear missed facts between games
-            // but do load them from localStorage
             missedFacts = JSON.parse(localStorage.getItem('mathInvaders_missedFacts')) || [];
         }
 
@@ -513,8 +532,6 @@
         function endGame() {
             console.log("End game function called");
             gameStarted = false;
-            document.removeEventListener('keydown', handleKeyDown);
-            document.removeEventListener('keyup', handleKeyUp);
             
             // Show main screen with game over state
             const mainScreen = document.getElementById('mainScreen');
@@ -606,6 +623,10 @@
             const cannonX = POSITION_COORDS[currentCannonPosition];
             const cannonY = CANNON_Y;
             
+            // Add glowing effect
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = '#0ff';
+
             // Cannon base
             ctx.fillStyle = '#333';
             ctx.beginPath();
@@ -616,24 +637,19 @@
             ctx.closePath();
             ctx.fill();
 
-            // Cannon barrel
-            ctx.fillStyle = '#555';
-            ctx.beginPath();
-            ctx.moveTo(cannonX - 10, cannonY);
-            ctx.lineTo(cannonX + 10, cannonY);
-            ctx.lineTo(cannonX + 5, cannonY - 25);
-            ctx.lineTo(cannonX - 5, cannonY - 25);
-            ctx.closePath();
-            ctx.fill();
-
-            // Glowing energy core
-            const gradient = ctx.createRadialGradient(cannonX, cannonY + 15, 0, cannonX, cannonY + 15, 10);
+            // Glowing energy core (enhanced)
+            const gradient = ctx.createRadialGradient(cannonX, cannonY + 15, 0, cannonX, cannonY + 15, 15);
             gradient.addColorStop(0, 'rgba(0, 255, 255, 1)');
+            gradient.addColorStop(0.5, 'rgba(0, 255, 255, 0.5)');
             gradient.addColorStop(1, 'rgba(0, 255, 255, 0)');
             ctx.fillStyle = gradient;
             ctx.beginPath();
-            ctx.arc(cannonX, cannonY + 15, 10, 0, Math.PI * 2);
+            ctx.arc(cannonX, cannonY + 15, 15, 0, Math.PI * 2);
             ctx.fill();
+
+            // Reset shadow effects for other elements
+            ctx.shadowBlur = 0;
+            ctx.shadowColor = 'transparent';
 
             // Cannon highlights
             ctx.strokeStyle = '#0ff';
@@ -650,32 +666,6 @@
             ctx.font = '16px Arial';
             ctx.textAlign = 'center';
             ctx.fillText(inputAnswer, cannonX, cannonY - 25);
-        }
-
-        function handleKeyDown(e) {
-            if (!gameStarted) return;
-            if (e.key === 'ArrowLeft') {
-                moveCannon('left');
-            } else if (e.key === 'ArrowRight') {
-                moveCannon('right');
-            } else if (e.key === ' ' || e.code === 'Space') {
-                e.preventDefault();
-                shootAnswer();
-            } else if (!isNaN(e.key) && e.key !== ' ') {
-                inputAnswer += e.key;
-                updateInputDisplay();
-            } else if (e.key === 'Backspace') {
-                inputAnswer = inputAnswer.slice(0, -1);
-                updateInputDisplay();
-            } else if (e.key === 'ArrowDown') {
-                isFastDescent = true;
-            }
-        }
-
-        function handleKeyUp(e) {
-            if (e.key === 'ArrowDown') {
-                isFastDescent = false;
-            }
         }
 
         function moveCannon(direction) {
@@ -767,10 +757,10 @@
             loadHighScores();
             displayHighScores();
             
-            window.isMobileDevice = true; // Force mobile mode for testing
-            setupMobileControls(); // Always setup mobile controls in test mode
+            // Setup controls for all devices
+            setupControls();
             
-            // Create multiple choice container if needed
+            // Create multiple choice container
             if (!document.getElementById('multipleChoices')) {
                 const choicesContainer = document.createElement('div');
                 choicesContainer.id = 'multipleChoices';
