@@ -45,56 +45,47 @@ Feature: Math Invaders Game
     When I solve this problem correctly
     Then my score should increase by 144 points
 
-  Scenario: Alien descent speed
+  Scenario: Cannon movement with three positions
     Given I am playing Math Invaders
-    When I press the down arrow
-    Then the aliens should descend 4 times faster
-
-  @input_length_validation
-  Scenario: Input length validation
-    Given I am playing Math Invaders
-    When I enter an answer longer than 5 digits
-    Then the input should be truncated to 5 digits
-    And I should see a warning message
-
-  @mobile
-  Scenario: Detect touchscreen device
-    Given I am using a touchscreen device
-    When I load Math Invaders
-    Then the game should switch to mobile mode
-    And I should see multiple choice answers
-
-  @mobile
-  Scenario: Move cannon by tapping
-    Given I am playing Math Invaders on mobile
-    When I tap the left side of the screen
-    Then the cannon should move left
-    When I tap the right side of the screen
-    Then the cannon should move right
-
-  @mobile
-  Scenario: Multiple choice answers
-    Given I am playing Math Invaders on mobile
-    And there is an alien with the problem "3 × 4"
-    Then I should see 3 answer choices
-    And one of them should be "12"
-    When I tap the correct answer
-    Then the cannon should fire at the alien
-
-  @mobile
-  Scenario: Mobile cannon movement with three positions
-    Given I am playing Math Invaders on mobile
-    When I tap the left third of the screen
+    When I click the left third of the screen
     Then the cannon should move to the left position
-    When I tap the middle third of the screen
-    Then the cannon should move to the center position
-    When I tap the right third of the screen
+    When I click the middle third of the screen
+    Then the cannon should stay in its current position
+    When I click the right third of the screen
     Then the cannon should move to the right position
 
-  @mobile
-  Scenario: Multiple choice visibility
-    Given I am playing Math Invaders on mobile
-    And there is an alien with the problem "3 × 4"
-    Then the multiple choice container should be visible
-    And the multiple choice buttons should be clickable
-    And the choices should update when the cannon moves
+  Scenario: Answer circles appear when aligned
+    Given I am playing Math Invaders
+    And there is an alien with the problem "3 × 4" above the cannon
+    Then I should see 3 answer circles near the cannon
+    And one of them should contain "12"
+    When I click any answer circle
+    Then that answer should be fired at the alien
+
+  Scenario: Wrong answer mechanics
+    Given I am playing Math Invaders
+    And there is an alien with the problem "3 × 4" above the cannon
+    When I click an answer circle with the wrong answer
+    Then that answer should be fired but not destroy the alien
+    And new answer circles should appear
+    And the previous wrong answer should not be among the new options
+
+  Scenario: Correct answer mechanics
+    Given I am playing Math Invaders
+    And there is an alien with the problem "3 × 4" above the cannon
+    When I click the answer circle containing "12"
+    Then that answer should be fired and destroy the alien
+    And the answer circles should disappear
+    And I should receive points
+
+  Scenario: No circles without alien alignment
+    Given I am playing Math Invaders
+    And there are no aliens above the cannon
+    Then there should be no answer circles visible
+
+  Scenario: Circles disappear on movement
+    Given I am playing Math Invaders
+    And there is an alien with the problem "3 × 4" above the cannon
+    And I can see the answer circles
+    When I move the cannon to a different position
+    Then the answer circles should disappear

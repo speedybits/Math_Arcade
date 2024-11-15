@@ -16,6 +16,7 @@
             display: block;
             margin: 0 auto;
             background-color: #111;
+            border: 2px solid #fff;
         }
         #score {
             position: absolute;
@@ -150,14 +151,60 @@
                 border: none;
             }
         }
+        /* High contrast styles */
+        #gameCanvas {
+            background-color: #000;
+            border: 2px solid #fff;
+        }
+
+        .choice-button {
+            background-color: #4CAF50;
+            color: #fff;
+            font-size: 20px;
+            min-width: 80px;
+            min-height: 44px; /* Accessibility minimum touch target size */
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            border: 2px solid #fff;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .choice-button:hover, .choice-button:focus {
+            background-color: #45a049;
+            outline: 3px solid #fff;
+        }
+
+        /* Separate mobile/desktop instructions */
+        #desktopInstructions, #mobileInstructions {
+            display: none;
+        }
+
+        @media (min-width: 769px) {
+            #desktopInstructions {
+                display: block;
+            }
+        }
+
+        @media (max-width: 768px) {
+            #mobileInstructions {
+                display: block;
+            }
+        }
     </style>
 </head>
 <body>
     <canvas id="gameCanvas" width="600" height="600"></canvas>
     <div id="score">Score: 0 | High Score: 0</div>
     <div id="inputDisplay"></div>
-    <div id="instructions">
-        Use Left/Right Arrow Keys to Move | Type Answer | Press Spacebar to Fire
+    <div id="desktopInstructions" class="instructions">
+        Left/Right Arrow: Move cannon | Number Keys: Enter answer | 
+        Spacebar: Fire answer | Backspace: Clear answer | Down Arrow: Speed up
+    </div>
+    <div id="mobileInstructions" class="instructions">
+        Tap left/right third of screen: Move cannon | 
+        Tap circle with correct answer: Fire answer
     </div>
     <div id="mainScreen">
         <h2>Game Over</h2> <!-- Ensure this exists -->
@@ -248,19 +295,23 @@
             // Remove any existing listeners first
             canvas.removeEventListener('touchstart', handleTouch);
             canvas.addEventListener('touchstart', handleTouch);
-            canvas.style.touchAction = 'manipulation'; // Prevent default touch behaviors
-    
-            // Always create a fresh multiple choice container
+            canvas.style.touchAction = 'manipulation';
+
+            // Create or update instructions for mobile
+            const instructions = document.getElementById('instructions');
+            if (instructions) {
+                instructions.textContent = 'Tap left/right to move | Tap answer to fire';
+            }
+
+            // Setup multiple choice container
             const existingContainer = document.getElementById('multipleChoices');
             if (existingContainer) {
                 existingContainer.remove();
             }
-    
+
             const choicesContainer = document.createElement('div');
             choicesContainer.id = 'multipleChoices';
             document.body.appendChild(choicesContainer);
-    
-            // Initialize with choices
             updateMultipleChoices();
         }
 
@@ -269,7 +320,8 @@
             const touch = e.touches[0];
             const rect = canvas.getBoundingClientRect();
             const x = touch.clientX - rect.left;
-    
+            
+            // Update to use three distinct zones
             if (x < rect.width / 3) {
                 currentCannonPosition = 'left';
             } else if (x > rect.width * 2/3) {
@@ -277,6 +329,7 @@
             } else {
                 currentCannonPosition = 'center';
             }
+            
             render();
             updateMultipleChoices();
         }
@@ -309,10 +362,21 @@
                 multipleChoiceAnswers.forEach(answer => {
                     const button = document.createElement('button');
                     button.textContent = answer;
+                    button.className = 'choice-button';
+                    button.style.cursor = 'pointer';
+                    button.interactive = true;
+                    button.disabled = false;
+                    
                     button.onclick = () => {
                         inputAnswer = answer.toString();
                         shootAnswer();
                     };
+                    button.addEventListener('touchstart', (e) => {
+                        e.preventDefault();
+                        inputAnswer = answer.toString();
+                        shootAnswer();
+                    });
+                    
                     choicesContainer.appendChild(button);
                 });
             }

@@ -1,4 +1,4 @@
- # Math Invaders
+# Math Invaders
 
 A Space Invaders-style educational game that helps students practice multiplication facts.
 
@@ -6,17 +6,40 @@ A Space Invaders-style educational game that helps students practice multiplicat
 
 - Control a cannon that moves between three positions (left, center, right)
 - Aliens descend from the top of the screen displaying multiplication problems
-- Type the answer and press spacebar to shoot
+- Use the appropriate controls to shoot the correct answer at the aliens
 - Hit aliens with correct answers to score points
 - Game ends if any alien reaches the bottom
 
-## Controls
+## Controls & Gameplay Mechanics
 
-- Left/Right Arrow: Move cannon
-- Number Keys: Enter answer
-- Spacebar: Fire answer
-- Backspace: Clear answer
-- Down Arrow: Speed up alien descent
+### Movement
+- Tap/Click left third of screen to move cannon left
+- Tap/Click right third of screen to move cannon right
+- Center third of screen is for aiming/firing only
+
+### Answer Mechanics
+- When cannon aligns under an alien, three circular buttons appear near the cannon
+- Each circle contains a possible answer to the alien's multiplication problem
+- Only one of the three answers is correct
+- Circles remain visible until:
+  - A correct answer is fired (alien destroyed)
+  - No alien is above the cannon
+  - The player moves the cannon to a different position
+
+### Firing System
+- Tap/Click any answer circle to fire that number at the alien
+- If correct answer hits alien:
+  - Alien is destroyed
+  - Points are awarded
+  - Answer circles disappear until next alien alignment
+- If wrong answer is fired:
+  - Bullet still travels to alien but causes no damage
+  - Original circles disappear
+  - Three new circles appear immediately with:
+    - Different answer options
+    - Only one correct answer
+    - Previous wrong answer will not appear in new options
+  - Process repeats until correct answer is fired or alien moves
 
 ## Features
 
