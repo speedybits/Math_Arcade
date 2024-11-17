@@ -216,6 +216,29 @@
             /* Alternative way to add metallic effect via class */
             background: linear-gradient(145deg, #444444, #666666, #888888);
         }
+
+        .alien-choices {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+        }
+
+        .choice-button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            min-width: 40px;
+            min-height: 30px;
+            padding: 5px;
+            margin: 2px;
+        }
+
+        .choice-button:hover {
+            background-color: #45a049;
+        }
     </style>
 </head>
 <body>
@@ -368,40 +391,78 @@
         }
 
         function updateMultipleChoices() {
-            const choicesContainer = document.getElementById('multipleChoices');
-            if (!choicesContainer) return;
+            // Remove any existing choice containers
+            document.querySelectorAll('.alien-choices').forEach(el => el.remove());
             
-            choicesContainer.innerHTML = '';
-            choicesContainer.style.display = 'flex';
-            choicesContainer.style.position = 'absolute';
-            choicesContainer.style.bottom = '80px';
-            choicesContainer.style.left = '50%';
-            choicesContainer.style.transform = 'translateX(-50%)';
-            choicesContainer.style.zIndex = '1000';
-            
-            const targetAlien = activeAliens.find(alien => 
-                Math.abs(alien.x - POSITION_COORDS[currentCannonPosition]) < 20
+            // Find the alien aligned with the cannon
+            const cannonX = POSITION_COORDS[currentCannonPosition];
+            const alignedAlien = activeAliens.find(alien => 
+                Math.abs(alien.x - cannonX) < 20  // Using 20px tolerance for alignment
             );
             
-            if (targetAlien) {
-                const correctAnswer = targetAlien.factor1 * targetAlien.factor2;
-                multipleChoiceAnswers = generateMultipleChoices(correctAnswer);
+            // Only create choice buttons for the aligned alien
+            if (alignedAlien) {
+                const choicesContainer = document.createElement('div');
+                choicesContainer.className = 'alien-choices';
+                choicesContainer.style.position = 'absolute';
+                choicesContainer.style.left = `${alignedAlien.x}px`;
+                choicesContainer.style.top = `${alignedAlien.y + 30}px`; // Position below alien
+                choicesContainer.style.transform = 'translateX(-50%)'; // Center horizontally
+                choicesContainer.style.display = 'flex';
+                choicesContainer.style.gap = '10px';
+                choicesContainer.style.zIndex = '1000';
                 
-                multipleChoiceAnswers.forEach(answer => {
+                const correctAnswer = alignedAlien.factor1 * alignedAlien.factor2;
+                const answers = generateMultipleChoices(correctAnswer);
+                
+                answers.forEach(answer => {
                     const button = document.createElement('button');
                     button.textContent = answer;
                     button.className = 'choice-button';
                     button.style.display = 'block';
                     button.style.opacity = '1';
+                    button.style.padding = '5px';
+                    button.style.minWidth = '40px';
+                    button.style.minHeight = '30px';
                     
                     button.onclick = () => {
                         inputAnswer = answer.toString();
-                        shootAnswer();
+                        shootAnswerAt(alignedAlien);
                     };
                     
                     choicesContainer.appendChild(button);
                 });
+                
+                document.body.appendChild(choicesContainer);
             }
+        }
+
+        function shootAnswerAt(targetAlien) {
+            if (targetAlien) {
+                const answer = parseInt(inputAnswer);
+                const correctAnswer = targetAlien.factor1 * targetAlien.factor2;
+                
+                // Create bullet starting from cannon position
+                const cannonX = POSITION_COORDS[currentCannonPosition];
+                const bullet = {
+                    x: cannonX,
+                    y: CANNON_Y,
+                    answer: inputAnswer,
+                    targetAlien: answer === correctAnswer ? targetAlien : null
+                };
+                activeBullets.push(bullet);
+
+                if (answer === correctAnswer) {
+                    activeAliens = activeAliens.filter(alien => alien !== targetAlien);
+                    spawnAlien();
+                } else {
+                    addMissedFact(targetAlien.factor1, targetAlien.factor2);
+                }
+            }
+
+            inputAnswer = '';
+            updateInputDisplay();
+            updateMultipleChoices();
         }
 
         function startGame() {
@@ -492,27 +553,26 @@
             });
 
             if (gameOver) {
+                // Remove all answer circles before ending game
+                document.querySelectorAll('.alien-choices').forEach(el => el.remove());
                 endGame();
                 return;
             }
 
-            // Spawn new aliens at regular intervals
-            const currentTime = Date.now();
-            if (currentTime - lastSpawnTime > SPAWN_INTERVAL && activeAliens.length < 5) {
-                spawnAlien();
-                lastSpawnTime = currentTime;
-            }
-
-            // Update bullets
+            // Update bullets and check collisions
             activeBullets.forEach((bullet, index) => {
                 bullet.y -= 525 * deltaTime;
 
                 // Check for collision with target alien
                 if (bullet.targetAlien && Math.abs(bullet.y - bullet.targetAlien.y) < 10) {
+                    // Remove the alien's answer circles when destroyed
+                    document.querySelectorAll('.alien-choices').forEach(el => el.remove());
+                    
                     // Remove the alien and the bullet
                     activeAliens = activeAliens.filter(alien => alien !== bullet.targetAlien);
                     activeBullets.splice(index, 1);
-                    // Calculate and add points directly here instead of calling updateScore
+                    
+                    // Calculate and add points
                     const points = bullet.targetAlien.factor1 * bullet.targetAlien.factor2 || 1;
                     score += points;
                     if (score > highScore) {
@@ -520,6 +580,9 @@
                     }
                     updateScoreDisplay();
                     spawnAlien();
+                    
+                    // Update multiple choices for any newly aligned alien
+                    updateMultipleChoices();
                 }
 
                 // Remove bullet if it goes off screen
@@ -600,7 +663,7 @@
         function render() {
             ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-            // Draw aliens
+            // Draw aliens and update their answer circles
             activeAliens.forEach(alien => {
                 // Check if this is a missed fact
                 const isMissed = missedFacts.some(fact => 
@@ -611,6 +674,16 @@
                 ctx.font = '20px Arial';
                 ctx.textAlign = 'center';
                 ctx.fillText(`${alien.factor1} × ${alien.factor2}`, alien.x, alien.y);
+                
+                // Update position of associated answer circles if this alien is aligned with cannon
+                const cannonX = POSITION_COORDS[currentCannonPosition];
+                if (Math.abs(alien.x - cannonX) < 20) {
+                    const choicesContainer = document.querySelector('.alien-choices');
+                    if (choicesContainer) {
+                        choicesContainer.style.left = `${alien.x}px`;
+                        choicesContainer.style.top = `${alien.y + 30}px`;
+                    }
+                }
             });
 
             // Draw bullets
