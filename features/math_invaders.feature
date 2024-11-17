@@ -25,7 +25,7 @@ Feature: Math Invaders Game
     Then I should see a problem with two numbers
     And the numbers should be between 0 and 9
 
-  @learning_optimization
+  @score_calculation
   Scenario: Learning optimization for missed problems
     Given I am playing Math Invaders
     And I have previously missed the problem "6 × 7"
@@ -33,12 +33,16 @@ Feature: Math Invaders Game
     Then it should be displayed as an orange alien
     And solving it correctly should give double points
 
+  @score_calculation
   Scenario: Basic score calculation
     Given I am playing Math Invaders
     And I solved a problem correctly
+    And I solve a math problem correctly
+    And I have not previously missed this problem
     When the problem was "4 × 5"
-    Then my score should increase by at least 20 points
+    Then my score should increase by exactly 20 points
 
+  @score_calculation
   Scenario: Double points for missed facts
     Given I am playing Math Invaders
     And I have previously missed the problem "8 × 9"
@@ -116,6 +120,7 @@ Feature: Math Invaders Game
     Then I should see an animated bullet with the answer
     And it should travel from the cannon to the alien
 
+  @futuristic_cannon
   Scenario: Futuristic cannon appearance
     Given I am playing Math Invaders
     Then I should see a cannon with a glowing core

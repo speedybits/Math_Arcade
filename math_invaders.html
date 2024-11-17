@@ -505,14 +505,20 @@
 
             // Update bullets
             activeBullets.forEach((bullet, index) => {
-                bullet.y -= 525 * deltaTime; // Slowed down bullet speed
+                bullet.y -= 525 * deltaTime;
 
                 // Check for collision with target alien
                 if (bullet.targetAlien && Math.abs(bullet.y - bullet.targetAlien.y) < 10) {
                     // Remove the alien and the bullet
                     activeAliens = activeAliens.filter(alien => alien !== bullet.targetAlien);
                     activeBullets.splice(index, 1);
-                    updateScore(bullet.targetAlien.factor1 * bullet.targetAlien.factor2);
+                    // Calculate and add points directly here instead of calling updateScore
+                    const points = bullet.targetAlien.factor1 * bullet.targetAlien.factor2 || 1;
+                    score += points;
+                    if (score > highScore) {
+                        highScore = score;
+                    }
+                    updateScoreDisplay();
                     spawnAlien();
                 }
 
@@ -623,43 +629,72 @@
             const cannonX = POSITION_COORDS[currentCannonPosition];
             const cannonY = CANNON_Y;
             
-            // Add glowing effect
-            ctx.shadowBlur = 20;
-            ctx.shadowColor = '#0ff';
-
-            // Cannon base
-            ctx.fillStyle = '#333';
+            ctx.save();
+            
+            // Enhanced glowing core effect
+            ctx.shadowBlur = 40; // Increased blur for more prominent glow
+            ctx.shadowColor = '#00ffff'; // Cyan color for better visibility
+            ctx.globalAlpha = 1.0; // Full opacity
+            
+            // Core glow
+            const coreGradient = ctx.createRadialGradient(
+                cannonX, cannonY + 15, 0,
+                cannonX, cannonY + 15, 30 // Increased radius
+            );
+            coreGradient.addColorStop(0, 'rgba(0, 255, 255, 1)');
+            coreGradient.addColorStop(0.4, 'rgba(0, 255, 255, 0.8)');
+            coreGradient.addColorStop(0.7, 'rgba(0, 255, 255, 0.4)');
+            coreGradient.addColorStop(1, 'rgba(0, 255, 255, 0)');
+            
+            // Draw the glowing core
+            ctx.fillStyle = coreGradient;
             ctx.beginPath();
-            ctx.moveTo(cannonX - 20, cannonY + 30);
-            ctx.lineTo(cannonX + 20, cannonY + 30);
-            ctx.lineTo(cannonX + 15, cannonY);
-            ctx.lineTo(cannonX - 15, cannonY);
-            ctx.closePath();
+            ctx.arc(cannonX, cannonY + 15, 25, 0, Math.PI * 2);
             ctx.fill();
 
-            // Glowing energy core (enhanced)
-            const gradient = ctx.createRadialGradient(cannonX, cannonY + 15, 0, cannonX, cannonY + 15, 15);
-            gradient.addColorStop(0, 'rgba(0, 255, 255, 1)');
-            gradient.addColorStop(0.5, 'rgba(0, 255, 255, 0.5)');
-            gradient.addColorStop(1, 'rgba(0, 255, 255, 0)');
-            ctx.fillStyle = gradient;
+            // Add an inner glow
+            const innerGlow = ctx.createRadialGradient(
+                cannonX, cannonY + 15, 0,
+                cannonX, cannonY + 15, 15
+            );
+            innerGlow.addColorStop(0, 'rgba(255, 255, 255, 1)');
+            innerGlow.addColorStop(1, 'rgba(0, 255, 255, 0.8)');
+            ctx.fillStyle = innerGlow;
             ctx.beginPath();
             ctx.arc(cannonX, cannonY + 15, 15, 0, Math.PI * 2);
             ctx.fill();
 
-            // Reset shadow effects for other elements
-            ctx.shadowBlur = 0;
-            ctx.shadowColor = 'transparent';
+            // Cannon body with enhanced metallic effect
+            const metallicGradient = ctx.createLinearGradient(
+                cannonX - 25, cannonY, 
+                cannonX + 25, cannonY + 30
+            );
+            metallicGradient.addColorStop(0, '#444');
+            metallicGradient.addColorStop(0.3, '#888');
+            metallicGradient.addColorStop(0.5, '#aaa');
+            metallicGradient.addColorStop(0.7, '#888');
+            metallicGradient.addColorStop(1, '#444');
+            
+            ctx.fillStyle = metallicGradient;
+            ctx.beginPath();
+            ctx.moveTo(cannonX - 25, cannonY + 30);
+            ctx.lineTo(cannonX + 25, cannonY + 30);
+            ctx.lineTo(cannonX + 20, cannonY);
+            ctx.lineTo(cannonX - 20, cannonY);
+            ctx.closePath();
+            ctx.fill();
 
-            // Cannon highlights
+            // Edge highlights
             ctx.strokeStyle = '#0ff';
             ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.moveTo(cannonX - 18, cannonY + 28);
-            ctx.lineTo(cannonX - 13, cannonY + 2);
-            ctx.moveTo(cannonX + 18, cannonY + 28);
-            ctx.lineTo(cannonX + 13, cannonY + 2);
+            ctx.moveTo(cannonX - 22, cannonY + 28);
+            ctx.lineTo(cannonX - 17, cannonY + 2);
+            ctx.moveTo(cannonX + 22, cannonY + 28);
+            ctx.lineTo(cannonX + 17, cannonY + 2);
             ctx.stroke();
+
+            ctx.restore();
 
             // Draw input answer on cannon
             ctx.fillStyle = 'yellow';
@@ -697,42 +732,19 @@
                 };
                 activeBullets.push(bullet);
 
-                // If answer is wrong, add to missed facts
-                if (answer !== correctAnswer) {
+                // If answer is correct, we'll let the bullet collision handle the scoring
+                if (answer === correctAnswer) {
+                    // Remove score update from here since it's handled in the bullet collision
+                    activeAliens = activeAliens.filter(alien => alien !== targetAlien);
+                    spawnAlien();
+                } else {
                     addMissedFact(targetAlien.factor1, targetAlien.factor2);
                 }
             }
 
             inputAnswer = '';
             updateInputDisplay();
-            return activeBullets.length > 0; // Add return value for testing
-        }
-
-        function updateScore(points) {
-            if (points === 0) {
-                points = 1; // Award 1 point instead of 0
-            }
-            
-            // Check if this was a missed fact
-            const isMissed = missedFacts.some(fact => 
-                fact.factor1 * fact.factor2 === points
-            );
-            
-            // Double points for correct answers to missed facts
-            if (isMissed) {
-                points *= 2;
-                // Optionally remove from missed facts after correct answer
-                missedFacts = missedFacts.filter(fact => 
-                    fact.factor1 * fact.factor2 !== points
-                );
-                localStorage.setItem('mathInvaders_missedFacts', JSON.stringify(missedFacts));
-            }
-            
-            score += points;
-            if (score > highScore) {
-                highScore = score;
-            }
-            updateScoreDisplay();
+            return activeBullets.length > 0;
         }
 
         function updateScoreDisplay() {
