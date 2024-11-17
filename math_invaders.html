@@ -368,10 +368,16 @@
         }
 
         function updateMultipleChoices() {
-            if (!isMobileDevice) return;
-            
             const choicesContainer = document.getElementById('multipleChoices');
+            if (!choicesContainer) return;
+            
             choicesContainer.innerHTML = '';
+            choicesContainer.style.display = 'flex';
+            choicesContainer.style.position = 'absolute';
+            choicesContainer.style.bottom = '80px';
+            choicesContainer.style.left = '50%';
+            choicesContainer.style.transform = 'translateX(-50%)';
+            choicesContainer.style.zIndex = '1000';
             
             const targetAlien = activeAliens.find(alien => 
                 Math.abs(alien.x - POSITION_COORDS[currentCannonPosition]) < 20
@@ -385,19 +391,13 @@
                     const button = document.createElement('button');
                     button.textContent = answer;
                     button.className = 'choice-button';
-                    button.style.cursor = 'pointer';
-                    button.interactive = true;
-                    button.disabled = false;
+                    button.style.display = 'block';
+                    button.style.opacity = '1';
                     
                     button.onclick = () => {
                         inputAnswer = answer.toString();
                         shootAnswer();
                     };
-                    button.addEventListener('touchstart', (e) => {
-                        e.preventDefault();
-                        inputAnswer = answer.toString();
-                        shootAnswer();
-                    });
                     
                     choicesContainer.appendChild(button);
                 });

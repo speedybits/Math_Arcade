@@ -54,6 +54,7 @@ Feature: Math Invaders Game
     When I click the right third of the screen
     Then the cannon should move to the right position
 
+  @multiple_choice
   Scenario: Answer circles appear when aligned
     Given I am playing Math Invaders
     And there is an alien with the problem "3 × 4" above the cannon
@@ -62,6 +63,7 @@ Feature: Math Invaders Game
     When I click any answer circle
     Then that answer should be fired at the alien
 
+  @multiple_choice
   Scenario: Wrong answer mechanics
     Given I am playing Math Invaders
     And there is an alien with the problem "3 × 4" above the cannon
@@ -70,6 +72,7 @@ Feature: Math Invaders Game
     And new answer circles should appear
     And the previous wrong answer should not be among the new options
 
+  @multiple_choice
   Scenario: Correct answer mechanics
     Given I am playing Math Invaders
     And there is an alien with the problem "3 × 4" above the cannon
@@ -78,11 +81,13 @@ Feature: Math Invaders Game
     And the answer circles should disappear
     And I should receive points
 
+  @multiple_choice
   Scenario: No circles without alien alignment
     Given I am playing Math Invaders
     And there are no aliens above the cannon
     Then there should be no answer circles visible
 
+  @multiple_choice
   Scenario: Circles disappear on movement
     Given I am playing Math Invaders
     And there is an alien with the problem "3 × 4" above the cannon
