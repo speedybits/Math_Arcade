@@ -6,6 +6,7 @@ A Space Invaders-style educational game that helps students practice multiplicat
 
 - Control a cannon that moves between three positions (left, center, right)
 - Aliens descend from the top of the screen displaying multiplication problems
+- Multiple choice answers appear below each aligned problem
 - Use the appropriate controls to shoot the correct answer at the aliens
 - Hit aliens with correct answers to score points
 - Game ends if any alien reaches the bottom
@@ -18,24 +19,25 @@ A Space Invaders-style educational game that helps students practice multiplicat
 - Center third of screen is for aiming/firing only
 
 ### Answer Mechanics
-- When cannon aligns under an alien, three circular buttons appear near the cannon
-- Each circle contains a possible answer to the alien's multiplication problem
+- When cannon aligns under an alien, three answer choices appear directly below that alien's math problem
+- The middle answer choice is centered directly beneath the problem
+- The other two answers are evenly spaced to either side
 - Only one of the three answers is correct
-- Circles remain visible until:
+- Answer choices remain visible until:
   - A correct answer is fired (alien destroyed)
-  - No alien is above the cannon
-  - The player moves the cannon to a different position
+  - The cannon moves away from alignment with the alien
+  - The alien is destroyed
 
 ### Firing System
-- Tap/Click any answer circle to fire that number at the alien
+- Tap/Click any answer choice to fire that number at the alien
 - If correct answer hits alien:
   - Alien is destroyed
   - Points are awarded
-  - Answer circles disappear until next alien alignment
+  - Answer choices disappear
 - If wrong answer is fired:
   - Bullet still travels to alien but causes no damage
-  - Original circles disappear
-  - Three new circles appear immediately with:
+  - Original choices disappear
+  - Three new choices appear immediately with:
     - Different answer options
     - Only one correct answer
     - Previous wrong answer will not appear in new options
@@ -66,6 +68,7 @@ A Space Invaders-style educational game that helps students practice multiplicat
 - Futuristic cannon design with glowing core
 - Animated bullets with answers
 - Color-coded feedback for missed problems
+- Multiple choice answers visually connected to math problems
 - Clean, arcade-style interface
 
 ## Technical Details
@@ -74,6 +77,7 @@ A Space Invaders-style educational game that helps students practice multiplicat
 - Local storage for high scores and missed facts
 - Responsive design
 - Frame-rate independent movement
+- Dynamic answer positioning system
 
 ## Educational Benefits
 
@@ -83,6 +87,7 @@ A Space Invaders-style educational game that helps students practice multiplicat
 - Real-time feedback helps identify areas for improvement
 - Progress tracking through high scores
 - Increased challenge as skills improve
+- Clear visual connection between problems and answers
 
 ## Accessibility
 
@@ -90,3 +95,4 @@ A Space Invaders-style educational game that helps students practice multiplicat
 - Simple, intuitive controls
 - High contrast visuals
 - Adjustable game speed with down arrow
+- Answer choices clearly associated with their problems

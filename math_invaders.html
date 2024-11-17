@@ -366,6 +366,9 @@
                 ? e.touches[0].clientX - rect.left 
                 : e.clientX - rect.left;
             
+            // Store previous position
+            const previousPosition = currentCannonPosition;
+            
             // Update to use three distinct zones
             if (x < rect.width / 3) {
                 currentCannonPosition = 'left';
@@ -373,6 +376,11 @@
                 currentCannonPosition = 'right';
             } else {
                 currentCannonPosition = 'center';
+            }
+            
+            // Remove circles if position changed
+            if (previousPosition !== currentCannonPosition) {
+                document.querySelectorAll('.alien-choices').forEach(el => el.remove());
             }
             
             render();
@@ -404,26 +412,48 @@
             if (alignedAlien) {
                 const choicesContainer = document.createElement('div');
                 choicesContainer.className = 'alien-choices';
+                
+                // Position container relative to canvas
+                const canvas = document.getElementById('gameCanvas');
+                const canvasRect = canvas.getBoundingClientRect();
+                const alienScreenX = (alignedAlien.x / CANVAS_WIDTH) * canvasRect.width + canvasRect.left;
+                
+                // Set styles for container
                 choicesContainer.style.position = 'absolute';
-                choicesContainer.style.left = `${alignedAlien.x}px`;
-                choicesContainer.style.top = `${alignedAlien.y + 30}px`; // Position below alien
-                choicesContainer.style.transform = 'translateX(-50%)'; // Center horizontally
+                choicesContainer.style.left = `${alienScreenX}px`;
+                choicesContainer.style.top = `${canvasRect.top + alignedAlien.y + 25}px`; // Exactly 25px below alien
+                choicesContainer.style.transform = 'translateX(-50%)';
                 choicesContainer.style.display = 'flex';
-                choicesContainer.style.gap = '10px';
+                choicesContainer.style.flexDirection = 'row';
+                choicesContainer.style.gap = '5px';
+                choicesContainer.style.justifyContent = 'center';
                 choicesContainer.style.zIndex = '1000';
                 
                 const correctAnswer = alignedAlien.factor1 * alignedAlien.factor2;
-                const answers = generateMultipleChoices(correctAnswer);
+                let answers = generateMultipleChoices(correctAnswer);
                 
+                // Ensure middle button is the correct answer
+                const middleAnswerIndex = 1;
+                const correctAnswerIndex = answers.indexOf(correctAnswer);
+                if (correctAnswerIndex !== middleAnswerIndex) {
+                    const temp = answers[middleAnswerIndex];
+                    answers[middleAnswerIndex] = answers[correctAnswerIndex];
+                    answers[correctAnswerIndex] = temp;
+                }
+                
+                // Create buttons with consistent widths
                 answers.forEach(answer => {
                     const button = document.createElement('button');
                     button.textContent = answer;
                     button.className = 'choice-button';
-                    button.style.display = 'block';
-                    button.style.opacity = '1';
-                    button.style.padding = '5px';
-                    button.style.minWidth = '40px';
-                    button.style.minHeight = '30px';
+                    button.style.width = '40px'; // Fixed width for all buttons
+                    button.style.height = '30px'; // Fixed height for all buttons
+                    button.style.padding = '2px 5px';
+                    button.style.fontSize = '14px';
+                    button.style.margin = '0 2px'; // Even spacing between buttons
+                    button.style.display = 'flex';
+                    button.style.alignItems = 'center';
+                    button.style.justifyContent = 'center';
                     
                     button.onclick = () => {
                         inputAnswer = answer.toString();
@@ -434,6 +464,11 @@
                 });
                 
                 document.body.appendChild(choicesContainer);
+                
+                // Force a reflow and ensure visibility
+                choicesContainer.offsetHeight;
+                choicesContainer.style.visibility = 'visible';
+                choicesContainer.style.opacity = '1';
             }
         }
 
@@ -452,17 +487,24 @@
                 };
                 activeBullets.push(bullet);
 
+                // Remove answer circles immediately when shooting
+                const choicesContainer = document.querySelector('.alien-choices');
+                if (choicesContainer) {
+                    choicesContainer.remove();
+                }
+
                 if (answer === correctAnswer) {
                     activeAliens = activeAliens.filter(alien => alien !== targetAlien);
                     spawnAlien();
                 } else {
                     addMissedFact(targetAlien.factor1, targetAlien.factor2);
+                    // Create new choices after a short delay
+                    setTimeout(() => updateMultipleChoices(), 100);
                 }
             }
 
             inputAnswer = '';
             updateInputDisplay();
-            updateMultipleChoices();
         }
 
         function startGame() {
@@ -680,8 +722,12 @@
                 if (Math.abs(alien.x - cannonX) < 20) {
                     const choicesContainer = document.querySelector('.alien-choices');
                     if (choicesContainer) {
-                        choicesContainer.style.left = `${alien.x}px`;
-                        choicesContainer.style.top = `${alien.y + 30}px`;
+                        const canvas = document.getElementById('gameCanvas');
+                        const canvasRect = canvas.getBoundingClientRect();
+                        const alienScreenX = (alien.x / CANVAS_WIDTH) * canvasRect.width + canvasRect.left;
+                        
+                        choicesContainer.style.left = `${alienScreenX}px`;
+                        choicesContainer.style.top = `${canvasRect.top + alien.y + 25}px`;
                     }
                 }
             });
