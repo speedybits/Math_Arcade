@@ -380,7 +380,10 @@
             
             // Remove circles if position changed
             if (previousPosition !== currentCannonPosition) {
-                document.querySelectorAll('.alien-choices').forEach(el => el.remove());
+                document.querySelectorAll('.alien-choices').forEach(el => {
+                    el.style.display = 'none';
+                    el.remove();
+                });
             }
             
             render();
@@ -388,27 +391,44 @@
         }
 
         function generateMultipleChoices(correctAnswer) {
-            const choices = [correctAnswer];
-            while (choices.length < 3) {
-                const wrong = correctAnswer + Math.floor(Math.random() * 21) - 10;
-                if (wrong > 0 && !choices.includes(wrong)) {
-                    choices.push(wrong);
-                }
+            // Generate two wrong answers that are "reasonable"
+            function generateWrongAnswer() {
+                // Generate wrong answers within ±5 of correct answer, but never the same as correct
+                let wrong;
+                do {
+                    // Random number between -5 and +5, but not 0
+                    const offset = Math.floor(Math.random() * 11) - 5;
+                    wrong = correctAnswer + (offset === 0 ? 1 : offset);
+                } while (wrong <= 0 || wrong === correctAnswer);
+                return wrong;
             }
-            return choices.sort(() => Math.random() - 0.5);
+
+            // Generate two unique wrong answers
+            const wrongAnswer1 = generateWrongAnswer();
+            let wrongAnswer2;
+            do {
+                wrongAnswer2 = generateWrongAnswer();
+            } while (wrongAnswer2 === wrongAnswer1);
+
+            // Return array with all answers in random order
+            return [correctAnswer, wrongAnswer1, wrongAnswer2]
+                .sort(() => Math.random() - 0.5);
         }
 
         function updateMultipleChoices() {
+            console.log('Updating multiple choices...');
+            
             // Remove any existing choice containers
             document.querySelectorAll('.alien-choices').forEach(el => el.remove());
             
             // Find the alien aligned with the cannon
             const cannonX = POSITION_COORDS[currentCannonPosition];
             const alignedAlien = activeAliens.find(alien => 
-                Math.abs(alien.x - cannonX) < 20  // Using 20px tolerance for alignment
+                Math.abs(alien.x - cannonX) < 20
             );
             
-            // Only create choice buttons for the aligned alien
+            console.log('Aligned alien:', alignedAlien);
+            
             if (alignedAlien) {
                 const choicesContainer = document.createElement('div');
                 choicesContainer.className = 'alien-choices';
@@ -417,43 +437,49 @@
                 const canvas = document.getElementById('gameCanvas');
                 const canvasRect = canvas.getBoundingClientRect();
                 const alienScreenX = (alignedAlien.x / CANVAS_WIDTH) * canvasRect.width + canvasRect.left;
+                const alienScreenY = (alignedAlien.y / CANVAS_HEIGHT) * canvasRect.height + canvasRect.top;
                 
                 // Set styles for container
-                choicesContainer.style.position = 'absolute';
-                choicesContainer.style.left = `${alienScreenX}px`;
-                choicesContainer.style.top = `${canvasRect.top + alignedAlien.y + 25}px`; // Exactly 25px below alien
-                choicesContainer.style.transform = 'translateX(-50%)';
-                choicesContainer.style.display = 'flex';
-                choicesContainer.style.flexDirection = 'row';
-                choicesContainer.style.gap = '5px';
-                choicesContainer.style.justifyContent = 'center';
-                choicesContainer.style.zIndex = '1000';
+                Object.assign(choicesContainer.style, {
+                    position: 'absolute',
+                    left: `${alienScreenX}px`,
+                    top: `${alienScreenY + 25}px`,
+                    transform: 'translateX(-50%)',
+                    display: 'flex',
+                    flexDirection: 'row',
+                    gap: '5px',
+                    justifyContent: 'center',
+                    zIndex: '1000',
+                    visibility: 'visible',
+                    opacity: '1'
+                });
                 
+                // Generate answer choices
                 const correctAnswer = alignedAlien.factor1 * alignedAlien.factor2;
-                let answers = generateMultipleChoices(correctAnswer);
+                const answers = generateMultipleChoices(correctAnswer);
                 
-                // Ensure middle button is the correct answer
-                const middleAnswerIndex = 1;
-                const correctAnswerIndex = answers.indexOf(correctAnswer);
-                if (correctAnswerIndex !== middleAnswerIndex) {
-                    const temp = answers[middleAnswerIndex];
-                    answers[middleAnswerIndex] = answers[correctAnswerIndex];
-                    answers[correctAnswerIndex] = temp;
-                }
-                
-                // Create buttons with consistent widths
-                answers.forEach(answer => {
+                // Create buttons
+                answers.forEach((answer) => {
                     const button = document.createElement('button');
-                    button.textContent = answer;
+                    button.textContent = answer.toString();
                     button.className = 'choice-button';
-                    button.style.width = '40px'; // Fixed width for all buttons
-                    button.style.height = '30px'; // Fixed height for all buttons
-                    button.style.padding = '2px 5px';
-                    button.style.fontSize = '14px';
-                    button.style.margin = '0 2px'; // Even spacing between buttons
-                    button.style.display = 'flex';
-                    button.style.alignItems = 'center';
-                    button.style.justifyContent = 'center';
+                    Object.assign(button.style, {
+                        width: '40px',
+                        height: '30px',
+                        padding: '2px 5px',
+                        fontSize: '14px',
+                        margin: '0 2px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        visibility: 'visible',
+                        opacity: '1',
+                        backgroundColor: '#4CAF50',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '5px',
+                        cursor: 'pointer'
+                    });
                     
                     button.onclick = () => {
                         inputAnswer = answer.toString();
@@ -465,10 +491,17 @@
                 
                 document.body.appendChild(choicesContainer);
                 
-                // Force a reflow and ensure visibility
+                // Force a reflow to ensure visibility
                 choicesContainer.offsetHeight;
-                choicesContainer.style.visibility = 'visible';
-                choicesContainer.style.opacity = '1';
+                
+                console.log('Created choices:', {
+                    correctAnswer,
+                    answers,
+                    containerPosition: {
+                        left: choicesContainer.style.left,
+                        top: choicesContainer.style.top
+                    }
+                });
             }
         }
 
@@ -488,15 +521,16 @@
                 activeBullets.push(bullet);
 
                 // Remove answer circles immediately when shooting
-                const choicesContainer = document.querySelector('.alien-choices');
-                if (choicesContainer) {
-                    choicesContainer.remove();
-                }
+                document.querySelectorAll('.alien-choices').forEach(el => {
+                    el.style.display = 'none';
+                    el.remove();
+                });
 
                 if (answer === correctAnswer) {
                     activeAliens = activeAliens.filter(alien => alien !== targetAlien);
                     spawnAlien();
                 } else {
+                    window.lastWrongAnswer = answer;
                     addMissedFact(targetAlien.factor1, targetAlien.factor2);
                     // Create new choices after a short delay
                     setTimeout(() => updateMultipleChoices(), 100);
@@ -538,12 +572,18 @@
             // Check if the position is already occupied
             const isOccupied = activeAliens.some(alien => alien.x === POSITION_COORDS[position]);
             if (!isOccupied) {
-                activeAliens.push({
+                const alien = {
                     x: POSITION_COORDS[position],
                     y: 0,
                     factor1: factor1,
                     factor2: factor2
-                });
+                };
+                activeAliens.push(alien);
+                
+                // Update choices if alien is aligned with cannon
+                if (Math.abs(alien.x - POSITION_COORDS[currentCannonPosition]) < 20) {
+                    updateMultipleChoices();
+                }
             }
         }
 

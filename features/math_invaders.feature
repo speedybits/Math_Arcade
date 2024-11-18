@@ -136,3 +136,11 @@ Feature: Math Invaders Game
   Scenario: Math facts appear quickly
     Given I am playing Math Invaders
     Then I should see math facts within 5 seconds of starting the game
+
+  @answers_positioning
+  Scenario: Multiple choice answers positioning
+    Given I am playing Math Invaders
+    And there is an alien with the problem "3 × 4" above the cannon
+    Then I should see 3 answer circles centered below the math problem
+    And the middle answer should be directly beneath the problem
+    And the other answers should be evenly spaced to either side
