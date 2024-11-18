@@ -5,3 +5,6 @@ node_modules
 cucumber-report-asteroids.html
 cucumber-report-invaders.html
 cucumber-report.html
+*.env
+.env.local
+.env.*.local
