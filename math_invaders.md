@@ -45,11 +45,23 @@ A Space Invaders-style educational game that helps students practice multiplicat
 
 ## Features
 
-### Adaptive Difficulty
-- Level 0 (0-60s): Numbers 0-3
-- Level 1 (60-120s): Numbers 0-6
-- Level 2 (120s+): Numbers 0-9
-- Descent speed increases with difficulty
+### Adaptive Difficulty 
+#### Problems are presented in the following order, with increasing difficulty every 60 seconds where there are no missed answers:
+    x1 (identity principle)
+    x2 (doubling)
+    x0 
+    x10
+    x5
+    The "Square Facts" (3x3, 4x4, 5x5, 6x6, 7x7, 8x8, 9x9)
+    x4
+    x3
+    x9
+    x11
+    x6
+    x7
+    x8
+    The Demons: 6x7, 7x6, 6x8, 8x6, 8x7, 7x8, 8x4, 4x8, 6x4, 4x6
+#### Once "The Demons" are all answered correctly for 60s, then every 60s the speed of the aliens descent increases by 20% every 60s and all the math facts are randomized together.
 
 ### Learning Optimization
 - Tracks missed multiplication facts
