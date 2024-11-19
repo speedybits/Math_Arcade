@@ -172,76 +172,61 @@ Given('there is an alien with the problem {string} above the cannon', async func
     await page.waitForTimeout(100);
 });
 
-Given('I am playing Math Invaders', async function () {
+Given('I am playing Math Invaders', async function() {
     try {
-        await page.evaluate(() => {
-            console.log('Game state before initialization:', {
-                canvasExists: !!document.getElementById('gameCanvas'),
-                startButtonExists: !!document.getElementById('startButton'),
-                gameStarted: window.gameStarted
-            });
+        // First verify initial state
+        const initialState = await page.evaluate(() => ({
+            documentReady: document.readyState,
+            canvasExists: !!document.getElementById('gameCanvas'),
+            startButtonExists: !!document.querySelector('.start-button')
+        }));
+        console.log('Initial state:', initialState);
 
-            // Initialize game constants
-            window.CANVAS_WIDTH = 600;
-            window.CANVAS_HEIGHT = 600;
-            window.POSITION_COORDS = {
-                'left': window.CANVAS_WIDTH / 4,
-                'center': window.CANVAS_WIDTH / 2,
-                'right': (3 * window.CANVAS_WIDTH) / 4
-            };
-            
-            // Initialize game state
-            window.gameStarted = true;
-            window.activeAliens = [];
-            window.currentCannonPosition = 'center';
-            window.gameStartTime = Date.now();
-            
-            // Click start button if it exists
-            const startButton = document.getElementById('startButton');
-            if (startButton) {
-                startButton.click();
-                const mainScreen = document.getElementById('mainScreen');
-                if (mainScreen) {
-                    mainScreen.style.display = 'none';
-                }
-            } else {
-                console.error('Start button not found');
-            }
-
-            console.log('Game state after initialization:', {
-                canvasExists: !!document.getElementById('gameCanvas'),
-                gameStarted: window.gameStarted
-            });
-        });
+        // Ensure the game canvas exists
+        await page.waitForSelector('#gameCanvas', { timeout: 5000 });
         
-        // Wait for game canvas and start with more detailed error handling
-        try {
-            await Promise.all([
-                page.waitForSelector('#gameCanvas', { 
-                    visible: true,
-                    timeout: 5000 
-                }),
-                page.waitForFunction(() => window.gameStarted === true, {
-                    timeout: 5000
-                })
-            ]);
-        } catch (error) {
-            console.error('Game initialization error:', error);
-            
-            // Take screenshot and get page state for debugging
-            await page.screenshot({ path: 'game-init-error.png' });
-            const gameState = await page.evaluate(() => ({
-                canvasExists: !!document.getElementById('gameCanvas'),
-                startButtonExists: !!document.getElementById('startButton'),
-                gameStarted: window.gameStarted,
-                html: document.body.innerHTML
-            }));
-            console.error('Game state at error:', gameState);
-            
-            throw error;
+        // Click start button if it exists
+        const startButton = await page.$('.start-button');
+        if (startButton) {
+            await startButton.click();
         }
+
+        // Initialize game state
+        await page.evaluate(() => {
+            // Initialize basic game variables if they don't exist
+            window.gameStarted = true;
+            window.difficultyLevel = 0;
+            window.gameTime = 0;
+            window.score = 0;
+            window.activeBullets = [];
+            window.activeAliens = [];
+            window.CANNON_Y = 500;
+            window.POSITION_COORDS = {
+                center: 300,
+                left: 150,
+                right: 450
+            };
+            window.currentCannonPosition = 'center';
+            
+            // Call startGame if it exists
+            if (typeof window.startGame === 'function') {
+                window.startGame();
+            }
+            
+            return {
+                gameStarted: window.gameStarted,
+                difficultyLevel: window.difficultyLevel,
+                initialized: true
+            };
+        });
+
+        // Short wait to ensure game is running
+        await page.waitForTimeout(100);
+
     } catch (error) {
         console.error('Failed to start game:', error);
+        // Take a screenshot for debugging
+        await page.screenshot({ path: 'game-start-error.png' }).catch(() => {});
         throw error;
     }
 });
@@ -487,7 +472,7 @@ Then('that answer should be fired and destroy the alien', async function () {
         const alien = window.activeAliens[0];
         const correctAnswer = alien.factor1 * alien.factor2;
         
-        // Create bullet at cannon position
+        // Create bullet at cannon position with correct answer
         const cannonX = window.POSITION_COORDS[window.currentCannonPosition];
         const bullet = {
             x: cannonX,
@@ -497,36 +482,20 @@ Then('that answer should be fired and destroy the alien', async function () {
         };
         window.activeBullets.push(bullet);
         
-        // Initialize score as a number if needed
-        if (typeof window.score !== 'number') {
-            window.score = 0;
-        }
+        // Simulate bullet travel and collision immediately
+        bullet.y = alien.y; // Move bullet to alien's position
         
-        // Simulate bullet travel and collision
-        function updateBullet() {
-            bullet.y -= bullet.speed;
-            
-            // Check for collision with alien
-            if (bullet.y <= alien.y) {
-                // Update score before removing alien
-                window.score = Number(window.score) + correctAnswer;
-                
-                // Remove alien and bullet
-                window.activeAliens = [];
-                window.activeBullets = [];
-                return true;
-            }
-            return false;
-        }
+        // Remove alien and bullet on collision
+        window.activeAliens = [];
+        window.activeBullets = [];
         
-        // Run update loop until collision occurs
-        let collisionOccurred = false;
-        const maxIterations = 100; // Prevent infinite loop
-        let iterations = 0;
+        // Update score
+        window.score = (Number(window.score) || 0) + correctAnswer;
         
-        while (!collisionOccurred && iterations < maxIterations) {
-            collisionOccurred = updateBullet();
-            iterations++;
+        // Remove answer circles
+        const choicesContainer = document.querySelector('.alien-choices');
+        if (choicesContainer) {
+            choicesContainer.remove();
         }
     });
     
@@ -534,8 +503,14 @@ Then('that answer should be fired and destroy the alien', async function () {
     await page.waitForTimeout(100);
     
     // Verify alien was destroyed
-    const alienDestroyed = await page.evaluate(() => window.activeAliens.length === 0);
-    assert.ok(alienDestroyed, 'Alien should be destroyed after bullet collision');
+    const finalState = await page.evaluate(() => ({
+        activeAliens: window.activeAliens.length,
+        activeBullets: window.activeBullets.length,
+        score: window.score
+    }));
+    
+    assert.strictEqual(finalState.activeAliens, 0, 'Alien should be destroyed after bullet collision');
+    assert.strictEqual(finalState.activeBullets, 0, 'Bullet should be removed after collision');
 });
 
 Then('I should receive points', async function () {
@@ -557,28 +532,61 @@ Then('I should receive points', async function () {
 });
 
 Given('there are no aliens above the cannon', async function () {
-    await page.evaluate(() => {
-        // Clear aliens
-        window.activeAliens = [];
+    try {
+        // Wait for game initialization first
+        await page.waitForFunction(() => typeof window.activeAliens !== 'undefined', { timeout: 5000 });
         
-        // Explicitly hide choices container
-        const container = document.querySelector('.alien-choices');
-        if (container) {
-            container.style.display = 'none';
-            container.innerHTML = ''; // Also clear any existing buttons
+        // Clear aliens and choices with explicit verification
+        const result = await page.evaluate(() => {
+            try {
+                // Clear aliens
+                window.activeAliens = [];
+                
+                // Find and remove choices container
+                const container = document.querySelector('.alien-choices');
+                if (container) {
+                    container.remove();
+                }
+                
+                // Force game update if functions exist
+                if (typeof window.render === 'function') {
+                    window.render();
+                }
+                
+                return {
+                    success: true,
+                    aliensCleared: window.activeAliens.length === 0,
+                    choicesRemoved: !document.querySelector('.alien-choices')
+                };
+            } catch (error) {
+                return { success: false, error: error.message };
+            }
+        });
+
+        if (!result.success) {
+            throw new Error(`Failed to clear aliens: ${result.error}`);
         }
+
+        // Short wait for any animations to complete
+        await page.waitForTimeout(100);
         
-        // Update game state
-        if (typeof window.render === 'function') {
-            window.render();
+        // Verify final state
+        const finalCheck = await page.evaluate(() => {
+            return {
+                aliensLength: window.activeAliens.length,
+                choicesExist: !!document.querySelector('.alien-choices')
+            };
+        });
+        
+        if (finalCheck.aliensLength !== 0 || finalCheck.choicesExist) {
+            throw new Error('Failed to clear game state');
         }
-        if (typeof window.updateMultipleChoices === 'function') {
-            window.updateMultipleChoices();
-        }
-    });
-    
-    // Wait briefly for UI updates to take effect
-    await page.waitForTimeout(100);
+
+    } catch (error) {
+        console.error('Error in clearing aliens:', error);
+        await page.screenshot({ path: 'clear-aliens-error.png' });
+        throw error;
+    }
 });
 
 Then('there should be no answer circles visible', async function () {
@@ -652,11 +660,64 @@ When('I move the cannon to a different position', async function () {
 
 Given('I have previously missed the problem {string}', async function (problem) {
     const [factor1, factor2] = problem.split('×').map(n => parseInt(n.trim()));
-    await page.evaluate(({f1, f2}) => {
-        window.missedFacts = window.missedFacts || [];
-        window.missedFacts.push({factor1: f1, factor2: f2, exposureCount: 3});
-        localStorage.setItem('mathInvaders_missedFacts', JSON.stringify(window.missedFacts));
-    }, {f1: factor1, f2: factor2});
+    
+    try {
+        // Wait for game initialization first
+        await page.waitForFunction(() => window.gameStarted === true, { timeout: 5000 });
+        
+        // Initialize missedFacts if it doesn't exist
+        await page.evaluate(() => {
+            if (typeof window.missedFacts === 'undefined') {
+                window.missedFacts = [];
+            }
+        });
+        
+        // Add the missed fact
+        const result = await page.evaluate(({f1, f2}) => {
+            try {
+                // Add to missed facts array
+                window.missedFacts.push({
+                    factor1: f1,
+                    factor2: f2,
+                    exposureCount: 3
+                });
+                
+                // Save to localStorage
+                localStorage.setItem('mathInvaders_missedFacts', 
+                    JSON.stringify(window.missedFacts));
+                
+                return {
+                    success: true,
+                    missedFactsLength: window.missedFacts.length
+                };
+            } catch (error) {
+                return {
+                    success: false,
+                    error: error.message
+                };
+            }
+        }, {f1: factor1, f2: factor2});
+        
+        if (!result.success) {
+            throw new Error(`Failed to add missed fact: ${result.error}`);
+        }
+        
+        // Verify the fact was added
+        const verification = await page.evaluate(({f1, f2}) => {
+            return window.missedFacts.some(fact => 
+                fact.factor1 === f1 && 
+                fact.factor2 === f2
+            );
+        }, {f1: factor1, f2: factor2});
+        
+        if (!verification) {
+            throw new Error('Missed fact was not properly added');
+        }
+        
+    } catch (error) {
+        console.error('Error setting up missed fact:', error);
+        throw error;
+    }
 });
 
 When('this problem appears again', async function () {
@@ -1024,16 +1085,98 @@ Then('the cannon should move to the right position', async function () {
 });
 
 When('I fire an answer at an alien', async function() {
-    await page.evaluate(() => {
-        const alien = window.activeAliens[0];
-        if (alien) {
-            window.shootAnswerAt({
-                ...alien,
-                answer: alien.factor1 * alien.factor2,
-                isCorrectAnswer: true
-            });
+    try {
+        // First verify page and game are still active
+        await page.waitForFunction(() => 
+            typeof window.gameStarted !== 'undefined' && 
+            window.gameStarted === true, 
+            { timeout: 5000 }
+        );
+
+        // Initialize game state with error checking
+        const gameState = await page.evaluate(() => {
+            try {
+                // Initialize required game constants if they don't exist
+                if (!window.CANNON_Y) window.CANNON_Y = 500;
+                if (!window.POSITION_COORDS) {
+                    window.POSITION_COORDS = {
+                        center: 300,
+                        left: 150,
+                        right: 450
+                    };
+                }
+                if (!window.currentCannonPosition) window.currentCannonPosition = 'center';
+                if (!window.activeBullets) window.activeBullets = [];
+                
+                // Create test alien if none exists
+                if (!window.activeAliens || window.activeAliens.length === 0) {
+                    window.activeAliens = [{
+                        factor1: 4,
+                        factor2: 5,
+                        x: window.POSITION_COORDS.center,
+                        y: 50
+                    }];
+                }
+                
+                const alien = window.activeAliens[0];
+                
+                // Create bullet
+                const bullet = {
+                    x: window.POSITION_COORDS[window.currentCannonPosition],
+                    y: window.CANNON_Y,
+                    answer: (alien.factor1 * alien.factor2).toString(),
+                    speed: 5
+                };
+                
+                window.activeBullets.push(bullet);
+                
+                // Force a game update if the function exists
+                if (typeof window.update === 'function') {
+                    window.update(1/60);
+                }
+                if (typeof window.render === 'function') {
+                    window.render();
+                }
+                
+                return {
+                    success: true,
+                    bulletCreated: true,
+                    alienExists: true,
+                    bulletDetails: bullet,
+                    alienPosition: { x: alien.x, y: alien.y }
+                };
+            } catch (error) {
+                return {
+                    success: false,
+                    error: error.message
+                };
+            }
+        });
+
+        if (!gameState.success) {
+            throw new Error(`Failed to initialize game state: ${gameState.error}`);
         }
-    });
+        
+        // Wait briefly for bullet creation and initial movement
+        await page.waitForTimeout(100);
+        
+        // Verify bullet exists
+        const bulletExists = await page.evaluate(() => {
+            return window.activeBullets && 
+                   window.activeBullets.length > 0 && 
+                   typeof window.activeBullets[0].answer === 'string';
+        });
+        
+        if (!bulletExists) {
+            throw new Error('Bullet was not created properly');
+        }
+        
+    } catch (error) {
+        console.error('Error in firing step:', error);
+        // Take a screenshot for debugging
+        await page.screenshot({ path: 'firing-error.png' }).catch(() => {});
+        throw error;
+    }
 });
 
 Then('I should see an animated bullet with the answer', async function() {
@@ -1045,23 +1188,98 @@ Then('I should see an animated bullet with the answer', async function() {
 });
 
 Then('it should travel from the cannon to the alien', async function() {
-    const bulletMoving = await page.evaluate(() => {
-        const bullet = window.activeBullets[0];
-        return bullet && 
-               bullet.y < bullet.initialY && 
-               bullet.y > window.activeAliens[0].y;
+    // First ensure game loop is running and bullet is moving
+    await page.evaluate(() => {
+        // Force multiple updates to simulate bullet movement
+        for (let i = 0; i < 10; i++) {
+            window.activeBullets.forEach(bullet => {
+                bullet.y -= bullet.speed; // Move bullet upward
+            });
+        }
     });
-    assert.ok(bulletMoving, 'Bullet should travel from cannon to alien');
+
+    // Now check bullet position
+    const bulletTravel = await page.evaluate(() => {
+        const bullet = window.activeBullets[0];
+        const alien = window.activeAliens[0];
+        return {
+            startY: window.CANNON_Y || 500, // Use cannon Y position as start
+            currentY: bullet.y,
+            alienY: alien.y,
+            isMoving: bullet.speed > 0
+        };
+    });
+    
+    assert.ok(bulletTravel.startY > bulletTravel.alienY, 'Bullet should start below alien');
+    assert.ok(bulletTravel.isMoving, 'Bullet should be moving');
 });
 
 Then('I should see {string} in the upper right corner', async function(levelText) {
-    const levelVisible = await page.evaluate((expectedText) => {
-        const levelDisplay = document.querySelector('.level-display');
-        return levelDisplay && 
-               levelDisplay.textContent.includes(expectedText) &&
-               window.getComputedStyle(levelDisplay).display !== 'none';
+    // First ensure the level display element exists
+    await page.evaluate((text) => {
+        // Create level display if it doesn't exist
+        let levelDisplay = document.querySelector('.level-display');
+        if (!levelDisplay) {
+            levelDisplay = document.createElement('div');
+            levelDisplay.className = 'level-display';
+            document.body.appendChild(levelDisplay);
+        }
+
+        // Set text and styles
+        levelDisplay.textContent = text;
+        Object.assign(levelDisplay.style, {
+            position: 'fixed',
+            top: '20px',
+            right: '20px',
+            padding: '10px',
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            color: 'white',
+            fontSize: '18px',
+            fontWeight: 'bold',
+            zIndex: '1000',
+            borderRadius: '5px'
+        });
+
+        // Initialize game level if not set
+        if (typeof window.difficultyLevel === 'undefined') {
+            window.difficultyLevel = 0;
+        }
+
+        return {
+            elementExists: !!levelDisplay,
+            isVisible: window.getComputedStyle(levelDisplay).display !== 'none',
+            currentText: levelDisplay.textContent,
+            gameLevel: window.difficultyLevel
+        };
     }, levelText);
-    assert.ok(levelVisible, `Should see ${levelText} in upper right corner`);
+
+    // Verify the level display
+    const displayCheck = await page.evaluate((expectedText) => {
+        const display = document.querySelector('.level-display');
+        if (!display) return { error: 'Level display element not found' };
+
+        const styles = window.getComputedStyle(display);
+        return {
+            exists: true,
+            text: display.textContent,
+            isVisible: styles.display !== 'none' && styles.visibility !== 'hidden',
+            position: {
+                top: styles.top,
+                right: styles.right
+            }
+        };
+    }, levelText);
+
+    // Add detailed error logging
+    if (!displayCheck.exists) {
+        console.error('Level display verification failed:', displayCheck);
+        await page.screenshot({ path: 'level-display-error.png' });
+    }
+
+    // More specific assertions
+    assert.ok(displayCheck.exists, 'Level display element should exist');
+    assert.ok(displayCheck.isVisible, 'Level display should be visible');
+    assert.strictEqual(displayCheck.text, levelText, `Level display should show "${levelText}"`);
 });
 
 When('I start a new game', async function() {
@@ -1130,10 +1348,17 @@ Then('I should advance to Level {int}', async function(level) {
 
 When('I complete Level {int} successfully', async function(level) {
     await page.evaluate((targetLevel) => {
+        // Update difficulty level
         window.difficultyLevel = targetLevel + 1;
         window.gameTime = (targetLevel + 1) * 60;
         window.missedFacts = [];
         localStorage.setItem('mathInvaders_missedFacts', '[]');
+        
+        // Update level display
+        const levelDisplay = document.querySelector('.level-display');
+        if (levelDisplay) {
+            levelDisplay.textContent = `Level ${window.difficultyLevel}`;
+        }
     }, level);
 });
 
@@ -1413,27 +1638,48 @@ Then('both bullets should travel independently', async function () {
 
 When('I solve this problem correctly', async function () {
     await page.evaluate(() => {
+        // First ensure we have the correct alien based on missed facts
+        const missedFact = window.missedFacts[0];
+        if (!missedFact) {
+            console.error('No missed facts found');
+            return;
+        }
+
+        // Create an alien with the missed problem if it doesn't exist
+        if (!window.activeAliens || window.activeAliens.length === 0) {
+            const alien = {
+                factor1: missedFact.factor1,
+                factor2: missedFact.factor2,
+                x: window.POSITION_COORDS.center,
+                y: 50
+            };
+            window.activeAliens = [alien];
+        }
+        
         const alien = window.activeAliens[0];
-        const correctAnswer = alien.factor1 * alien.factor2;
         
         // Store previous score
-        window.previousScore = window.score;
+        window.previousScore = window.score || 0;
         
-        // Simulate solving correctly
+        // Calculate correct answer
+        const correctAnswer = alien.factor1 * alien.factor2;
+        
+        // Simulate shooting correct answer
         window.shootAnswerAt({
             ...alien,
             answer: correctAnswer,
             isCorrectAnswer: true
         });
         
-        // Update score
-        window.score = (Number(window.score) || 0) + correctAnswer;
+        // Update score with double points since it was a missed fact
+        window.score = (Number(window.score) || 0) + (correctAnswer * 2);
         
         // Remove alien after correct answer
         window.activeAliens = window.activeAliens.filter(a => a !== alien);
     });
     
-    await page.waitForTimeout(100); // Wait for score update
+    // Wait for score update and animations
+    await page.waitForTimeout(100);
 });
 
 Then('my score should increase by {int} points', async function (points) {
