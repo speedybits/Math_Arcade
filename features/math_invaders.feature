@@ -7,7 +7,6 @@ Feature: Math Invaders Game
   @basic @score_calculation
   Scenario: Basic score calculation
     Given I am playing Math Invaders
-    And I solved a problem correctly
     And I solve a math problem correctly
     And I have not previously missed this problem
     When the problem was "4 × 5"
@@ -201,3 +200,33 @@ Feature: Math Invaders Game
     Then I should see "Level 1" in the upper right corner
     When I complete Level 1 successfully
     Then I should see "Level 2" in the upper right corner
+
+  @intermediate @multiple_aliens
+  Scenario: Multiple aliens descend simultaneously
+    Given I am playing Math Invaders
+    When the game starts
+    Then I should see multiple math problems descending
+    And they should maintain proper spacing between each other
+    And I should be able to solve any problem that aligns with my cannon
+
+  @intermediate @multiple_aliens
+  Scenario: Maximum number of simultaneous aliens
+    Given I am playing Math Invaders
+    When the game starts
+    Then I should never see more than 4 aliens at once
+    And new aliens should only spawn when space is available
+
+  @intermediate @multiple_aliens
+  Scenario: Vertical spacing between aliens
+    Given I am playing Math Invaders
+    When multiple aliens are descending
+    Then aliens in the same column should maintain at least 100 pixels of spacing
+    And I should be able to clearly read each math problem
+
+  @intermediate @multiple_aliens
+  Scenario: Solving problems with multiple aliens
+    Given I am playing Math Invaders
+    And there are multiple aliens descending
+    When I solve a problem for one alien
+    Then only that specific alien should be destroyed
+    And other aliens should continue descending

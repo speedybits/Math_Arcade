@@ -287,7 +287,7 @@
         let inputAnswer = '';
 
         const ALIEN_SPEED = 30; // pixels per second, adjust as needed
-        const SPAWN_INTERVAL = 3000; // milliseconds between spawns, adjust as needed
+        const SPAWN_INTERVAL = 2000; // milliseconds between spawns, adjust as needed
         let lastSpawnTime = 0;
 
         let activeBullets = [];
@@ -571,61 +571,51 @@
         function spawnAlien(testFactors) {
             if (!gameStarted) return null;
 
+            // Prevent overcrowding - check total number of active aliens
+            if (activeAliens.length >= 4) return null; // Maximum 4 aliens at once
+
             // Use test factors if provided, otherwise generate random ones
             const factor1 = testFactors ? testFactors.factor1 : getRandomFactor();
             const factor2 = testFactors ? testFactors.factor2 : getRandomFactor();
             
             // For testing, always spawn above the cannon if test factors are provided
-            const position = testFactors ? 'center' : ['left', 'center', 'right'][Math.floor(Math.random() * 3)];
+            let position = testFactors ? 'center' : ['left', 'center', 'right'][Math.floor(Math.random() * 3)];
             
-            // Check if the position is already occupied
-            const isOccupied = activeAliens.some(alien => 
-                Math.abs(alien.x - POSITION_COORDS[position]) < 20
+            // Check for minimum vertical spacing between aliens
+            const MIN_VERTICAL_SPACING = 100; // pixels
+            const alienAtPosition = activeAliens.find(alien => 
+                Math.abs(alien.x - POSITION_COORDS[position]) < 20 &&
+                alien.y < MIN_VERTICAL_SPACING
             );
 
-            if (!isOccupied) {
-                const alien = {
-                    x: POSITION_COORDS[position],
-                    y: 0,
-                    factor1: factor1,
-                    factor2: factor2
-                };
-                activeAliens.push(alien);
-                
-                // Update choices if alien is aligned with cannon
-                if (Math.abs(alien.x - POSITION_COORDS[currentCannonPosition]) < 20) {
-                    updateMultipleChoices();
-                }
-
-                return alien;
-            }
-
-            // If position is occupied and this is a test, try another position
-            if (testFactors) {
+            if (alienAtPosition) {
+                // Try other positions if current one is blocked
                 const availablePositions = ['left', 'center', 'right'].filter(pos => {
                     return !activeAliens.some(alien => 
-                        Math.abs(alien.x - POSITION_COORDS[pos]) < 20
+                        Math.abs(alien.x - POSITION_COORDS[pos]) < 20 &&
+                        alien.y < MIN_VERTICAL_SPACING
                     );
                 });
-                if (availablePositions.length > 0) {
-                    const newPosition = availablePositions[0];
-                    const alien = {
-                        x: POSITION_COORDS[newPosition],
-                        y: 0,
-                        factor1: factor1,
-                        factor2: factor2
-                    };
-                    activeAliens.push(alien);
-                    
-                    if (Math.abs(alien.x - POSITION_COORDS[currentCannonPosition]) < 20) {
-                        updateMultipleChoices();
-                    }
-                    
-                    return alien;
-                }
+                
+                if (availablePositions.length === 0) return null;
+                position = availablePositions[Math.floor(Math.random() * availablePositions.length)];
             }
 
-            return null;
+            const alien = {
+                x: POSITION_COORDS[position],
+                y: 0,
+                factor1: factor1,
+                factor2: factor2
+            };
+            
+            activeAliens.push(alien);
+            
+            // Update choices if alien is aligned with cannon
+            if (Math.abs(alien.x - POSITION_COORDS[currentCannonPosition]) < 20) {
+                updateMultipleChoices();
+            }
+
+            return alien;
         }
 
         function getRandomFactor() {
@@ -656,6 +646,12 @@
             
             const deltaTime = lastTime ? Math.min((timestamp - lastTime) / 1000, 0.1) : 0;
             lastTime = timestamp;
+
+            // Spawn new aliens periodically
+            if (timestamp - lastSpawnTime > SPAWN_INTERVAL) {
+                spawnAlien();
+                lastSpawnTime = timestamp;
+            }
 
             // Update game state
             update(deltaTime);
@@ -801,9 +797,13 @@
         function render() {
             ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-            // Draw aliens and update their answer circles
+            // Draw aliens with proper spacing visualization
             activeAliens.forEach(alien => {
-                // Check if this is a missed fact
+                // Draw alien background (helps visualize spacing)
+                ctx.fillStyle = 'rgba(50, 50, 50, 0.3)';
+                ctx.fillRect(alien.x - 30, alien.y - 20, 60, 40);
+                
+                // Draw the math problem
                 const isMissed = missedFacts.some(fact => 
                     fact.factor1 === alien.factor1 && fact.factor2 === alien.factor2
                 );
@@ -812,20 +812,6 @@
                 ctx.font = '20px Arial';
                 ctx.textAlign = 'center';
                 ctx.fillText(`${alien.factor1} × ${alien.factor2}`, alien.x, alien.y);
-                
-                // Update position of associated answer circles if this alien is aligned with cannon
-                const cannonX = POSITION_COORDS[currentCannonPosition];
-                if (Math.abs(alien.x - cannonX) < 20) {
-                    const choicesContainer = document.querySelector('.alien-choices');
-                    if (choicesContainer) {
-                        const canvas = document.getElementById('gameCanvas');
-                        const canvasRect = canvas.getBoundingClientRect();
-                        const alienScreenX = (alien.x / CANVAS_WIDTH) * canvasRect.width + canvasRect.left;
-                        
-                        choicesContainer.style.left = `${alienScreenX}px`;
-                        choicesContainer.style.top = `${canvasRect.top + alien.y + 25}px`;
-                    }
-                }
             });
 
             // Draw bullets

@@ -1759,3 +1759,264 @@ Given('I solve a math problem correctly', async function () {
     // Wait for score update and animations
     await page.waitForTimeout(100);
 });
+
+When('the game starts', function() {
+    // Game starts automatically when initialized
+    window.startGame();
+});
+
+Then('I should see multiple math problems descending', function() {
+    // Wait for multiple aliens to spawn (4 seconds to ensure multiple spawns)
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            const activeAliens = window.activeAliens;
+            expect(activeAliens.length).to.be.greaterThan(1);
+            resolve();
+        }, 4000);
+    });
+});
+
+Then('they should maintain proper spacing between each other', function() {
+    const MIN_VERTICAL_SPACING = 100; // Same as in game code
+    const activeAliens = window.activeAliens;
+    
+    // Check vertical spacing between all pairs of aliens in same column
+    const hasProperSpacing = activeAliens.every((alien1) => {
+        return activeAliens.every((alien2) => {
+            if (alien1 === alien2) return true;
+            
+            // If aliens are in same column (approximately)
+            if (Math.abs(alien1.x - alien2.x) < 20) {
+                // Check vertical spacing
+                return Math.abs(alien1.y - alien2.y) >= MIN_VERTICAL_SPACING;
+            }
+            return true;
+        });
+    });
+    
+    expect(hasProperSpacing).to.be.true;
+});
+
+Then('I should be able to solve any problem that aligns with my cannon', function() {
+    const currentPosition = window.currentCannonPosition;
+    const cannonX = window.POSITION_COORDS[currentPosition];
+    
+    // Find any aligned alien
+    const alignedAlien = window.activeAliens.find(alien => 
+        Math.abs(alien.x - cannonX) < 20
+    );
+    
+    if (alignedAlien) {
+        // Get correct answer
+        const correctAnswer = alignedAlien.factor1 * alignedAlien.factor2;
+        
+        // Simulate shooting correct answer
+        window.inputAnswer = correctAnswer.toString();
+        window.shootAnswer();
+        
+        // Verify alien was destroyed
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                const alienStillExists = window.activeAliens.includes(alignedAlien);
+                expect(alienStillExists).to.be.false;
+                resolve();
+            }, 1000);
+        });
+    } else {
+        // Move cannon to align with an alien if none aligned
+        const nearestAlien = window.activeAliens[0];
+        if (nearestAlien) {
+            const positions = ['left', 'center', 'right'];
+            const newPosition = positions.find(pos => 
+                Math.abs(window.POSITION_COORDS[pos] - nearestAlien.x) < 20
+            );
+            if (newPosition) {
+                window.currentCannonPosition = newPosition;
+                return this.step('Then I should be able to solve any problem that aligns with my cannon');
+            }
+        }
+    }
+});
+
+Then('I should never see more than 4 aliens at once', async function () {
+    const maxAliensCheck = await page.evaluate(() => {
+        // Monitor aliens for a few spawn cycles
+        let maxAliens = 0;
+        const checkInterval = setInterval(() => {
+            maxAliens = Math.max(maxAliens, window.activeAliens.length);
+        }, 100);
+        
+        return new Promise(resolve => {
+            setTimeout(() => {
+                clearInterval(checkInterval);
+                resolve(maxAliens <= 4);
+            }, 5000); // Check for 5 seconds
+        });
+    });
+    
+    assert.ok(maxAliensCheck, 'Should never exceed 4 aliens at once');
+});
+
+Then('new aliens should only spawn when space is available', async function () {
+    const spawnCheck = await page.evaluate(() => {
+        // Fill up with maximum aliens
+        while (window.activeAliens.length < 4) {
+            window.spawnAlien();
+        }
+        
+        // Try to spawn another alien
+        const extraAlien = window.spawnAlien();
+        
+        return {
+            currentCount: window.activeAliens.length,
+            extraSpawned: extraAlien !== null
+        };
+    });
+    
+    assert.strictEqual(spawnCheck.currentCount, 4, 'Should maintain maximum of 4 aliens');
+    assert.strictEqual(spawnCheck.extraSpawned, false, 'Should not spawn when full');
+});
+
+When('multiple aliens are descending', async function () {
+    await page.evaluate(() => {
+        // Clear existing aliens
+        window.activeAliens = [];
+        
+        // Spawn multiple aliens
+        for (let i = 0; i < 3; i++) {
+            window.spawnAlien();
+        }
+        
+        // Force update
+        const deltaTime = 1/60;
+        window.update(deltaTime);
+        window.render();
+    });
+    
+    // Wait for aliens to start descending
+    await page.waitForTimeout(100);
+});
+
+Then('aliens in the same column should maintain at least {int} pixels of spacing', async function (minSpacing) {
+    const spacingCheck = await page.evaluate((spacing) => {
+        const aliens = window.activeAliens;
+        
+        // Check spacing between all pairs of aliens in the same column
+        for (let i = 0; i < aliens.length; i++) {
+            for (let j = i + 1; j < aliens.length; j++) {
+                // If aliens are in same column (approximately)
+                if (Math.abs(aliens[i].x - aliens[j].x) < 20) {
+                    // Check vertical spacing
+                    if (Math.abs(aliens[i].y - aliens[j].y) < spacing) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }, minSpacing);
+    
+    assert.ok(spacingCheck, `Aliens should maintain at least ${minSpacing}px spacing`);
+});
+
+Then('I should be able to clearly read each math problem', async function () {
+    const readabilityCheck = await page.evaluate(() => {
+        const aliens = window.activeAliens;
+        
+        // Check for overlapping aliens
+        for (let i = 0; i < aliens.length; i++) {
+            for (let j = i + 1; j < aliens.length; j++) {
+                const dx = aliens[i].x - aliens[j].x;
+                const dy = aliens[i].y - aliens[j].y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                // If aliens are too close (less than problem text height)
+                if (distance < 40) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    });
+    
+    assert.ok(readabilityCheck, 'Math problems should be clearly readable without overlap');
+});
+
+Given('there are multiple aliens descending', async function () {
+    await page.evaluate(() => {
+        // Clear existing aliens
+        window.activeAliens = [];
+        
+        // Spawn multiple aliens in different columns
+        const positions = ['left', 'center', 'right'];
+        positions.forEach((pos, index) => {
+            window.activeAliens.push({
+                x: window.POSITION_COORDS[pos],
+                y: index * 100,
+                factor1: index + 2,
+                factor2: index + 3
+            });
+        });
+        
+        // Force update
+        const deltaTime = 1/60;
+        window.update(deltaTime);
+        window.render();
+    });
+    
+    // Wait for aliens to be visible
+    await page.waitForTimeout(100);
+});
+
+When('I solve a problem for one alien', async function () {
+    await page.evaluate(() => {
+        // Get first alien
+        const alien = window.activeAliens[0];
+        if (!alien) return;
+        
+        // Calculate correct answer
+        const correctAnswer = alien.factor1 * alien.factor2;
+        
+        // Store alien count before solving
+        window.previousAlienCount = window.activeAliens.length;
+        
+        // Simulate shooting correct answer
+        window.shootAnswerAt({
+            ...alien,
+            answer: correctAnswer,
+            isCorrectAnswer: true
+        });
+    });
+    
+    // Wait for collision and destruction
+    await page.waitForTimeout(100);
+});
+
+Then('only that specific alien should be destroyed', async function () {
+    const destructionCheck = await page.evaluate(() => {
+        return {
+            previousCount: window.previousAlienCount,
+            currentCount: window.activeAliens.length,
+            difference: window.previousAlienCount - window.activeAliens.length
+        };
+    });
+    
+    assert.strictEqual(destructionCheck.difference, 1, 'Only one alien should be destroyed');
+});
+
+Then('other aliens should continue descending', async function () {
+    const movementCheck = await page.evaluate(() => {
+        const initialPositions = window.activeAliens.map(alien => alien.y);
+        
+        // Force movement update
+        const deltaTime = 1/60;
+        window.update(deltaTime);
+        
+        // Check if aliens moved
+        return window.activeAliens.every((alien, index) => 
+            alien.y > initialPositions[index]
+        );
+    });
+    
+    assert.ok(movementCheck, 'Remaining aliens should continue moving');
+});
