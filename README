@@ -1,0 +1,16 @@
+============================
+SETUP
+============================
+conda create -n math_arcade
+conda activate math_arcade
+conda install package_name
+###conda config --add channels conda-forge
+###conda install aider-chat
+
+
+
+============================
+REFERENCE
+============================
+conda activate math_arcade
+/aider
