@@ -6,6 +6,17 @@ Prerequisites:
 - npm dependencies installed (run `npm install` first)
 - Local server running (run `npm run serve` in a separate terminal)
 
+Starting the Server
+------------------
+1. Open a terminal in the project root
+2. Start the local development server using either:
+   npm run serve    (recommended)
+   -- OR --
+   node server.js   (alternative)
+   
+   The server should start at http://localhost:8080
+   Keep this terminal running while executing tests
+
 Test Profiles
 ------------
 

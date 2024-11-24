@@ -4,6 +4,7 @@ Feature: Math Invaders Game
   I want to play Math Invaders
   So that I can practice multiplication facts while having fun
 
+@basic
 # Basic Movement and Controls
 Scenario: Cannon movement with three positions
   When I click the left third of the screen
@@ -13,24 +14,28 @@ Scenario: Cannon movement with three positions
   When I click the right third of the screen
   Then the cannon should move to the right position
 
+@basic
 # Alien Mechanics
 Scenario: Aliens fall in three positions
   When an alien appears
   Then it appears in either the left, center or right position
   And it descends toward the bottom of the screen
 
+@basic
 Scenario: Multiple aliens descend simultaneously
   When the game starts
   Then I should see multiple math problems descending
   And they should maintain proper spacing between each other
   And I should be able to solve any problem that aligns with my cannon
 
+@basic
 Scenario: Maximum number of simultaneous aliens
   When the game starts
   Then I should never see more than 4 aliens at once
   And new aliens should only spawn when space is available
 
 # Answer Mechanics
+@basic
 Scenario: Answer circles appear when aligned
   And there is an alien with the problem "3 × 4" above the cannon
   Then I should see 3 answer circles below the alien 
@@ -38,6 +43,7 @@ Scenario: Answer circles appear when aligned
   When I click any answer circle
   Then that answer should be fired at the alien
 
+@basic
 Scenario: Multiple choice answers positioning
   And there is an alien with the problem "3 × 4" above the cannon
   Then I should see 3 answer circles centered below the math problem
@@ -45,6 +51,7 @@ Scenario: Multiple choice answers positioning
   And the other answers should be evenly spaced to either side
   And the circles should move down the screen as the alien does
 
+@basic
 Scenario: No circles without alien alignment
   And there are no aliens above the cannon
   Then there should be no answer circles visible
