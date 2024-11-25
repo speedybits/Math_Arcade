@@ -164,3 +164,45 @@ Scenario: Accessibility controls
   And I should be able to adjust game speed with the down arrow
   And the controls should be simple and intuitive
   And answer choices should be clearly associated with their problems
+
+# Add these scenarios to test game state stability
+
+@stability
+Scenario: Game state after rapid alien destruction
+  Given I am playing Math Invaders
+  When I rapidly destroy multiple aliens in succession
+  Then new aliens should continue to spawn
+  And the game should maintain a steady frame rate
+  And the score should update correctly
+
+@stability
+Scenario: Game state during rapid position changes
+  Given there is an alien with the problem "3 × 4" above the cannon
+  When I rapidly switch cannon positions multiple times
+  Then the answer circles should update correctly
+  And no duplicate answer circles should appear
+  And the cannon should be responsive
+
+@stability
+Scenario: Game state after multiple wrong answers
+  Given there is an alien with the problem "3 × 4" above the cannon
+  When I submit multiple wrong answers rapidly
+  Then the alien should remain intact
+  And new answer choices should appear correctly
+  And previous wrong answers should not reappear
+
+@stability
+Scenario: Game state during level transition
+  Given I am about to complete level 1
+  When I solve the final problem of the level
+  Then the level should transition smoothly
+  And no aliens should disappear unexpectedly
+  And the difficulty should update correctly
+
+@stability
+Scenario: Game state during simultaneous alien-bullet collisions
+  Given multiple aliens are descending
+  When I fire answers at multiple aliens simultaneously
+  Then each collision should resolve correctly
+  And the score should update accurately
+  And new aliens should spawn appropriately

@@ -868,24 +868,34 @@ Then('the aliens should descend even faster', async function() {
     assert.ok(speedIncreased, 'Aliens should descend even faster');
 });
 
-Then('I should see a cannon with a glowing core', async function() {
-    const hasGlowingCore = await page.evaluate(() => {
+Then('I should see a futuristic cannon with glowing core', async function () {
+    const hasEffects = await page.evaluate(() => {
         const cannon = document.querySelector('.cannon');
         const style = window.getComputedStyle(cannon);
         return style.boxShadow.includes('rgba') || 
-               style.filter.includes('blur');
+               style.background.includes('gradient');
     });
-    assert.ok(hasGlowingCore, 'Cannon should have glowing core effect');
+    assert.ok(hasEffects, 'Cannon should have visual effects');
 });
 
-Then('it should have metallic highlights', async function() {
-    const hasMetallicHighlights = await page.evaluate(() => {
-        const cannon = document.querySelector('.cannon');
-        const style = window.getComputedStyle(cannon);
-        return style.background.includes('linear-gradient') || 
-               style.background.includes('radial-gradient');
+Then('the current level should be displayed in the upper right corner', async function () {
+    const levelDisplayed = await page.evaluate(() => {
+        const levelDisplay = document.querySelector('.level-display');
+        return levelDisplay && 
+               levelDisplay.style.position === 'fixed' &&
+               levelDisplay.style.right === '20px';
     });
-    assert.ok(hasMetallicHighlights, 'Cannon should have metallic highlight effects');
+    assert.ok(levelDisplayed, 'Level should be displayed in corner');
+});
+
+Then('the interface should have a clean arcade-style appearance', async function () {
+    const styleCheck = await page.evaluate(() => {
+        const canvas = document.getElementById('gameCanvas');
+        const style = window.getComputedStyle(canvas);
+        return style.backgroundColor === 'rgb(0, 0, 0)' && 
+               style.border.includes('solid');
+    });
+    assert.ok(styleCheck, 'Interface should have arcade style');
 });
 
 When('I miss the problem {string}', async function (problem) {
@@ -2168,4 +2178,176 @@ Then('other aliens should continue descending', async function () {
     });
     
     assert.ok(movementCheck, 'Remaining aliens should continue moving');
+});
+
+When('I rapidly destroy multiple aliens in succession', async function () {
+    await page.evaluate(async () => {
+        // Start game if not started
+        if (!window.gameStarted) {
+            window.startGame();
+        }
+        
+        // Track initial state
+        const initialScore = window.score;
+        
+        // Wait for aliens to appear
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Destroy multiple aliens in quick succession
+        for (let i = 0; i < 5; i++) {
+            if (window.activeAliens.length > 0) {
+                const alien = window.activeAliens[0];
+                const correctAnswer = alien.factor1 * alien.factor2;
+                window.shootAnswerAt({
+                    x: alien.x,
+                    y: alien.y,
+                    answer: correctAnswer,
+                    targetAlien: alien
+                });
+            }
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
+        
+        return { initialScore };
+    });
+    
+    // Wait briefly for game to process
+    await page.waitForTimeout(100);
+});
+
+When('I rapidly switch cannon positions multiple times', async function () {
+    await page.evaluate(async () => {
+        const positions = ['left', 'center', 'right'];
+        for (let i = 0; i < 10; i++) {
+            window.currentCannonPosition = positions[i % 3];
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
+    });
+});
+
+When('I submit multiple wrong answers rapidly', async function () {
+    await page.evaluate(async () => {
+        const alien = window.activeAliens[0];
+        const correctAnswer = alien.factor1 * alien.factor2;
+        
+        // Submit several wrong answers quickly
+        for (let i = 0; i < 5; i++) {
+            const wrongAnswer = correctAnswer + i + 1;
+            window.shootAnswerAt({
+                x: alien.x,
+                y: alien.y,
+                answer: wrongAnswer,
+                targetAlien: alien
+            });
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
+    });
+});
+
+Given('I am about to complete level 1', async function () {
+    await page.evaluate(async () => {
+        window.gameStarted = true;
+        window.difficultyLevel = 1;
+        window.gameTime = 59; // Just before level completion
+    });
+});
+
+When('I fire answers at multiple aliens simultaneously', async function () {
+    await page.evaluate(async () => {
+        // Ensure multiple aliens exist
+        while (window.activeAliens.length < 3) {
+            window.spawnAlien();
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
+        
+        // Fire at all aliens simultaneously
+        const initialScore = window.score;
+        window.activeAliens.forEach(alien => {
+            const correctAnswer = alien.factor1 * alien.factor2;
+            window.shootAnswerAt({
+                x: alien.x,
+                y: alien.y,
+                answer: correctAnswer,
+                targetAlien: alien
+            });
+        });
+        
+        return { initialScore };
+    });
+});
+
+Then('new aliens should continue to spawn', async function () {
+    const spawnCheck = await page.evaluate(async () => {
+        const initialCount = window.activeAliens.length;
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        return {
+            initialCount,
+            finalCount: window.activeAliens.length,
+            spawningContinues: window.activeAliens.length > 0
+        };
+    });
+    
+    assert.ok(spawnCheck.spawningContinues, 'Aliens should continue to spawn');
+});
+
+Then('the game should maintain a steady frame rate', async function () {
+    const frameCheck = await page.evaluate(async () => {
+        let lastTime = performance.now();
+        let frameDeltas = [];
+        
+        // Measure frame times over 1 second
+        for (let i = 0; i < 60; i++) {
+            await new Promise(requestAnimationFrame);
+            const currentTime = performance.now();
+            frameDeltas.push(currentTime - lastTime);
+            lastTime = currentTime;
+        }
+        
+        // Calculate frame time consistency
+        const avgDelta = frameDeltas.reduce((a, b) => a + b) / frameDeltas.length;
+        const maxDeviation = Math.max(...frameDeltas.map(d => Math.abs(d - avgDelta)));
+        
+        return {
+            avgFrameTime: avgDelta,
+            maxDeviation,
+            isStable: maxDeviation < 32 // Allow up to 2 frames of deviation
+        };
+    });
+    
+    assert.ok(frameCheck.isStable, 'Frame rate should remain stable');
+});
+
+Then('no duplicate answer circles should appear', async function () {
+    const duplicateCheck = await page.evaluate(() => {
+        const buttons = document.querySelectorAll('.choice-button');
+        const answers = Array.from(buttons).map(b => b.textContent);
+        const uniqueAnswers = new Set(answers);
+        return {
+            totalAnswers: answers.length,
+            uniqueAnswers: uniqueAnswers.size
+        };
+    });
+    
+    assert.strictEqual(
+        duplicateCheck.totalAnswers,
+        duplicateCheck.uniqueAnswers,
+        'Should have no duplicate answers'
+    );
+});
+
+Then('each collision should resolve correctly', async function () {
+    const collisionCheck = await page.evaluate(async () => {
+        // Wait for all collisions to resolve
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        return {
+            remainingBullets: window.activeBullets.length,
+            scoreUpdated: window.score > 0,
+            aliensResponded: window.activeAliens.length < 3
+        };
+    });
+    
+    assert.strictEqual(collisionCheck.remainingBullets, 0, 'All bullets should resolve');
+    assert.ok(collisionCheck.scoreUpdated, 'Score should update after collisions');
+    assert.ok(collisionCheck.aliensResponded, 'Aliens should be destroyed on correct hits');
 });
