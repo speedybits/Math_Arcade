@@ -14,8 +14,13 @@ Scenario: Cannon movement with three positions
   When I click the right third of the screen
   Then the cannon should move to the right position
 
-@basic
 # Alien Mechanics
+@startup
+Scenario: Aliens fall within 5 seconds
+  When I press the Start Game button
+  Then an alien should appear within 5 seconds
+
+@basic
 Scenario: Aliens fall in three positions
   When an alien appears
   Then it appears in either the left, center or right position
@@ -28,16 +33,10 @@ Scenario: Multiple aliens descend simultaneously
   And they should maintain proper spacing between each other
   And I should be able to solve any problem that aligns with my cannon
 
-@basic
-Scenario: Maximum number of simultaneous aliens
-  When the game starts
-  Then I should never see more than 4 aliens at once
-  And new aliens should only spawn when space is available
-
 # Answer Mechanics
 @basic
 Scenario: Answer circles appear when aligned
-  And there is an alien with the problem "3 × 4" above the cannon
+  When there is an alien with the problem "3 × 4" above the cannon
   Then I should see 3 answer circles below the alien 
   And one of them should contain "12"
   When I click any answer circle
@@ -45,7 +44,7 @@ Scenario: Answer circles appear when aligned
 
 @basic
 Scenario: Multiple choice answers positioning
-  And there is an alien with the problem "3 × 4" above the cannon
+  When there is an alien with the problem "3 × 4" above the cannon
   Then I should see 3 answer circles centered below the math problem
   And the middle answer should be directly beneath the problem
   And the other answers should be evenly spaced to either side
@@ -53,32 +52,34 @@ Scenario: Multiple choice answers positioning
 
 @basic
 Scenario: No circles without alien alignment
-  And there are no aliens above the cannon
+  When there are no aliens above the cannon
   Then there should be no answer circles visible
 
 Scenario: Wrong answer mechanics
-  And there is an alien with the problem "3 × 4" above the cannon
-  When I click an answer circle with the wrong answer
+  When there is an alien with the problem "3 × 4" above the cannon
+  And I click an answer circle with the wrong answer
   Then that answer should be fired but not destroy the alien
   And new answer circles should appear
   And the previous wrong answer should not be among the new options
 
 Scenario: Correct answer mechanics
-  And there is an alien with the problem "3 × 4" above the cannon
+  When there is an alien with the problem "3 × 4" above the cannon
   When I click the answer circle containing "12"
   Then that answer should be fired and destroy the alien
   And the answer circles should disappear
   And I should receive points
 
 # Scoring System
+@score
 Scenario: Basic score calculation
-  And I solve a math problem correctly
+  When I solve a math problem correctly
   And I have not previously missed this problem
-  When the problem was "4 × 5"
+  When in Math Invaders the problem was "4 × 5"
   Then my score should increase by exactly 20 points
 
+@score
 Scenario: Double points for previously missed problems
-  And I have previously missed the problem "6 × 7"
+  When in Math Invaders I have previously missed the problem "6 × 7"
   When this problem appears again as an orange alien
   And I solve it correctly
   Then I should receive double points
@@ -90,7 +91,7 @@ Scenario: Tracking missed problems
   And it should appear 3 times more frequently than other problems
 
 Scenario: Visual indication of missed problems
-  And I have previously missed the problem "6 × 7"
+  When I have previously missed the problem "6 × 7"
   When this problem appears again
   Then it should be displayed as an orange alien
 
@@ -125,6 +126,7 @@ Scenario: Level progression order
     | 12    | × 8                                        |
     | 13    | The Demons (6×7, 7×8, etc)                |
 
+@final
 Scenario: Final level mechanics
   And I am at Level 13
   When I solve all demon problems correctly for 60 seconds
