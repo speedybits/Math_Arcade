@@ -338,8 +338,8 @@
             canvas.removeEventListener('touchstart', handleInteraction);
             canvas.removeEventListener('click', handleInteraction);
             
-            // Add both touch and click listeners
-            canvas.addEventListener('touchstart', handleInteraction);
+            // Add both touch and click listeners with passive option for touch events
+            canvas.addEventListener('touchstart', handleInteraction, { passive: false });
             canvas.addEventListener('click', handleInteraction);
             canvas.style.touchAction = 'manipulation';
 
