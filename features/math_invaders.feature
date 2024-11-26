@@ -15,7 +15,7 @@ Scenario: Cannon movement with three positions
   Then the cannon should move to the right position
 
 # Alien Mechanics
-@startup
+@basic
 Scenario: Aliens fall within 5 seconds
   When I press the Start Game button
   Then an alien should appear within 5 seconds
