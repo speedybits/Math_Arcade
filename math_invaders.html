@@ -266,39 +266,30 @@
         const startButton = document.getElementById('startButton');
         const inputDisplay = document.getElementById('inputDisplay');
 
-        const CANVAS_WIDTH = canvas.width;
-        const CANVAS_HEIGHT = canvas.height;
-        const CANNON_WIDTH = 50;
-        const CANNON_HEIGHT = 30;
-        const CANNON_Y = CANVAS_HEIGHT - CANNON_HEIGHT - 10;
-
-        const POSITION_COORDS = {
-            'left': CANVAS_WIDTH / 4,
-            'center': CANVAS_WIDTH / 2,
-            'right': (3 * CANVAS_WIDTH) / 4
+        window.INITIAL_DESCENT_SPEED = 30;
+        window.MIN_ALIEN_SPACING = 100;
+        window.CANVAS_WIDTH = 600;
+        window.CANVAS_HEIGHT = 600;
+        window.POSITION_COORDS = {
+            'left': window.CANVAS_WIDTH / 4,
+            'center': window.CANVAS_WIDTH / 2,
+            'right': (3 * window.CANVAS_WIDTH) / 4
         };
 
-        let score = 0;
-        let highScore = 0; // Highest score in current session
-        let gameStarted = false;
-        let lastTime = 0;
-        let activeAliens = [];
-        let currentCannonPosition = 'center';
-        let inputAnswer = '';
+        window.score = 0;
+        window.highScore = 0;
+        window.gameStarted = false;
+        window.lastTime = 0;
+        window.activeAliens = [];
+        window.currentCannonPosition = 'center';
+        window.inputAnswer = '';
+        window.activeBullets = [];
+        window.gameTime = 0;
+        window.difficultyLevel = 0;
 
         const ALIEN_SPEED = 30; // pixels per second, adjust as needed
         const SPAWN_INTERVAL = 2000; // milliseconds between spawns, adjust as needed
         let lastSpawnTime = 0;
-
-        let activeBullets = [];
-
-        let gameTime = 0;
-        let difficultyLevel = 0;
-
-        const INITIAL_DESCENT_SPEED = 30; // pixels per second
-        const FAST_DESCENT_MULTIPLIER = 4; // How much faster when down arrow is pressed
-        let descentSpeed = INITIAL_DESCENT_SPEED;
-        let isFastDescent = false;
 
         let highScores = []; // Array to store high score objects
 
@@ -307,6 +298,10 @@
 
         const BULLET_BASE_SPEED = 5; // Base speed for bullets
         const BULLET_SPACING = 30; // Minimum vertical spacing between bullets
+
+        const CANNON_WIDTH = 50;
+        const CANNON_HEIGHT = 30;
+        const CANNON_Y = window.CANVAS_HEIGHT - CANNON_HEIGHT - 10;
 
         window.submitHighScore = function(initials) {
             // Validate initials are exactly 3 letters
@@ -365,256 +360,275 @@
                 : e.clientX - rect.left;
             
             // Store previous position
-            const previousPosition = currentCannonPosition;
+            const previousPosition = window.currentCannonPosition;
             
             // Update position using normalized coordinates
             const normalizedX = x / rect.width;
             if (normalizedX < 1/3) {
-                currentCannonPosition = 'left';
+                window.currentCannonPosition = 'left';
             } else if (normalizedX > 2/3) {
-                currentCannonPosition = 'right';
+                window.currentCannonPosition = 'right';
             } else {
-                currentCannonPosition = 'center';
+                window.currentCannonPosition = 'center';
             }
             
-            // Only update if position changed
-            if (previousPosition !== currentCannonPosition) {
-                // Remove existing choices more efficiently
-                const existingChoices = document.querySelector('.alien-choices');
-                if (existingChoices) {
-                    existingChoices.remove();
-                }
-                
-                // Schedule render and choices update for next frame
-                requestAnimationFrame(() => {
-                    render();
-                    updateMultipleChoices();
-                });
+            // Force immediate render to update cannon position
+            render();
+            
+            // Always update choices when position changes
+            if (previousPosition !== window.currentCannonPosition) {
+                requestAnimationFrame(updateMultipleChoices);
             }
         }
 
         function generateMultipleChoices(correctAnswer) {
-            // For testing 3x4=12 case
-            if (correctAnswer === 12) {
-                const answers = [10, 11, 12];
-                // Ensure previous wrong answer is not included
-                if (window.lastWrongAnswer) {
-                    const index = answers.indexOf(window.lastWrongAnswer);
-                    if (index > -1 && index < 2) { // Don't remove correct answer
-                        answers[index] = correctAnswer - 2; // Use a different wrong answer
-                    }
-                }
-                return answers;
-            }
-            
-            const answers = [correctAnswer];
-            
-            // Generate wrong answers that are close to but different from correct answer
-            while (answers.length < 3) {
-                const offset = answers.length === 1 ? -2 : -1;
+            const choices = [correctAnswer];
+            while (choices.length < 3) {
+                const offset = choices.length === 1 ? -2 : -1;
                 const wrongAnswer = correctAnswer + offset;
-                
-                // Skip if this was the previous wrong answer
-                if (wrongAnswer === window.lastWrongAnswer) {
-                    continue;
-                }
-                
-                if (wrongAnswer > 0 && !answers.includes(wrongAnswer)) {
-                    answers.push(wrongAnswer);
+                if (wrongAnswer > 0 && !choices.includes(wrongAnswer)) {
+                    choices.push(wrongAnswer);
                 }
             }
-            
-            // If we still need an answer and skipped the previous wrong one
-            while (answers.length < 3) {
-                const wrongAnswer = correctAnswer - 3; // Use a different wrong answer
-                if (wrongAnswer > 0 && !answers.includes(wrongAnswer)) {
-                    answers.push(wrongAnswer);
-                }
-            }
-            
-            return answers;
+            return choices;
         }
 
         function updateMultipleChoices() {
-            // Remove existing choices more efficiently
-            const existingChoices = document.querySelector('.alien-choices');
-            if (existingChoices) {
-                existingChoices.remove();
-            }
+            // Remove existing choices
+            document.querySelectorAll('.alien-choices').forEach(el => el.remove());
             
             // Find aligned alien
-            const cannonX = POSITION_COORDS[currentCannonPosition];
-            const alignedAlien = activeAliens.find(alien => 
-                Math.abs(alien.x - cannonX) < 20
-            );
+            const cannonX = window.POSITION_COORDS[window.currentCannonPosition];
+            const alignedAlien = window.activeAliens.find(alien => {
+                const dx = Math.abs(alien.x - cannonX);
+                return dx < 20;
+            });
             
             if (!alignedAlien) return;
 
             // Create choices container
             const choicesContainer = document.createElement('div');
             choicesContainer.className = 'alien-choices';
+            choicesContainer.dataset.alienIndex = window.activeAliens.indexOf(alignedAlien);
             
-            // Position container
+            // Position container below alien
             const canvasRect = canvas.getBoundingClientRect();
-            const alienScreenX = (alignedAlien.x / CANVAS_WIDTH) * canvasRect.width + canvasRect.left;
-            const alienScreenY = (alignedAlien.y / CANVAS_HEIGHT) * canvasRect.height + canvasRect.top;
+            const alienScreenX = (alignedAlien.x / window.CANVAS_WIDTH) * canvasRect.width + canvasRect.left;
+            const alienScreenY = (alignedAlien.y / window.CANVAS_HEIGHT) * canvasRect.height + canvasRect.top;
             
+            // Position the container
             Object.assign(choicesContainer.style, {
                 position: 'absolute',
                 left: `${alienScreenX}px`,
-                top: `${alienScreenY + 25}px`,
+                top: `${alienScreenY + 40}px`,
                 transform: 'translateX(-50%)',
                 display: 'flex',
-                flexDirection: 'row',
-                gap: '5px',
                 justifyContent: 'center',
-                zIndex: '1000'
+                alignItems: 'center',
+                gap: '20px',
+                zIndex: '1000',
+                pointerEvents: 'auto',
+                transition: 'top 0.016s linear' // Smooth movement
             });
-            
-            // Generate and add answer buttons
-            const correctAnswer = alignedAlien.factor1 * alignedAlien.factor2;
-            const answers = generateMultipleChoices(correctAnswer);
-            
-            const fragment = document.createDocumentFragment();
-            answers.forEach(answer => {
+
+            // Create buttons
+            alignedAlien.answerChoices.forEach((answer, index) => {
                 const button = document.createElement('button');
-                button.textContent = answer.toString();
                 button.className = 'choice-button';
+                button.textContent = answer;
                 
-                button.onclick = () => {
-                    inputAnswer = answer.toString();
-                    shootAnswerAt(alignedAlien);
+                Object.assign(button.style, {
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    border: '2px solid white',
+                    backgroundColor: index === 1 ? '#45a049' : '#4CAF50',
+                    color: 'white',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '16px',
+                    padding: '0',
+                    cursor: 'pointer',
+                    margin: '0'
+                });
+
+                button.onclick = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    const bullet = {
+                        x: window.POSITION_COORDS[window.currentCannonPosition],
+                        y: CANNON_Y,
+                        answer: parseInt(answer),
+                        speed: BULLET_BASE_SPEED,
+                        targetAlien: alignedAlien,
+                        isCorrectAnswer: parseInt(answer) === (alignedAlien.factor1 * alignedAlien.factor2)
+                    };
+
+                    window.activeBullets = window.activeBullets || [];
+                    window.activeBullets.push(bullet);
+                    
+                    document.querySelectorAll('.alien-choices').forEach(el => el.remove());
                 };
                 
-                fragment.appendChild(button);
+                choicesContainer.appendChild(button);
             });
-            
-            choicesContainer.appendChild(fragment);
+
             document.body.appendChild(choicesContainer);
         }
 
-        function shootAnswerAt(targetAlien) {
-            if (targetAlien) {
-                const answer = parseInt(inputAnswer);
-                const correctAnswer = targetAlien.factor1 * targetAlien.factor2;
-                
-                // Find lowest bullet's y position
-                const lowestBulletY = activeBullets.length > 0 
-                    ? Math.max(...activeBullets.map(b => b.y))
-                    : CANNON_Y + BULLET_SPACING;
+        function shootAnswer(answer, targetAlien) {
+            if (!targetAlien) return;
+            
+            const correctAnswer = targetAlien.factor1 * targetAlien.factor2;
+            
+            // Create bullet with all required properties
+            const bullet = {
+                x: window.POSITION_COORDS[window.currentCannonPosition],
+                y: CANNON_Y,
+                answer: answer,
+                speed: BULLET_BASE_SPEED,
+                targetAlien: targetAlien,
+                isCorrectAnswer: answer === correctAnswer
+            };
 
-                // Ensure new bullet starts below previous bullet
-                const startY = Math.min(lowestBulletY + BULLET_SPACING, CANNON_Y);
-                
-                // Create bullet with simplified properties
-                const bullet = {
-                    x: POSITION_COORDS[currentCannonPosition],
-                    y: startY,
-                    answer: inputAnswer,
-                    speed: BULLET_BASE_SPEED + (Math.random() * 2 - 1), // Slightly randomized speed
-                    targetAlien: targetAlien,
-                    isCorrectAnswer: answer === correctAnswer
-                };
-
-                activeBullets.push(bullet);
-
-                if (!bullet.isCorrectAnswer) {
-                    window.lastWrongAnswer = answer;
-                }
-
-                // Remove answer circles
-                document.querySelectorAll('.alien-choices').forEach(el => el.remove());
-
-                // Update choices after delay if wrong answer
-                if (!bullet.isCorrectAnswer) {
-                    setTimeout(() => {
-                        if (activeAliens.includes(targetAlien)) {
-                            updateMultipleChoices();
-                        }
-                    }, 100);
-                }
+            // Initialize bullets array if it doesn't exist
+            window.activeBullets = window.activeBullets || [];
+            
+            // Add bullet to active bullets
+            window.activeBullets.push(bullet);
+            
+            // Remove answer circles
+            document.querySelectorAll('.alien-choices').forEach(el => el.remove());
+            
+            // Update choices after delay if wrong answer
+            if (!bullet.isCorrectAnswer) {
+                setTimeout(() => {
+                    if (window.activeAliens.includes(targetAlien)) {
+                        updateMultipleChoices();
+                    }
+                }, 100);
             }
 
-            inputAnswer = '';
-            updateInputDisplay();
+            // Force render update
+            render();
+            
+            return bullet;
         }
 
         function startGame() {
-            // Reset game state with minimal operations
-            gameStarted = true;
-            score = 0;
-            activeAliens = [];
-            activeBullets = [];
-            currentCannonPosition = 'center';
-            inputAnswer = '';
-            gameTime = 0;
-            difficultyLevel = 0;
-            descentSpeed = INITIAL_DESCENT_SPEED;
-            isFastDescent = false;
+            console.log('Starting game...');
+            
+            // Clear any existing intervals first
+            if (window.spawnInterval) {
+                clearInterval(window.spawnInterval);
+            }
+            
+            // Reset game state
+            window.gameStarted = true;
+            window.score = 0;
+            window.activeAliens = [];
+            window.activeBullets = [];
+            window.currentCannonPosition = 'center';
+            window.inputAnswer = '';
+            window.gameTime = 0;
+            window.difficultyLevel = 0;
+            window.descentSpeed = window.INITIAL_DESCENT_SPEED;
+            window.isFastDescent = false;
+            window.lastSpawnTime = 0;
 
-            // Hide main screen immediately
-            document.getElementById('mainScreen').style.display = 'none';
+            // Hide main screen
+            const mainScreen = document.getElementById('mainScreen');
+            if (mainScreen) {
+                mainScreen.style.display = 'none';
+            }
             
             // Set initial timestamp
-            lastTime = performance.now();
-            window.gameStartTime = lastTime;
+            window.lastTime = performance.now();
+            window.gameStartTime = window.lastTime;
 
             // Start game loop
             requestAnimationFrame(gameLoop);
             
-            // Spawn first alien with slight delay to ensure proper initialization
-            setTimeout(spawnAlien, 100);
+            // Spawn initial aliens immediately
+            console.log('Spawning initial aliens...');
+            
+            // Create promises for spawning aliens
+            const spawnPromises = [
+                spawnAlien(null, 'left'),
+                new Promise(resolve => setTimeout(() => resolve(spawnAlien(null, 'center')), 100)),
+                new Promise(resolve => setTimeout(() => resolve(spawnAlien(null, 'right')), 200))
+            ];
+            
+            // Wait for all aliens to spawn
+            Promise.all(spawnPromises).then(() => {
+                console.log('Initial aliens spawned:', window.activeAliens);
+                
+                // Start periodic spawning
+                window.spawnInterval = setInterval(() => {
+                    if (!window.gameStarted) {
+                        clearInterval(window.spawnInterval);
+                        return;
+                    }
+                    
+                    if (window.activeAliens.length < 4) {
+                        const usedPositions = window.activeAliens.map(a => a.position);
+                        const availablePositions = ['left', 'center', 'right'].filter(pos => !usedPositions.includes(pos));
+                        if (availablePositions.length > 0) {
+                            const position = availablePositions[Math.floor(Math.random() * availablePositions.length)];
+                            spawnAlien(null, position);
+                        }
+                    }
+                }, 1000);
+            });
             
             return true;
         }
 
-        function spawnAlien(testFactors) {
-            if (!gameStarted) return null;
+        function spawnAlien(testFactors, forcedPosition) {
+            console.log('Spawning alien:', { testFactors, forcedPosition });
+            
+            // Allow spawning for tests even if game isn't started
+            if (!window.gameStarted && !testFactors) return null;
 
-            // Prevent overcrowding - check total number of active aliens
-            if (activeAliens.length >= 4) return null; // Maximum 4 aliens at once
+            // Initialize arrays if they don't exist
+            window.activeAliens = window.activeAliens || [];
+            window.activeBullets = window.activeBullets || [];
+
+            // Prevent overcrowding
+            if (window.activeAliens.length >= 4) return null;
 
             // Use test factors if provided, otherwise generate random ones
-            const factor1 = testFactors ? testFactors.factor1 : getRandomFactor();
-            const factor2 = testFactors ? testFactors.factor2 : getRandomFactor();
+            const factor1 = testFactors ? testFactors.factor1 : Math.floor(Math.random() * 10) + 1;
+            const factor2 = testFactors ? testFactors.factor2 : Math.floor(Math.random() * 10) + 1;
             
-            // For testing, always spawn above the cannon if test factors are provided
-            let position = testFactors ? 'center' : ['left', 'center', 'right'][Math.floor(Math.random() * 3)];
+            // Use forced position, test position, or find available position
+            let position = forcedPosition || (testFactors ? 'center' : ['left', 'center', 'right'][Math.floor(Math.random() * 3)]);
             
-            // Check for minimum vertical spacing between aliens
-            const MIN_VERTICAL_SPACING = 100; // pixels
-            const alienAtPosition = activeAliens.find(alien => 
-                Math.abs(alien.x - POSITION_COORDS[position]) < 20 &&
-                alien.y < MIN_VERTICAL_SPACING
-            );
-
-            if (alienAtPosition) {
-                // Try other positions if current one is blocked
-                const availablePositions = ['left', 'center', 'right'].filter(pos => {
-                    return !activeAliens.some(alien => 
-                        Math.abs(alien.x - POSITION_COORDS[pos]) < 20 &&
-                        alien.y < MIN_VERTICAL_SPACING
-                    );
-                });
-                
-                if (availablePositions.length === 0) return null;
-                position = availablePositions[Math.floor(Math.random() * availablePositions.length)];
-            }
-
             const alien = {
-                x: POSITION_COORDS[position],
+                x: window.POSITION_COORDS[position],
                 y: 0,
                 factor1: factor1,
-                factor2: factor2
+                factor2: factor2,
+                position: position,
+                answerChoices: generateMultipleChoices(factor1 * factor2)
             };
             
-            activeAliens.push(alien);
+            window.activeAliens.push(alien);
             
-            // Update choices if alien is aligned with cannon
-            if (Math.abs(alien.x - POSITION_COORDS[currentCannonPosition]) < 20) {
+            console.log('Spawned alien:', {
+                position: alien.position,
+                x: alien.x,
+                y: alien.y,
+                problem: `${alien.factor1} × ${alien.factor2}`
+            });
+            
+            // Update choices immediately
+            requestAnimationFrame(() => {
                 updateMultipleChoices();
-            }
-
+            });
+            
             return alien;
         }
 
@@ -634,24 +648,23 @@
             gameTime += deltaTime;
             if (gameTime >= 120) { // 2 minutes
                 difficultyLevel = 2;
-                descentSpeed = INITIAL_DESCENT_SPEED * 2; // Double the initial speed
+                descentSpeed = window.INITIAL_DESCENT_SPEED * 2; // Double the initial speed
             } else if (gameTime >= 60) { // 1 minute
                 difficultyLevel = 1;
-                descentSpeed = INITIAL_DESCENT_SPEED * 1.5; // 1.5 times the initial speed
+                descentSpeed = window.INITIAL_DESCENT_SPEED * 1.5; // 1.5 times the initial speed
             }
         }
 
         function gameLoop(timestamp) {
-            if (!gameStarted) return;
-            
-            const deltaTime = lastTime ? Math.min((timestamp - lastTime) / 1000, 0.1) : 0;
-            lastTime = timestamp;
-
-            // Spawn new aliens periodically
-            if (timestamp - lastSpawnTime > SPAWN_INTERVAL) {
-                spawnAlien();
-                lastSpawnTime = timestamp;
+            if (!window.gameStarted) {
+                if (window.spawnInterval) {
+                    clearInterval(window.spawnInterval);
+                }
+                return;
             }
+            
+            const deltaTime = window.lastTime ? Math.min((timestamp - window.lastTime) / 1000, 0.1) : 0;
+            window.lastTime = timestamp;
 
             // Update game state
             update(deltaTime);
@@ -660,20 +673,47 @@
             render();
 
             // Continue loop
-            if (gameStarted) {
-                requestAnimationFrame(gameLoop);
-            }
+            requestAnimationFrame(gameLoop);
         }
 
         function update(deltaTime) {
-            if (!gameStarted) return;
+            if (!window.gameStarted) return;
 
-            // Update aliens
+            // Update aliens and their choices
             let gameOver = false;
-            activeAliens.forEach(alien => {
-                alien.y += descentSpeed * deltaTime;
+            window.activeAliens.forEach(alien => {
+                const oldY = alien.y;
+                alien.y += window.descentSpeed * deltaTime;
+                
                 if (alien.y > CANVAS_HEIGHT - CANNON_HEIGHT - 10) {
                     gameOver = true;
+                    return;
+                }
+                
+                // Always update choices position for this alien if it has moved
+                if (alien.y !== oldY) {
+                    const canvasRect = canvas.getBoundingClientRect();
+                    const alienScreenX = (alien.x / window.CANVAS_WIDTH) * canvasRect.width + canvasRect.left;
+                    const alienScreenY = (alien.y / window.CANVAS_HEIGHT) * canvasRect.height + canvasRect.top;
+                    
+                    // Find choices container for this alien
+                    const choicesContainer = document.querySelector(`.alien-choices[data-alien-index="${window.activeAliens.indexOf(alien)}"]`);
+                    if (choicesContainer) {
+                        // Update position immediately
+                        Object.assign(choicesContainer.style, {
+                            left: `${alienScreenX}px`,
+                            top: `${alienScreenY + 40}px`,
+                            transform: 'translateX(-50%)'
+                        });
+                    }
+                }
+                
+                // Check alignment with cannon
+                const cannonX = window.POSITION_COORDS[window.currentCannonPosition];
+                const isAligned = Math.abs(alien.x - cannonX) < 20;
+                
+                if (isAligned && !document.querySelector('.alien-choices')) {
+                    updateMultipleChoices();
                 }
             });
 
@@ -683,15 +723,13 @@
                 return;
             }
 
-            // Update bullets with direct position changes
-            for (let i = activeBullets.length - 1; i >= 0; i--) {
-                const bullet = activeBullets[i];
-                
-                // Move bullet upward
+            // Update bullets
+            for (let i = window.activeBullets.length - 1; i >= 0; i--) {
+                const bullet = window.activeBullets[i];
                 bullet.y -= bullet.speed;
                 
                 // Check for collision with target alien
-                if (bullet.targetAlien && activeAliens.includes(bullet.targetAlien)) {
+                if (bullet.targetAlien && window.activeAliens.includes(bullet.targetAlien)) {
                     const dx = bullet.x - bullet.targetAlien.x;
                     const dy = bullet.y - bullet.targetAlien.y;
                     const distance = Math.sqrt(dx * dx + dy * dy);
@@ -700,41 +738,47 @@
                         if (bullet.isCorrectAnswer) {
                             // Handle correct answer
                             const points = bullet.targetAlien.factor1 * bullet.targetAlien.factor2;
-                            score += points;
-                            if (score > highScore) {
-                                highScore = score;
+                            window.score += points;
+                            if (window.score > window.highScore) {
+                                window.highScore = window.score;
                             }
                             updateScoreDisplay();
                             
-                            // Remove alien
-                            activeAliens = activeAliens.filter(a => a !== bullet.targetAlien);
+                            // Remove alien and its answer choices
+                            const index = window.activeAliens.indexOf(bullet.targetAlien);
+                            if (index > -1) {
+                                window.activeAliens.splice(index, 1);
+                                document.querySelectorAll('.alien-choices').forEach(el => el.remove());
+                            }
                             setTimeout(spawnAlien, 100);
                         } else {
                             // Handle wrong answer
                             addMissedFact(bullet.targetAlien.factor1, bullet.targetAlien.factor2);
-                            setTimeout(() => {
-                                if (activeAliens.includes(bullet.targetAlien)) {
-                                    updateMultipleChoices();
-                                }
-                            }, 100);
                         }
                         
                         // Remove bullet
-                        activeBullets.splice(i, 1);
+                        window.activeBullets.splice(i, 1);
                         continue;
                     }
                 }
                 
                 // Remove bullet if it goes off screen
                 if (bullet.y < 0) {
-                    activeBullets.splice(i, 1);
+                    window.activeBullets.splice(i, 1);
                 }
             }
+
+            // Update difficulty
+            updateDifficulty(deltaTime);
         }
 
         function endGame() {
+            if (window.spawnInterval) {
+                clearInterval(window.spawnInterval);
+            }
+            
             console.log("End game function called");
-            gameStarted = false;
+            window.gameStarted = false;
             
             // Show main screen with game over state
             const mainScreen = document.getElementById('mainScreen');
@@ -747,14 +791,14 @@
                 console.error("Error: '#mainScreen h2' element not found.");
             }
             
-            document.getElementById('finalScore').textContent = `Your Score: ${score}`;
+            document.getElementById('finalScore').textContent = `Your Score: ${window.score}`;
             
             // Prompt for initials with a slight delay to ensure UI updates
             setTimeout(() => {
                 let initials = prompt("Enter your initials (3 characters):", "AAA");
                 if (initials) {
                     initials = initials.slice(0, 3).toUpperCase();
-                    highScores.push({ initials, score });
+                    highScores.push({ initials, score: window.score });
                     highScores.sort((a, b) => b.score - a.score);
                     highScores = highScores.slice(0, 10); // Keep top 10 scores
                     saveHighScores();
@@ -798,7 +842,7 @@
             ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
             // Draw aliens with proper spacing visualization
-            activeAliens.forEach(alien => {
+            window.activeAliens.forEach(alien => {
                 // Draw alien background (helps visualize spacing)
                 ctx.fillStyle = 'rgba(50, 50, 50, 0.3)';
                 ctx.fillRect(alien.x - 30, alien.y - 20, 60, 40);
@@ -815,7 +859,7 @@
             });
 
             // Draw bullets
-            activeBullets.forEach(bullet => {
+            window.activeBullets.forEach(bullet => {
                 // Draw bullet body
                 ctx.fillStyle = bullet.isCorrectAnswer ? 'yellow' : 'red';
                 ctx.beginPath();
@@ -829,97 +873,37 @@
                 ctx.fillText(bullet.answer, bullet.x, bullet.y + 4);
             });
 
-            // Draw futuristic cannon
-            const cannonX = POSITION_COORDS[currentCannonPosition];
-            const cannonY = CANNON_Y;
+            // Draw cannon at current position
+            const cannonX = window.POSITION_COORDS[window.currentCannonPosition];
             
             ctx.save();
             
-            // Enhanced glowing core effect
-            ctx.shadowBlur = 40; // Increased blur for more prominent glow
-            ctx.shadowColor = '#00ffff'; // Cyan color for better visibility
-            ctx.globalAlpha = 1.0; // Full opacity
+            // Draw cannon body
+            ctx.fillStyle = 'green';
+            ctx.fillRect(cannonX - CANNON_WIDTH / 2, CANNON_Y, CANNON_WIDTH, CANNON_HEIGHT);
             
-            // Core glow
-            const coreGradient = ctx.createRadialGradient(
-                cannonX, cannonY + 15, 0,
-                cannonX, cannonY + 15, 30 // Increased radius
-            );
-            coreGradient.addColorStop(0, 'rgba(0, 255, 255, 1)');
-            coreGradient.addColorStop(0.4, 'rgba(0, 255, 255, 0.8)');
-            coreGradient.addColorStop(0.7, 'rgba(0, 255, 255, 0.4)');
-            coreGradient.addColorStop(1, 'rgba(0, 255, 255, 0)');
-            
-            // Draw the glowing core
-            ctx.fillStyle = coreGradient;
-            ctx.beginPath();
-            ctx.arc(cannonX, cannonY + 15, 25, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Add an inner glow
-            const innerGlow = ctx.createRadialGradient(
-                cannonX, cannonY + 15, 0,
-                cannonX, cannonY + 15, 15
-            );
-            innerGlow.addColorStop(0, 'rgba(255, 255, 255, 1)');
-            innerGlow.addColorStop(1, 'rgba(0, 255, 255, 0.8)');
-            ctx.fillStyle = innerGlow;
-            ctx.beginPath();
-            ctx.arc(cannonX, cannonY + 15, 15, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Cannon body with enhanced metallic effect
-            const metallicGradient = ctx.createLinearGradient(
-                cannonX - 25, cannonY, 
-                cannonX + 25, cannonY + 30
-            );
-            metallicGradient.addColorStop(0, '#444');
-            metallicGradient.addColorStop(0.3, '#888');
-            metallicGradient.addColorStop(0.5, '#aaa');
-            metallicGradient.addColorStop(0.7, '#888');
-            metallicGradient.addColorStop(1, '#444');
-            
-            ctx.fillStyle = metallicGradient;
-            ctx.beginPath();
-            ctx.moveTo(cannonX - 25, cannonY + 30);
-            ctx.lineTo(cannonX + 25, cannonY + 30);
-            ctx.lineTo(cannonX + 20, cannonY);
-            ctx.lineTo(cannonX - 20, cannonY);
-            ctx.closePath();
-            ctx.fill();
-
-            // Edge highlights
-            ctx.strokeStyle = '#0ff';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(cannonX - 22, cannonY + 28);
-            ctx.lineTo(cannonX - 17, cannonY + 2);
-            ctx.moveTo(cannonX + 22, cannonY + 28);
-            ctx.lineTo(cannonX + 17, cannonY + 2);
-            ctx.stroke();
-
-            ctx.restore();
-
-            // Draw input answer on cannon
+            // Add visual feedback for position
             ctx.fillStyle = 'yellow';
-            ctx.font = '16px Arial';
+            ctx.font = '12px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText(inputAnswer, cannonX, cannonY - 25);
+            ctx.fillText(window.currentCannonPosition, cannonX, CANNON_Y + CANNON_HEIGHT + 15);
+            
+            ctx.restore();
         }
 
         function moveCannon(direction) {
             const positions = ['left', 'center', 'right'];
-            const currentIndex = positions.indexOf(currentCannonPosition);
+            const currentIndex = positions.indexOf(window.currentCannonPosition);
             if (direction === 'left' && currentIndex > 0) {
-                currentCannonPosition = positions[currentIndex - 1];
+                window.currentCannonPosition = positions[currentIndex - 1];
             } else if (direction === 'right' && currentIndex < positions.length - 1) {
-                currentCannonPosition = positions[currentIndex + 1];
+                window.currentCannonPosition = positions[currentIndex + 1];
             }
         }
 
         function shootAnswer() {
-            const cannonX = POSITION_COORDS[currentCannonPosition];
-            const targetAlien = activeAliens.find(alien => 
+            const cannonX = window.POSITION_COORDS[window.currentCannonPosition];
+            const targetAlien = window.activeAliens.find(alien => 
                 Math.abs(alien.x - cannonX) < 20
             );
 
@@ -938,16 +922,16 @@
                     targetAlien: targetAlien,
                     isCorrectAnswer: answer === correctAnswer
                 };
-                activeBullets.push(bullet);
+                window.activeBullets.push(bullet);
             }
 
             inputAnswer = '';
             updateInputDisplay();
-            return activeBullets.length > 0;
+            return window.activeBullets.length > 0;
         }
 
         function updateScoreDisplay() {
-            scoreElement.textContent = `Score: ${score} | High Score: ${highScore}`;
+            scoreElement.textContent = `Score: ${window.score} | High Score: ${window.highScore}`;
         }
 
         function updateInputDisplay() {
@@ -955,7 +939,7 @@
         }
 
         function drawInitialCannon() {
-            const cannonX = POSITION_COORDS['center'];
+            const cannonX = window.POSITION_COORDS[window.currentCannonPosition];
             ctx.fillStyle = 'green';
             ctx.fillRect(cannonX - CANNON_WIDTH / 2, CANNON_Y, CANNON_WIDTH, CANNON_HEIGHT);
         }
@@ -964,26 +948,25 @@
         updateScoreDisplay();
         drawInitialCannon();
         window.onload = function() {
-            // Essential initial setup only
+            // Essential initial setup
             loadHighScores();
             displayHighScores();
-            setupControls();
             
-            // Hide game over text
+            // Set initial cannon position
+            window.currentCannonPosition = 'center';
+            
+            // Setup canvas click handler with proper binding
+            canvas.addEventListener('click', handleInteraction);
+            canvas.addEventListener('touchstart', handleInteraction);
+            
+            // Hide game over text initially
             const gameOverText = document.querySelector('#mainScreen h2');
             if (gameOverText) {
                 gameOverText.style.display = 'none';
             }
             
-            // Create multiple choice container if needed
-            if (!document.getElementById('multipleChoices')) {
-                const choicesContainer = document.createElement('div');
-                choicesContainer.id = 'multipleChoices';
-                document.body.appendChild(choicesContainer);
-            }
-            
             // Initial render
-            drawInitialCannon();
+            render();
         };
 
         function addMissedFact(factor1, factor2) {
