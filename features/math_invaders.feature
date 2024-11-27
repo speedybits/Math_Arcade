@@ -55,6 +55,7 @@ Scenario: No circles without alien alignment
   When there are no aliens above the cannon
   Then there should be no answer circles visible
 
+@answers
 Scenario: Wrong answer mechanics
   When there is an alien with the problem "3 × 4" above the cannon
   And I click an answer circle with the wrong answer
@@ -62,6 +63,7 @@ Scenario: Wrong answer mechanics
   And new answer circles should appear
   And the previous wrong answer should not be among the new options
 
+@answers
 Scenario: Correct answer mechanics
   When there is an alien with the problem "3 × 4" above the cannon
   When I click the answer circle containing "12"

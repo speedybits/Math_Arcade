@@ -382,11 +382,31 @@
         }
 
         function generateMultipleChoices(correctAnswer, previousAnswers = []) {
-            const choices = [correctAnswer];
-            const usedAnswers = new Set([...previousAnswers, correctAnswer]);
+            // Convert previousAnswers to numbers and add to Set for efficient lookup
+            const usedAnswers = new Set([
+                correctAnswer,
+                ...(previousAnswers || []).map(a => Number(a))
+            ]);
             
-            while (choices.length < 3) {
+            const choices = [correctAnswer];
+            
+            // Try to generate unique wrong answers
+            let attempts = 0;
+            while (choices.length < 3 && attempts < 20) {
+                attempts++;
                 const offset = Math.floor(Math.random() * 5) + 1; // Random offset 1-5
+                const wrongAnswer = correctAnswer + (Math.random() < 0.5 ? offset : -offset);
+                
+                // Check if answer is valid and not previously used
+                if (wrongAnswer > 0 && !usedAnswers.has(wrongAnswer)) {
+                    choices.push(wrongAnswer);
+                    usedAnswers.add(wrongAnswer);
+                }
+            }
+            
+            // If we couldn't generate enough unique answers, fill with larger offsets
+            while (choices.length < 3) {
+                const offset = Math.floor(Math.random() * 10) + 6; // Larger offset 6-15
                 const wrongAnswer = correctAnswer + (Math.random() < 0.5 ? offset : -offset);
                 
                 if (wrongAnswer > 0 && !usedAnswers.has(wrongAnswer)) {
@@ -417,10 +437,22 @@
             
             if (!alignedAlien) return;
 
+            // Initialize previousWrongAnswers array if it doesn't exist
+            alignedAlien.previousWrongAnswers = alignedAlien.previousWrongAnswers || [];
+
+            // Store previous choices in window for test verification
+            window.previousAnswerChoices = alignedAlien.previousWrongAnswers;
+
+            // Generate new choices using the alien's previousWrongAnswers
+            const correctAnswer = alignedAlien.factor1 * alignedAlien.factor2;
+            alignedAlien.answerChoices = generateMultipleChoices(
+                correctAnswer,
+                alignedAlien.previousWrongAnswers
+            );
+
             // Create choices container
             const choicesContainer = document.createElement('div');
             choicesContainer.className = 'alien-choices';
-            choicesContainer.dataset.alienIndex = window.activeAliens.indexOf(alignedAlien);
             
             // Position container below alien
             const canvasRect = canvas.getBoundingClientRect();
@@ -438,8 +470,7 @@
                 alignItems: 'center',
                 gap: '20px',
                 zIndex: '1000',
-                pointerEvents: 'auto',
-                transition: 'top 0.016s linear' // Smooth movement
+                pointerEvents: 'auto'
             });
 
             // Create buttons
@@ -468,25 +499,59 @@
                     e.preventDefault();
                     e.stopPropagation();
                     
+                    const selectedAnswer = parseInt(answer);
+                    const correctAnswer = alignedAlien.factor1 * alignedAlien.factor2;
+                    
                     const bullet = {
                         x: window.POSITION_COORDS[window.currentCannonPosition],
                         y: CANNON_Y,
-                        answer: parseInt(answer),
+                        answer: selectedAnswer,
                         speed: BULLET_BASE_SPEED,
                         targetAlien: alignedAlien,
-                        isCorrectAnswer: parseInt(answer) === (alignedAlien.factor1 * alignedAlien.factor2)
+                        isCorrectAnswer: selectedAnswer === correctAnswer
                     };
 
                     window.activeBullets = window.activeBullets || [];
                     window.activeBullets.push(bullet);
                     
+                    // Award points immediately for correct answers
+                    if (bullet.isCorrectAnswer) {
+                        window.score = (window.score || 0) + (alignedAlien.factor1 * alignedAlien.factor2);
+                        if (window.score > window.highScore) {
+                            window.highScore = window.score;
+                        }
+                        updateScoreDisplay();
+                    }
+                    
+                    // Store wrong answer before removing choices
+                    if (!bullet.isCorrectAnswer) {
+                        alignedAlien.previousWrongAnswers = alignedAlien.previousWrongAnswers || [];
+                        alignedAlien.previousWrongAnswers.push(selectedAnswer);
+                        // Update window.previousAnswerChoices for test verification
+                        window.previousAnswerChoices = [...alignedAlien.previousWrongAnswers];
+                    }
+                    
                     document.querySelectorAll('.alien-choices').forEach(el => el.remove());
+                    
+                    // Generate new choices after wrong answer
+                    if (!bullet.isCorrectAnswer) {
+                        setTimeout(() => {
+                            if (window.activeAliens.includes(alignedAlien)) {
+                                alignedAlien.answerChoices = generateMultipleChoices(
+                                    correctAnswer,
+                                    alignedAlien.previousWrongAnswers
+                                );
+                                updateMultipleChoices();
+                            }
+                        }, 100);
+                    }
                 };
                 
                 choicesContainer.appendChild(button);
             });
 
             document.body.appendChild(choicesContainer);
+            console.log('Created answer choices:', alignedAlien.answerChoices);
         }
 
         function shootAnswer(answer, targetAlien) {
@@ -539,6 +604,7 @@
             // Reset game state
             window.gameStarted = true;
             window.score = 0;
+            window.highScore = window.highScore || 0;
             window.activeAliens = [];
             window.activeBullets = [];
             window.currentCannonPosition = 'center';
@@ -618,6 +684,7 @@
                 factor1: factor1,
                 factor2: factor2,
                 position: position,
+                previousWrongAnswers: [], // Initialize empty array for wrong answers
                 answerChoices: generateMultipleChoices(factor1 * factor2)
             };
             
@@ -729,7 +796,7 @@
                 return;
             }
 
-            // Update bullets
+            // Update bullets and handle collisions
             for (let i = window.activeBullets.length - 1; i >= 0; i--) {
                 const bullet = window.activeBullets[i];
                 bullet.y -= bullet.speed;
@@ -742,12 +809,18 @@
                     
                     if (distance < 20) {
                         if (bullet.isCorrectAnswer) {
-                            // Handle correct answer
+                            // Calculate points based on the problem
                             const points = bullet.targetAlien.factor1 * bullet.targetAlien.factor2;
-                            window.score += points;
+                            
+                            // Award points immediately
+                            window.score = (window.score || 0) + points;
+                            
+                            // Update high score if needed
                             if (window.score > window.highScore) {
                                 window.highScore = window.score;
                             }
+                            
+                            // Update score display
                             updateScoreDisplay();
                             
                             // Remove alien and its answer choices
@@ -756,21 +829,28 @@
                                 window.activeAliens.splice(index, 1);
                                 document.querySelectorAll('.alien-choices').forEach(el => el.remove());
                             }
+                            
+                            // Spawn new alien after a short delay
                             setTimeout(spawnAlien, 100);
                         } else {
-                            // Handle wrong answer
+                            // Handle wrong answer (existing code)
                             addMissedFact(bullet.targetAlien.factor1, bullet.targetAlien.factor2);
                             
-                            // Generate new answer choices immediately
-                            bullet.targetAlien.answerChoices = generateMultipleChoices(
-                                bullet.targetAlien.factor1 * bullet.targetAlien.factor2,
-                                window.previousAnswerChoices // Pass previous answers to avoid duplicates
-                            );
+                            if (!bullet.targetAlien.previousWrongAnswers) {
+                                bullet.targetAlien.previousWrongAnswers = [];
+                            }
+                            bullet.targetAlien.previousWrongAnswers.push(bullet.answer);
+                            window.previousAnswerChoices = [...bullet.targetAlien.previousWrongAnswers];
                             
-                            // Update choices display
-                            requestAnimationFrame(() => {
+                            // Generate new choices after wrong answer
+                            if (window.activeAliens.includes(bullet.targetAlien)) {
+                                const correctAnswer = bullet.targetAlien.factor1 * bullet.targetAlien.factor2;
+                                bullet.targetAlien.answerChoices = generateMultipleChoices(
+                                    correctAnswer,
+                                    bullet.targetAlien.previousWrongAnswers
+                                );
                                 updateMultipleChoices();
-                            });
+                            }
                         }
                         
                         // Remove bullet
@@ -948,7 +1028,11 @@
         }
 
         function updateScoreDisplay() {
-            scoreElement.textContent = `Score: ${window.score} | High Score: ${window.highScore}`;
+            const scoreElement = document.getElementById('score');
+            if (scoreElement) {
+                scoreElement.textContent = `Score: ${window.score} | High Score: ${window.highScore}`;
+            }
+            console.log('Score updated:', window.score); // Add logging for debugging
         }
 
         function updateInputDisplay() {

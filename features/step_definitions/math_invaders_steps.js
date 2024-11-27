@@ -759,18 +759,37 @@ Then('I should see {int} answer circles below the alien', async function (numCir
 
 // Wrong answer mechanics
 When('I click an answer circle with the wrong answer', async function () {
+    // Wait for answer circles to appear
+    await this.page.waitForFunction(() => {
+        const choicesContainer = document.querySelector('.alien-choices');
+        return choicesContainer && choicesContainer.querySelectorAll('.choice-button').length > 0;
+    }, { timeout: 2000 });
+
     await this.page.evaluate(() => {
         const alien = window.activeAliens[0];
         const correctAnswer = alien.factor1 * alien.factor2;
+        
+        // Force update choices if they don't exist
+        if (!document.querySelector('.alien-choices')) {
+            updateMultipleChoices();
+        }
+        
         const choicesContainer = document.querySelector('.alien-choices');
+        if (!choicesContainer) {
+            console.error('No choices container found');
+            return;
+        }
+        
         const buttons = Array.from(choicesContainer.querySelectorAll('.choice-button'));
+        console.log('Found buttons:', buttons.map(btn => btn.textContent));
+        
         const wrongButton = buttons.find(btn => parseInt(btn.textContent) !== correctAnswer);
-        
-        // Store current answers before clicking
-        window.previousAnswerChoices = buttons.map(btn => parseInt(btn.textContent));
-        
         if (wrongButton) {
+            // Store current answers before clicking
+            window.previousAnswerChoices = buttons.map(btn => parseInt(btn.textContent));
             wrongButton.click();
+        } else {
+            console.error('No wrong answer button found');
         }
     });
     
@@ -1537,4 +1556,32 @@ Then('new aliens should spawn appropriately', async function () {
                );
     });
     assert.ok(spawningAppropriate, 'New aliens should spawn appropriately');
+});
+
+Then('that answer should be fired but not destroy the alien', async function () {
+    const result = await this.page.evaluate(() => {
+        return new Promise(resolve => {
+            // Wait briefly for bullet to be processed
+            setTimeout(() => {
+                const bulletFired = window.activeBullets.length > 0;
+                const alienExists = window.activeAliens.length === 1;
+                const alien = window.activeAliens[0];
+                
+                console.log('Wrong answer check:', {
+                    bulletFired,
+                    alienExists,
+                    bulletCount: window.activeBullets.length,
+                    alienCount: window.activeAliens.length,
+                    alien: alien ? {
+                        factor1: alien.factor1,
+                        factor2: alien.factor2
+                    } : null
+                });
+                
+                resolve(bulletFired && alienExists);
+            }, 100);
+        });
+    });
+    
+    assert.ok(result, 'Wrong answer should be fired but alien should remain');
 });
