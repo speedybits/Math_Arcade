@@ -74,10 +74,10 @@ Scenario: Correct answer mechanics
 # Scoring System
 @score
 Scenario: Basic score calculation
-  When I solve a math problem correctly
-  And I have not previously missed this problem
-  When in Math Invaders the problem was "4 × 5"
-  Then my score should increase by exactly 20 points
+    When in Math Invaders the problem was "4 × 5"
+    And I have not previously missed this problem
+    And I solve a math problem correctly
+    Then my score should increase by exactly 20 points
 
 @score
 Scenario: Double points for previously missed problems

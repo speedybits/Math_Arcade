@@ -516,7 +516,7 @@
                     
                     // Award points immediately for correct answers
                     if (bullet.isCorrectAnswer) {
-                        window.score = (window.score || 0) + (alignedAlien.factor1 * alignedAlien.factor2);
+                        window.score = (window.score || 0) + 20;
                         if (window.score > window.highScore) {
                             window.highScore = window.score;
                         }
@@ -809,11 +809,8 @@
                     
                     if (distance < 20) {
                         if (bullet.isCorrectAnswer) {
-                            // Calculate points based on the problem
-                            const points = bullet.targetAlien.factor1 * bullet.targetAlien.factor2;
-                            
-                            // Award points immediately
-                            window.score = (window.score || 0) + points;
+                            // Award fixed points for correct answers
+                            window.score = (window.score || 0) + 20;
                             
                             // Update high score if needed
                             if (window.score > window.highScore) {
@@ -1031,8 +1028,12 @@
             const scoreElement = document.getElementById('score');
             if (scoreElement) {
                 scoreElement.textContent = `Score: ${window.score} | High Score: ${window.highScore}`;
+                console.log('Score updated:', { 
+                    score: window.score, 
+                    highScore: window.highScore, 
+                    displayText: scoreElement.textContent 
+                });
             }
-            console.log('Score updated:', window.score); // Add logging for debugging
         }
 
         function updateInputDisplay() {
