@@ -381,15 +381,26 @@
             }
         }
 
-        function generateMultipleChoices(correctAnswer) {
+        function generateMultipleChoices(correctAnswer, previousAnswers = []) {
             const choices = [correctAnswer];
+            const usedAnswers = new Set([...previousAnswers, correctAnswer]);
+            
             while (choices.length < 3) {
-                const offset = choices.length === 1 ? -2 : -1;
-                const wrongAnswer = correctAnswer + offset;
-                if (wrongAnswer > 0 && !choices.includes(wrongAnswer)) {
+                const offset = Math.floor(Math.random() * 5) + 1; // Random offset 1-5
+                const wrongAnswer = correctAnswer + (Math.random() < 0.5 ? offset : -offset);
+                
+                if (wrongAnswer > 0 && !usedAnswers.has(wrongAnswer)) {
                     choices.push(wrongAnswer);
+                    usedAnswers.add(wrongAnswer);
                 }
             }
+            
+            // Shuffle the choices
+            for (let i = choices.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [choices[i], choices[j]] = [choices[j], choices[i]];
+            }
+            
             return choices;
         }
 
@@ -551,36 +562,34 @@
             // Start game loop
             requestAnimationFrame(gameLoop);
             
-            // Spawn initial aliens immediately
-            console.log('Spawning initial aliens...');
+            // Spawn first alien immediately
+            const firstAlien = spawnAlien(null, 'center');
+            if (!firstAlien) {
+                console.error('Failed to spawn initial alien');
+                return false;
+            }
             
-            // Create promises for spawning aliens
-            const spawnPromises = [
-                spawnAlien(null, 'left'),
-                new Promise(resolve => setTimeout(() => resolve(spawnAlien(null, 'center')), 100)),
-                new Promise(resolve => setTimeout(() => resolve(spawnAlien(null, 'right')), 200))
-            ];
-            
-            // Wait for all aliens to spawn
-            Promise.all(spawnPromises).then(() => {
-                console.log('Initial aliens spawned:', window.activeAliens);
+            // Start periodic spawning with shorter interval
+            window.spawnInterval = setInterval(() => {
+                if (!window.gameStarted) {
+                    clearInterval(window.spawnInterval);
+                    return;
+                }
                 
-                // Start periodic spawning
-                window.spawnInterval = setInterval(() => {
-                    if (!window.gameStarted) {
-                        clearInterval(window.spawnInterval);
-                        return;
+                if (window.activeAliens.length < 4) {
+                    const usedPositions = window.activeAliens.map(a => a.position);
+                    const availablePositions = ['left', 'center', 'right'].filter(pos => !usedPositions.includes(pos));
+                    if (availablePositions.length > 0) {
+                        const position = availablePositions[Math.floor(Math.random() * availablePositions.length)];
+                        spawnAlien(null, position);
                     }
-                    
-                    if (window.activeAliens.length < 4) {
-                        const usedPositions = window.activeAliens.map(a => a.position);
-                        const availablePositions = ['left', 'center', 'right'].filter(pos => !usedPositions.includes(pos));
-                        if (availablePositions.length > 0) {
-                            const position = availablePositions[Math.floor(Math.random() * availablePositions.length)];
-                            spawnAlien(null, position);
-                        }
-                    }
-                }, 1000);
+                }
+            }, 1000);
+            
+            console.log('Game started:', {
+                gameStarted: window.gameStarted,
+                alienCount: window.activeAliens.length,
+                aliens: window.activeAliens
             });
             
             return true;
@@ -589,9 +598,6 @@
         function spawnAlien(testFactors, forcedPosition) {
             console.log('Spawning alien:', { testFactors, forcedPosition });
             
-            // Allow spawning for tests even if game isn't started
-            if (!window.gameStarted && !testFactors) return null;
-
             // Initialize arrays if they don't exist
             window.activeAliens = window.activeAliens || [];
             window.activeBullets = window.activeBullets || [];
@@ -754,6 +760,17 @@
                         } else {
                             // Handle wrong answer
                             addMissedFact(bullet.targetAlien.factor1, bullet.targetAlien.factor2);
+                            
+                            // Generate new answer choices immediately
+                            bullet.targetAlien.answerChoices = generateMultipleChoices(
+                                bullet.targetAlien.factor1 * bullet.targetAlien.factor2,
+                                window.previousAnswerChoices // Pass previous answers to avoid duplicates
+                            );
+                            
+                            // Update choices display
+                            requestAnimationFrame(() => {
+                                updateMultipleChoices();
+                            });
                         }
                         
                         // Remove bullet
