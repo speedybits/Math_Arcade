@@ -1,8 +1,12 @@
+require('@babel/register')({
+  extensions: ['.js', '.jsx', '.ts', '.tsx'],
+  ignore: [/node_modules/]
+});
+
 module.exports = {
-    default: {
-        requireModule: ['@cucumber/cucumber'],
-        require: ['features/step_definitions/*.js'],
-        format: ['progress-bar', 'html:cucumber-report.html'],
-        formatOptions: { snippetInterface: 'async-await' }
-    }
-}
+  default: {
+    requireModule: ['@babel/register'],
+    require: ['features/step_definitions/*.js'],
+    publishQuiet: true
+  }
+};

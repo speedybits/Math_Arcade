@@ -8,6 +8,9 @@
     "start": "node server.js"
   },
   "devDependencies": {
+    "@babel/core": "^7.24.0",
+    "@babel/preset-env": "^7.24.0",
+    "@babel/register": "^7.23.7",
     "@cucumber/cucumber": "^9.6.0",
     "assert": "^2.1.0",
     "jest": "^29.7.0",
