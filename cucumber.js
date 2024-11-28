@@ -14,6 +14,5 @@ module.exports = {
   mathInvaders: [
     common,
     'features/math_invaders.feature',
-    '--tags @learning'
   ].join(' ')
 };
