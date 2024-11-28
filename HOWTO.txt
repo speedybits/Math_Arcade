@@ -21,7 +21,17 @@ Test Profiles
 ------------
 
 1. Run Math Invaders tests:
-   npx cucumber-js --profile invaders
+   npx cucumber-js --profile mathInvaders
+   
+   With specific tags:
+   npx cucumber-js --profile mathInvaders --tags @score
+   npx cucumber-js --profile mathInvaders --tags @gameplay
+   
+   With fail-fast option (stops on first failure):
+   npx cucumber-js --profile mathInvaders --fail-fast
+   
+   Combine options:
+   npx cucumber-js --profile mathInvaders --tags @score --fail-fast
 
 2. Run Math Asteroids tests:
    npx cucumber-js --profile asteroids

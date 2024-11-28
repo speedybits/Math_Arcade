@@ -678,13 +678,19 @@
             // Use forced position, test position, or find available position
             let position = forcedPosition || (testFactors ? 'center' : ['left', 'center', 'right'][Math.floor(Math.random() * 3)]);
             
+            // Check if this is a previously missed problem
+            const isMissedProblem = missedFacts.some(fact => 
+                fact.factor1 === factor1 && fact.factor2 === factor2
+            );
+            
             const alien = {
                 x: window.POSITION_COORDS[position],
                 y: 0,
                 factor1: factor1,
                 factor2: factor2,
                 position: position,
-                previousWrongAnswers: [], // Initialize empty array for wrong answers
+                isMissed: isMissedProblem,  // Add this flag
+                previousWrongAnswers: [], 
                 answerChoices: generateMultipleChoices(factor1 * factor2)
             };
             
@@ -694,7 +700,8 @@
                 position: alien.position,
                 x: alien.x,
                 y: alien.y,
-                problem: `${alien.factor1} × ${alien.factor2}`
+                problem: `${alien.factor1} × ${alien.factor2}`,
+                isMissed: alien.isMissed
             });
             
             // Update choices immediately
@@ -942,11 +949,8 @@
                 ctx.fillRect(alien.x - 30, alien.y - 20, 60, 40);
                 
                 // Draw the math problem
-                const isMissed = missedFacts.some(fact => 
-                    fact.factor1 === alien.factor1 && fact.factor2 === alien.factor2
-                );
-                
-                ctx.fillStyle = isMissed ? 'orange' : 'white';
+                // Use the alien's isMissed flag to determine color
+                ctx.fillStyle = alien.isMissed ? 'orange' : 'white';
                 ctx.font = '20px Arial';
                 ctx.textAlign = 'center';
                 ctx.fillText(`${alien.factor1} × ${alien.factor2}`, alien.x, alien.y);
@@ -1076,9 +1080,16 @@
             if (fact) {
                 fact.exposureCount *= MISSED_FACT_MULTIPLIER;
             } else {
-                missedFacts.push({ factor1, factor2, exposureCount: MISSED_FACT_MULTIPLIER });
+                missedFacts.push({ 
+                    factor1: factor1, 
+                    factor2: factor2, 
+                    exposureCount: MISSED_FACT_MULTIPLIER 
+                });
             }
             localStorage.setItem('mathInvaders_missedFacts', JSON.stringify(missedFacts));
+            
+            // Log the current state for debugging
+            console.log('Updated missedFacts:', missedFacts);
         }
     </script>
 </body>

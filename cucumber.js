@@ -3,10 +3,17 @@ require('@babel/register')({
   ignore: [/node_modules/]
 });
 
+let common = [
+  '--publish-quiet',
+  '--require @babel/register',
+  '--require features/step_definitions/**/*.js'
+].join(' ');
+
 module.exports = {
-  default: {
-    requireModule: ['@babel/register'],
-    require: ['features/step_definitions/*.js'],
-    publishQuiet: true
-  }
+  default: common,
+  mathInvaders: [
+    common,
+    'features/math_invaders.feature',
+    '--tags @learning'
+  ].join(' ')
 };
