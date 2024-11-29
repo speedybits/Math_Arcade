@@ -946,18 +946,63 @@
         function render() {
             ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-            // Draw aliens with proper spacing visualization
+            // Draw aliens with flying saucer design
             window.activeAliens.forEach(alien => {
-                // Draw alien background (helps visualize spacing)
-                ctx.fillStyle = 'rgba(50, 50, 50, 0.3)';
-                ctx.fillRect(alien.x - 30, alien.y - 20, 60, 40);
+                const alienWidth = 80;
+                const alienHeight = 40;
+                const x = alien.x;
+                const y = alien.y;
+                
+                ctx.save();
+                
+                // Glowing effect for the saucer
+                ctx.shadowColor = alien.isMissed ? 'orange' : '#0ff';
+                ctx.shadowBlur = 15;
+                
+                // Draw the top dome of the saucer
+                ctx.beginPath();
+                ctx.fillStyle = alien.isMissed ? '#804000' : '#404040';
+                ctx.ellipse(x, y - 5, alienWidth/3, alienHeight/3, 0, Math.PI, 0);
+                ctx.fill();
+                
+                // Draw the main body of the saucer
+                ctx.beginPath();
+                ctx.fillStyle = alien.isMissed ? '#cc6600' : '#606060';
+                ctx.ellipse(x, y, alienWidth/2, alienHeight/4, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Add metallic highlight
+                const gradient = ctx.createLinearGradient(x - alienWidth/2, y - alienHeight/4, x + alienWidth/2, y + alienHeight/4);
+                gradient.addColorStop(0, 'rgba(255, 255, 255, 0.1)');
+                gradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.3)');
+                gradient.addColorStop(1, 'rgba(255, 255, 255, 0.1)');
+                ctx.fillStyle = gradient;
+                ctx.fill();
+                
+                // Draw window/cockpit
+                ctx.beginPath();
+                ctx.fillStyle = 'rgba(0, 255, 255, 0.3)';
+                ctx.ellipse(x, y - 2, alienWidth/4, alienHeight/4, 0, 0, Math.PI * 2);
+                ctx.fill();
                 
                 // Draw the math problem
-                // Use the alien's isMissed flag to determine color
-                ctx.fillStyle = alien.isMissed ? 'orange' : 'white';
-                ctx.font = '20px Arial';
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 20px Arial';
                 ctx.textAlign = 'center';
-                ctx.fillText(`${alien.factor1} × ${alien.factor2}`, alien.x, alien.y);
+                ctx.textBaseline = 'middle';
+                ctx.fillText(`${alien.factor1} × ${alien.factor2}`, x, y);
+                
+                // Add pulsing glow effect under the saucer
+                const pulseIntensity = Math.sin(Date.now() / 200) * 0.2 + 0.8;
+                const glowGradient = ctx.createRadialGradient(x, y + alienHeight/3, 0, x, y + alienHeight/3, alienWidth/2);
+                const glowColor = alien.isMissed ? `rgba(255, 165, 0, ${pulseIntensity * 0.3})` : `rgba(0, 255, 255, ${pulseIntensity * 0.3})`;
+                glowGradient.addColorStop(0, glowColor);
+                glowGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                
+                ctx.fillStyle = glowGradient;
+                ctx.fillRect(x - alienWidth/2, y, alienWidth, alienHeight/2);
+                
+                ctx.restore();
             });
 
             // Draw bullets
