@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Multiplication Space Invaders</title>
     <style>
         body {
@@ -17,6 +18,10 @@
             margin: 0 auto;
             background-color: #111;
             border: 2px solid #fff;
+            width: 100vw;
+            height: 100vh;
+            max-width: 100%;
+            max-height: 100%;
         }
         #score {
             position: absolute;
@@ -124,31 +129,31 @@
         }
         @media (max-width: 768px) {
             #gameCanvas {
-                width: 100%;
-                height: auto;
+                width: 100vw;
+                height: 100vh;
+                margin: 0;
+                border: none;
             }
             #instructions {
                 display: none;
             }
             #multipleChoices {
-                position: absolute;
-                bottom: 80px;
-                left: 50%;
-                transform: translateX(-50%);
-                display: flex;
-                gap: 10px;
-                justify-content: center;
+                bottom: env(safe-area-inset-bottom, 100px);
+                width: 100%;
+                padding: 0 20px;
+                box-sizing: border-box;
             }
             #multipleChoices button {
-                min-width: 80px;
-                min-height: 44px;
-                padding: 10px 20px;
-                font-size: 20px;
-                margin: 5px;
-                border-radius: 5px;
-                background: #4CAF50;
-                color: white;
-                border: none;
+                min-width: 60px;
+                min-height: 60px;
+                font-size: calc(14px + 1vmin);
+            }
+            #score {
+                top: env(safe-area-inset-top, 20px);
+                font-size: calc(16px + 2vmin);
+            }
+            #inputDisplay {
+                bottom: env(safe-area-inset-bottom, 80px);
             }
         }
         /* High contrast styles */
@@ -301,7 +306,6 @@
 
         const CANNON_WIDTH = 50;
         const CANNON_HEIGHT = 30;
-        const CANNON_Y = window.CANVAS_HEIGHT - CANNON_HEIGHT - 10;
 
         window.submitHighScore = function(initials) {
             // Validate initials are exactly 3 letters
@@ -504,7 +508,7 @@
                     
                     const bullet = {
                         x: window.POSITION_COORDS[window.currentCannonPosition],
-                        y: CANNON_Y,
+                        y: window.CANNON_Y,
                         answer: selectedAnswer,
                         speed: BULLET_BASE_SPEED,
                         targetAlien: alignedAlien,
@@ -562,7 +566,7 @@
             // Create bullet with all required properties
             const bullet = {
                 x: window.POSITION_COORDS[window.currentCannonPosition],
-                y: CANNON_Y,
+                y: window.CANNON_Y,
                 answer: answer,
                 speed: BULLET_BASE_SPEED,
                 targetAlien: targetAlien,
@@ -978,13 +982,13 @@
             
             // Draw cannon body
             ctx.fillStyle = 'green';
-            ctx.fillRect(cannonX - CANNON_WIDTH / 2, CANNON_Y, CANNON_WIDTH, CANNON_HEIGHT);
+            ctx.fillRect(cannonX - CANNON_WIDTH / 2, window.CANNON_Y, CANNON_WIDTH, CANNON_HEIGHT);
             
             // Add visual feedback for position
             ctx.fillStyle = 'yellow';
             ctx.font = '12px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText(window.currentCannonPosition, cannonX, CANNON_Y + CANNON_HEIGHT + 15);
+            ctx.fillText(window.currentCannonPosition, cannonX, window.CANNON_Y + CANNON_HEIGHT + 15);
             
             ctx.restore();
         }
@@ -1012,8 +1016,8 @@
                 // Create a new bullet with proper time-based properties
                 const bullet = {
                     x: cannonX,
-                    y: CANNON_Y,
-                    initialY: CANNON_Y,
+                    y: window.CANNON_Y,
+                    initialY: window.CANNON_Y,
                     startTime: Date.now(),
                     answer: inputAnswer,
                     speed: BULLET_SPEED,
@@ -1047,13 +1051,15 @@
         function drawInitialCannon() {
             const cannonX = window.POSITION_COORDS[window.currentCannonPosition];
             ctx.fillStyle = 'green';
-            ctx.fillRect(cannonX - CANNON_WIDTH / 2, CANNON_Y, CANNON_WIDTH, CANNON_HEIGHT);
+            ctx.fillRect(cannonX - CANNON_WIDTH / 2, window.CANNON_Y, CANNON_WIDTH, CANNON_HEIGHT);
         }
 
         startButton.addEventListener('click', startGame);
         updateScoreDisplay();
         drawInitialCannon();
         window.onload = function() {
+            setupCanvas();
+            
             // Essential initial setup
             loadHighScores();
             displayHighScores();
@@ -1090,6 +1096,42 @@
             
             // Log the current state for debugging
             console.log('Updated missedFacts:', missedFacts);
+        }
+
+        function setupCanvas() {
+            const canvas = document.getElementById('gameCanvas');
+            
+            function resizeCanvas() {
+                // Get the viewport dimensions
+                const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+                const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
+                
+                // Set canvas dimensions
+                canvas.width = vw;
+                canvas.height = vh;
+                
+                // Update global constants
+                window.CANVAS_WIDTH = canvas.width;
+                window.CANVAS_HEIGHT = canvas.height;
+                
+                // Update position coordinates based on new width
+                window.POSITION_COORDS = {
+                    'left': window.CANVAS_WIDTH / 4,
+                    'center': window.CANVAS_WIDTH / 2,
+                    'right': (3 * window.CANVAS_WIDTH) / 4
+                };
+
+                // Set cannon position at the bottom of the screen
+                window.CANNON_Y = window.CANVAS_HEIGHT - CANNON_HEIGHT - 20;
+                
+                // Force a render update
+                if (window.gameStarted) {
+                    render();
+                }
+            }
+
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas();
         }
     </script>
 </body>
