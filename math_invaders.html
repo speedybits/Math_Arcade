@@ -975,17 +975,126 @@
                 ctx.fillText(bullet.answer, bullet.x, bullet.y + 4);
             });
 
-            // Draw cannon at current position
+            // Draw cannon at current position with enhanced laser cannon effects
             const cannonX = window.POSITION_COORDS[window.currentCannonPosition];
             
             ctx.save();
             
-            // Draw cannon body
-            ctx.fillStyle = 'green';
-            ctx.fillRect(cannonX - CANNON_WIDTH / 2, window.CANNON_Y, CANNON_WIDTH, CANNON_HEIGHT);
+            // Create base metallic gradient
+            const metalGradient = ctx.createLinearGradient(
+                cannonX - CANNON_WIDTH / 2,
+                window.CANNON_Y,
+                cannonX + CANNON_WIDTH / 2,
+                window.CANNON_Y + CANNON_HEIGHT
+            );
+            metalGradient.addColorStop(0, '#2a2a2a');
+            metalGradient.addColorStop(0.3, '#4a4a4a');
+            metalGradient.addColorStop(0.5, '#8a8a8a');
+            metalGradient.addColorStop(0.7, '#4a4a4a');
+            metalGradient.addColorStop(1, '#2a2a2a');
+
+            // Draw barrel extension (longer barrel)
+            ctx.fillStyle = metalGradient;
+            ctx.fillRect(
+                cannonX - CANNON_WIDTH / 3,
+                window.CANNON_Y - CANNON_HEIGHT / 4,
+                CANNON_WIDTH * 2/3,
+                CANNON_HEIGHT / 2
+            );
+
+            // Draw main cannon body
+            ctx.fillStyle = metalGradient;
+            ctx.fillRect(
+                cannonX - CANNON_WIDTH / 2,
+                window.CANNON_Y,
+                CANNON_WIDTH,
+                CANNON_HEIGHT
+            );
+
+            // Add cooling vents
+            const ventWidth = 3;
+            const ventSpacing = 8;
+            const ventHeight = CANNON_HEIGHT * 0.6;
+            ctx.fillStyle = '#111';
+            for (let i = -2; i <= 2; i++) {
+                ctx.fillRect(
+                    cannonX + (i * ventSpacing),
+                    window.CANNON_Y + (CANNON_HEIGHT - ventHeight) / 2,
+                    ventWidth,
+                    ventHeight
+                );
+            }
+
+            // Create energy core glow effect
+            const glowGradient = ctx.createRadialGradient(
+                cannonX,
+                window.CANNON_Y + CANNON_HEIGHT / 2,
+                0,
+                cannonX,
+                window.CANNON_Y + CANNON_HEIGHT / 2,
+                CANNON_WIDTH
+            );
+            glowGradient.addColorStop(0, 'rgba(0, 255, 255, 0.9)');
+            glowGradient.addColorStop(0.3, 'rgba(0, 255, 255, 0.4)');
+            glowGradient.addColorStop(1, 'rgba(0, 255, 255, 0)');
+
+            // Apply core glow
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.fillStyle = glowGradient;
+            ctx.fillRect(
+                cannonX - CANNON_WIDTH,
+                window.CANNON_Y - CANNON_HEIGHT,
+                CANNON_WIDTH * 2,
+                CANNON_HEIGHT * 3
+            );
+
+            // Draw energy core
+            const coreWidth = CANNON_WIDTH * 0.3;
+            const coreHeight = CANNON_HEIGHT * 0.5;
+            const coreX = cannonX - coreWidth / 2;
+            const coreY = window.CANNON_Y + (CANNON_HEIGHT - coreHeight) / 2;
+
+            // Pulsing effect for core
+            const pulseIntensity = Math.sin(Date.now() / 200) * 0.2 + 0.8;
+            ctx.fillStyle = `rgba(0, 255, 255, ${pulseIntensity})`;
+            ctx.shadowColor = '#00ffff';
+            ctx.shadowBlur = 15;
+            ctx.fillRect(coreX, coreY, coreWidth, coreHeight);
+
+            // Add detail lines
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.lineWidth = 1;
             
-            // Add visual feedback for position
-            ctx.fillStyle = 'yellow';
+            // Top detail line
+            ctx.beginPath();
+            ctx.moveTo(cannonX - CANNON_WIDTH / 2, window.CANNON_Y + 5);
+            ctx.lineTo(cannonX + CANNON_WIDTH / 2, window.CANNON_Y + 5);
+            ctx.stroke();
+
+            // Bottom detail line
+            ctx.beginPath();
+            ctx.moveTo(cannonX - CANNON_WIDTH / 2, window.CANNON_Y + CANNON_HEIGHT - 5);
+            ctx.lineTo(cannonX + CANNON_WIDTH / 2, window.CANNON_Y + CANNON_HEIGHT - 5);
+            ctx.stroke();
+
+            // Add targeting reticle
+            ctx.strokeStyle = 'rgba(0, 255, 255, 0.5)';
+            ctx.beginPath();
+            ctx.arc(cannonX, window.CANNON_Y - CANNON_HEIGHT, 5, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            // Vertical targeting line
+            ctx.beginPath();
+            ctx.moveTo(cannonX, window.CANNON_Y - CANNON_HEIGHT - 5);
+            ctx.lineTo(cannonX, window.CANNON_Y - CANNON_HEIGHT / 4);
+            ctx.stroke();
+
+            // Reset composite operation and shadow
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.shadowBlur = 0;
+            
+            // Add position indicator
+            ctx.fillStyle = 'rgba(0, 255, 255, 0.7)';
             ctx.font = '12px Arial';
             ctx.textAlign = 'center';
             ctx.fillText(window.currentCannonPosition, cannonX, window.CANNON_Y + CANNON_HEIGHT + 15);
