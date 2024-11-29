@@ -1138,12 +1138,6 @@
             ctx.globalCompositeOperation = 'source-over';
             ctx.shadowBlur = 0;
             
-            // Add position indicator
-            ctx.fillStyle = 'rgba(0, 255, 255, 0.7)';
-            ctx.font = '12px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText(window.currentCannonPosition, cannonX, window.CANNON_Y + CANNON_HEIGHT + 15);
-            
             ctx.restore();
         }
 
