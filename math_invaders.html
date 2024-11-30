@@ -62,7 +62,6 @@
             background-color: rgba(0, 0, 0, 0.8);
             display: flex;
             flex-direction: column;
-            justify-content: center;
             align-items: center;
             z-index: 10;
         }
@@ -79,13 +78,13 @@
         }
         .high-scores-container {
             position: absolute;
-            left: 20px;  /* Positions the high scores on the left */
-            top: 50%;
-            transform: translateY(-50%);
-            text-align: left;
+            left: 50%;
+            top: 20%;
+            transform: translateX(-50%);
+            text-align: center;
         }
         .high-scores-container h3 {
-            color: red; /* Red color for "High Scores" */
+            color: red;
             margin-bottom: 10px;
             font-size: 24px;
         }
@@ -94,20 +93,29 @@
             padding: 0;
             margin: 0;
             list-style: none;
+            text-align: left;
         }
         #highScoresList li {
             margin-bottom: 5px;
             font-size: 18px;
         }
         #startButton {
+            position: absolute;
+            left: 50%;
+            bottom: 30%;
+            transform: translateX(-50%);
             font-size: 32px;
             padding: 15px 30px;
-            background-color: #4CAF50; /* Green */
+            background-color: #4CAF50;
             color: white;
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            margin-bottom: 20px;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+        #startButton:hover {
+            background-color: #45a049;
+            transform: translateX(-50%) scale(1.05);
         }
         #initials {
             position: absolute;
