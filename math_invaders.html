@@ -307,6 +307,23 @@
         const CANNON_WIDTH = 50;
         const CANNON_HEIGHT = 30;
 
+        window.LEVEL_DEFINITIONS = [
+            { level: 0, multiplier: 1, description: '× 1 (identity principle)' },
+            { level: 1, multiplier: 2, description: '× 2 (doubling)' },
+            { level: 2, multiplier: 0, description: '× 0' },
+            { level: 3, multiplier: 10, description: '× 10' },
+            { level: 4, multiplier: 5, description: '× 5' },
+            { level: 5, type: 'squares', description: 'Square Facts (3×3 through 9×9)' },
+            { level: 6, multiplier: 4, description: '× 4' },
+            { level: 7, multiplier: 3, description: '× 3' },
+            { level: 8, multiplier: 9, description: '× 9' },
+            { level: 9, multiplier: 11, description: '× 11' },
+            { level: 10, multiplier: 6, description: '× 6' },
+            { level: 11, multiplier: 7, description: '× 7' },
+            { level: 12, multiplier: 8, description: '× 8' },
+            { level: 13, type: 'demons', description: 'The Demons (6×7, 7×8, etc)' }
+        ];
+
         window.submitHighScore = function(initials) {
             // Validate initials are exactly 3 letters
             if (!/^[A-Za-z]{3}$/.test(initials)) {
@@ -618,6 +635,8 @@
             window.inputAnswer = '';
             window.gameTime = 0;
             window.difficultyLevel = 0;
+            window.perfectAccuracyMaintained = true;
+            window.lastLevelCheckTime = Date.now();
             window.descentSpeed = window.INITIAL_DESCENT_SPEED;
             window.isFastDescent = false;
             window.lastSpawnTime = 0;
@@ -678,10 +697,43 @@
             // Prevent overcrowding
             if (window.activeAliens.length >= 4) return null;
 
-            // Use test factors if provided, otherwise generate random ones
-            const factor1 = testFactors ? testFactors.factor1 : Math.floor(Math.random() * 10) + 1;
-            const factor2 = testFactors ? testFactors.factor2 : Math.floor(Math.random() * 10) + 1;
-            
+            let factor1, factor2;
+            const levelDef = window.LEVEL_DEFINITIONS[window.difficultyLevel];
+
+            if (testFactors) {
+                factor1 = testFactors.factor1;
+                factor2 = testFactors.factor2;
+            } else {
+                switch(levelDef.type) {
+                    case 'squares':
+                        // Generate square facts (3×3 through 9×9)
+                        factor1 = Math.floor(Math.random() * 7) + 3; // 3 to 9
+                        factor2 = factor1;
+                        break;
+                    
+                    case 'demons':
+                        // Generate demon problems (6×7, 7×8, etc)
+                        const demonPairs = [[6,7], [7,8], [8,9], [6,8], [7,9], [6,9]];
+                        const pair = demonPairs[Math.floor(Math.random() * demonPairs.length)];
+                        factor1 = pair[0];
+                        factor2 = pair[1];
+                        break;
+                    
+                    default:
+                        // Standard multiplier levels
+                        if (levelDef.multiplier !== undefined) {
+                            // One factor is always the level's multiplier
+                            factor1 = levelDef.multiplier;
+                            // Other factor is random 1-12
+                            factor2 = Math.floor(Math.random() * 12) + 1;
+                            // Randomly swap factors
+                            if (Math.random() < 0.5) {
+                                [factor1, factor2] = [factor2, factor1];
+                            }
+                        }
+                }
+            }
+
             // Use forced position, test position, or find available position
             let position = forcedPosition || (testFactors ? 'center' : ['left', 'center', 'right'][Math.floor(Math.random() * 3)]);
             
@@ -732,13 +784,36 @@
         }
 
         function updateDifficulty(deltaTime) {
-            gameTime += deltaTime;
-            if (gameTime >= 120) { // 2 minutes
-                difficultyLevel = 2;
-                descentSpeed = window.INITIAL_DESCENT_SPEED * 2; // Double the initial speed
-            } else if (gameTime >= 60) { // 1 minute
-                difficultyLevel = 1;
-                descentSpeed = window.INITIAL_DESCENT_SPEED * 1.5; // 1.5 times the initial speed
+            if (!window.lastLevelCheckTime) {
+                window.lastLevelCheckTime = Date.now();
+            }
+
+            const timeSinceLastCheck = Date.now() - window.lastLevelCheckTime;
+            
+            // Check for level progression every 60 seconds
+            if (timeSinceLastCheck >= 60000) {
+                window.lastLevelCheckTime = Date.now();
+                
+                // Only progress if player has maintained perfect accuracy
+                if (window.perfectAccuracyMaintained) {
+                    window.difficultyLevel = Math.min(
+                        window.difficultyLevel + 1,
+                        window.LEVEL_DEFINITIONS.length - 1
+                    );
+                    
+                    // Update descent speed
+                    if (window.difficultyLevel === 13) {
+                        // Final level: increase speed by 20% every 60 seconds
+                        window.descentSpeed *= 1.2;
+                    } else {
+                        // Normal levels: slight speed increase
+                        window.descentSpeed = window.INITIAL_DESCENT_SPEED * 
+                            (1 + (window.difficultyLevel * 0.1));
+                    }
+                }
+                
+                // Reset perfect accuracy flag for next check
+                window.perfectAccuracyMaintained = true;
             }
         }
 
@@ -1145,6 +1220,14 @@
             ctx.shadowBlur = 0;
             
             ctx.restore();
+
+            // Draw current level in upper right corner
+            const levelDef = window.LEVEL_DEFINITIONS[window.difficultyLevel];
+            ctx.fillStyle = '#fff';
+            ctx.font = '20px Arial';
+            ctx.textAlign = 'right';
+            ctx.fillText(`Level ${window.difficultyLevel}: ${levelDef.description}`, 
+                window.CANVAS_WIDTH - 20, 30);
         }
 
         function moveCannon(direction) {
