@@ -99,7 +99,7 @@ Scenario: Tracking missed problems
 
 @learning
 Scenario: Visual indication of missed problems
-  When in Math Invaders I have previously missed the problem "6 × 7"
+  When in Math Invaders I have missed the problem "6 × 7"
   Then the problem changes to an orange alien
   When in Math Invaders this problem appears again
   Then in Math Invaders it should be displayed as an orange alien
