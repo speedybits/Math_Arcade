@@ -844,8 +844,11 @@
                             // Spawn new alien after a short delay
                             setTimeout(spawnAlien, 100);
                         } else {
-                            // Handle wrong answer (existing code)
+                            // Handle wrong answer
                             addMissedFact(bullet.targetAlien.factor1, bullet.targetAlien.factor2);
+                            
+                            // Immediately mark the alien as missed (turns it orange)
+                            bullet.targetAlien.isMissed = true;
                             
                             if (!bullet.targetAlien.previousWrongAnswers) {
                                 bullet.targetAlien.previousWrongAnswers = [];
