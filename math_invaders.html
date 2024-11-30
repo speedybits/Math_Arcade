@@ -98,14 +98,15 @@
         .high-scores-container {
             position: absolute;
             left: 50%;
-            top: 20%;
+            top: 15%;
             transform: translateX(-50%);
             text-align: center;
+            padding: 20px;
         }
         .high-scores-container h3 {
             color: red;
-            margin-bottom: 10px;
-            font-size: 24px;
+            margin-bottom: 20px;
+            font-size: 28px;
         }
         #highScoresList {
             color: white;
@@ -113,18 +114,20 @@
             margin: 0;
             list-style: none;
             text-align: left;
+            font-size: 20px;
+            line-height: 1.5;
         }
         #highScoresList li {
-            margin-bottom: 5px;
-            font-size: 18px;
+            margin-bottom: 10px;
+            font-size: 20px;
         }
         #startButton {
             position: absolute;
             left: 50%;
-            bottom: 30%;
+            bottom: 5%;
             transform: translateX(-50%);
             font-size: 32px;
-            padding: 15px 30px;
+            padding: 20px 40px;
             background-color: #4CAF50;
             color: white;
             border: none;
@@ -135,6 +138,12 @@
         #startButton:hover {
             background-color: #45a049;
             transform: translateX(-50%) scale(1.05);
+        }
+        #startButton {
+            box-shadow: 0 0 15px rgba(76, 175, 80, 0.5);
+        }
+        #startButton:hover {
+            box-shadow: 0 0 25px rgba(76, 175, 80, 0.7);
         }
         #initials {
             position: absolute;
