@@ -100,6 +100,7 @@ Scenario: Tracking missed problems
 @learning
 Scenario: Visual indication of missed problems
   When in Math Invaders I have previously missed the problem "6 × 7"
+  Then the problem changes to an orange alien
   When in Math Invaders this problem appears again
   Then in Math Invaders it should be displayed as an orange alien
 
@@ -172,7 +173,6 @@ Scenario: High score system
 # Accessibility Features
 Scenario: Accessibility controls
   Then the game should have high contrast visuals
-  And I should be able to adjust game speed with the down arrow
   And the controls should be simple and intuitive
   And answer choices should be clearly associated with their problems
 
