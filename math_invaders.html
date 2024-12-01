@@ -1024,11 +1024,16 @@
             
             document.getElementById('finalScore').textContent = `Your Score: ${window.score}`;
             
+            // Get last used initials from localStorage
+            const lastInitials = localStorage.getItem('mathInvaders_lastInitials') || 'AAA';
+            
             // Prompt for initials with a slight delay to ensure UI updates
             setTimeout(() => {
-                let initials = prompt("Enter your initials (3 characters):", "AAA");
+                let initials = prompt("Enter your initials (3 characters):", lastInitials);
                 if (initials) {
                     initials = initials.slice(0, 3).toUpperCase();
+                    // Store the initials for next time
+                    localStorage.setItem('mathInvaders_lastInitials', initials);
                     highScores.push({ initials, score: window.score });
                     highScores.sort((a, b) => b.score - a.score);
                     highScores = highScores.slice(0, 10); // Keep top 10 scores

@@ -172,6 +172,16 @@ Scenario: Game over conditions
   And I should see a "Game Over" message
   And I should be prompted to enter my initials for the high score
 
++ @persistence
++ Scenario: Initials persistence
++   Given I have previously entered "XYZ" as my initials
++   When the game ends
++   Then the initials prompt should be pre-filled with "XYZ"
++   When I enter new initials "ABC"
++   Then those initials should be saved for next time
++   And when I play again and end the game
++   Then the initials prompt should be pre-filled with "ABC"
+
 Scenario: High score system
   When the game ends
   And my score is in the top 10
@@ -226,3 +236,12 @@ Scenario: Game state during simultaneous alien-bullet collisions
   Then each collision should resolve correctly
   And the score should update accurately
   And new aliens should spawn appropriately
+
+@evasive
+Scenario: Alien evasive movement
+  Given there is an alien with the problem "3 × 4" above the cannon
+  When I submit a wrong answer
+  Then the alien should immediately turn orange
+  And the alien should smoothly move to a different column
+  And new answer choices should appear after the movement completes
+  And the previous wrong answer should not be among the new choices
