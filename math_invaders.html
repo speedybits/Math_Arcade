@@ -886,6 +886,9 @@
         function update(deltaTime) {
             if (!window.gameStarted) return;
 
+            // Update stars
+            updateStars(deltaTime);
+            
             // Update aliens and their choices
             let gameOver = false;
             window.activeAliens.forEach(alien => {
@@ -1106,7 +1109,10 @@
 
         function render() {
             ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-
+            
+            // Draw stars first (before aliens and cannon)
+            drawStars();
+            
             // Draw aliens with flying saucer design
             window.activeAliens.forEach(alien => {
                 const alienWidth = 80;
@@ -1382,6 +1388,7 @@
             // Essential initial setup
             loadHighScores();
             displayHighScores();
+            initStars();
             
             // Set initial cannon position
             window.currentCannonPosition = 'center';
@@ -1451,6 +1458,49 @@
 
             window.addEventListener('resize', resizeCanvas);
             resizeCanvas();
+        }
+
+        // Add after the other global variables
+        window.stars = [];
+        const NUM_STARS = 100;
+        const STAR_SPEED = 20; // pixels per second
+
+        // Add this function to create the initial stars
+        function initStars() {
+            window.stars = [];
+            for (let i = 0; i < NUM_STARS; i++) {
+                window.stars.push({
+                    x: Math.random() * window.CANVAS_WIDTH,
+                    y: Math.random() * window.CANVAS_HEIGHT,
+                    size: Math.random() * 2 + 1,
+                    speed: (Math.random() * 0.5 + 0.5) * STAR_SPEED // Varying speeds
+                });
+            }
+        }
+
+        // Add this function to update star positions
+        function updateStars(deltaTime) {
+            window.stars.forEach(star => {
+                star.y += star.speed * deltaTime;
+                
+                // If star goes off screen, reset it to the top
+                if (star.y > window.CANVAS_HEIGHT) {
+                    star.y = 0;
+                    star.x = Math.random() * window.CANVAS_WIDTH;
+                }
+            });
+        }
+
+        // Add this function to draw the stars
+        function drawStars() {
+            ctx.save();
+            ctx.fillStyle = '#fff';
+            window.stars.forEach(star => {
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            ctx.restore();
         }
     </script>
 </body>
