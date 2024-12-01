@@ -112,14 +112,14 @@
             color: white;
             padding: 0;
             margin: 0;
-            list-style: none;
             text-align: left;
             font-size: 20px;
             line-height: 1.5;
         }
-        #highScoresList li {
+        #highScoresList div {
             margin-bottom: 10px;
             font-size: 20px;
+            white-space: nowrap;
         }
         #startButton {
             position: absolute;
@@ -1055,23 +1055,53 @@
                     if (!Array.isArray(highScores)) {
                         highScores = [];
                     }
+                    // Update window.highScore to match the highest saved score
+                    window.highScore = highScores.length > 0 ? highScores[0].score : 0;
                 } catch (e) {
                     console.error("Error parsing highScores from localStorage:", e);
                     highScores = [];
+                    window.highScore = 0;
                 }
             } else {
                 highScores = [];
+                window.highScore = 0;
             }
+            // Update the display
+            updateScoreDisplay();
         }
 
         function displayHighScores() {
             const highScoresList = document.getElementById('highScoresList');
             highScoresList.innerHTML = '';
-            highScores.slice(0, 10).forEach((entry, index) => {
-                const li = document.createElement('li');
-                li.textContent = `${index + 1}. ${entry.initials} - ${entry.score}`;
-                highScoresList.appendChild(li);
+            
+            // Create container for two columns
+            const container = document.createElement('div');
+            container.style.display = 'flex';
+            container.style.gap = '40px';
+            container.style.justifyContent = 'center';
+            
+            // Create left column (1-5)
+            const leftColumn = document.createElement('div');
+            highScores.slice(0, 5).forEach((entry, index) => {
+                const div = document.createElement('div');
+                div.textContent = `${index + 1}. ${entry.initials} - ${entry.score}`;
+                leftColumn.appendChild(div);
             });
+            
+            // Create right column (6-10)
+            const rightColumn = document.createElement('div');
+            highScores.slice(5, 10).forEach((entry, index) => {
+                const div = document.createElement('div');
+                div.textContent = `${index + 6}. ${entry.initials} - ${entry.score}`;
+                rightColumn.appendChild(div);
+            });
+            
+            // Add columns to container
+            container.appendChild(leftColumn);
+            container.appendChild(rightColumn);
+            
+            // Replace the old list with the new container
+            highScoresList.appendChild(container);
         }
 
         function render() {
@@ -1322,11 +1352,14 @@
             const currentScoreElement = document.getElementById('currentScore');
             const highScoreElement = document.getElementById('highScore');
             
+            // Get the highest score from the high scores list
+            const topScore = highScores.length > 0 ? highScores[0].score : 0;
+            
             if (currentScoreElement) {
                 currentScoreElement.textContent = `Score: ${window.score}`;
             }
             if (highScoreElement) {
-                highScoreElement.textContent = `High Score: ${window.highScore}`;
+                highScoreElement.textContent = `High Score: ${topScore}`;
             }
         }
 
