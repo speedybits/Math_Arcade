@@ -744,7 +744,12 @@
                 factor1 = testFactors.factor1;
                 factor2 = testFactors.factor2;
             } else {
-                switch(levelDef.type) {
+                // Get all available levels up to current level
+                const availableLevels = window.LEVEL_DEFINITIONS.slice(0, window.difficultyLevel + 1);
+                // Randomly select a level definition from available levels
+                const selectedLevelDef = availableLevels[Math.floor(Math.random() * availableLevels.length)];
+
+                switch(selectedLevelDef.type) {
                     case 'squares':
                         // Generate square facts (3×3 through 9×9)
                         factor1 = Math.floor(Math.random() * 7) + 3; // 3 to 9
@@ -761,9 +766,9 @@
                     
                     default:
                         // Standard multiplier levels
-                        if (levelDef.multiplier !== undefined) {
+                        if (selectedLevelDef.multiplier !== undefined) {
                             // One factor is always the level's multiplier
-                            factor1 = levelDef.multiplier;
+                            factor1 = selectedLevelDef.multiplier;
                             // Other factor is random 1-12
                             factor2 = Math.floor(Math.random() * 12) + 1;
                             // Randomly swap factors

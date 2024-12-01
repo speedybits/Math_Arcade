@@ -137,6 +137,15 @@ Scenario: Level progression order
     | 11    | × 7                                        |
     | 12    | × 8                                        |
     | 13    | The Demons (6×7, 7×8, etc)                |
+  And each level should include problems from all previous levels
+
+@learning
+Scenario: Cumulative level content
+  Given I am at level 3
+  Then I should see problems with "× 10"
+  And I should also see problems with "× 0"
+  And I should also see problems with "× 2"
+  And I should also see problems with "× 1"
 
 @final
 Scenario: Final level mechanics
