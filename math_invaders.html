@@ -321,6 +321,8 @@
             'right': (3 * window.CANVAS_WIDTH) / 4
         };
 
+        const ALIEN_MOVE_DURATION = 0.5; // seconds for movement animation
+
         window.score = 0;
         window.highScore = 0;
         window.gameStarted = false;
@@ -892,6 +894,36 @@
             // Update aliens and their choices
             let gameOver = false;
             window.activeAliens.forEach(alien => {
+                if (alien.isMoving) {
+                    const elapsed = (Date.now() - alien.moveStartTime) / 1000;
+                    const progress = Math.min(elapsed / ALIEN_MOVE_DURATION, 1);
+                    
+                    // Smooth easing function
+                    const easeProgress = progress < 0.5 
+                        ? 2 * progress * progress 
+                        : -1 + (4 - 2 * progress) * progress;
+                    
+                    alien.x = alien.startX + (alien.targetX - alien.startX) * easeProgress;
+                    if (alien.targetY !== undefined) {
+                        alien.y = alien.startY + (alien.targetY - alien.startY) * easeProgress;
+                    }
+                    
+                    if (progress >= 1) {
+                        alien.isMoving = false;
+                        // Check if this alien is now aligned with the cannon
+                        const cannonX = window.POSITION_COORDS[window.currentCannonPosition];
+                        const isAligned = Math.abs(alien.x - cannonX) < 20;
+                        
+                        // Remove any existing answer choices
+                        document.querySelectorAll('.alien-choices').forEach(el => el.remove());
+                        
+                        // Update multiple choices if aligned
+                        if (isAligned) {
+                            updateMultipleChoices();
+                        }
+                    }
+                }
+                
                 const oldY = alien.y;
                 alien.y += window.descentSpeed * deltaTime;
                 
@@ -972,6 +1004,36 @@
                             
                             // Immediately mark the alien as missed (turns it orange)
                             bullet.targetAlien.isMissed = true;
+                            
+                            // Move alien to a different column
+                            const currentPos = bullet.targetAlien.x === window.POSITION_COORDS['left'] ? 'left' :
+                                              bullet.targetAlien.x === window.POSITION_COORDS['center'] ? 'center' : 'right';
+                            const availablePositions = ['left', 'center', 'right'].filter(pos => pos !== currentPos);
+                            const newPos = availablePositions[Math.floor(Math.random() * availablePositions.length)];
+                            
+                            // Check for aliens in the new column and ensure proper spacing
+                            const newX = window.POSITION_COORDS[newPos];
+                            const aliensInNewColumn = window.activeAliens.filter(a => 
+                                Math.abs(a.x - newX) < 20 && a !== bullet.targetAlien
+                            );
+                            
+                            let newY = bullet.targetAlien.y;
+                            if (aliensInNewColumn.length > 0) {
+                                // Find the lowest alien in the new column
+                                const lowestAlien = aliensInNewColumn.reduce((lowest, current) => 
+                                    current.y > lowest.y ? current : lowest
+                                );
+                                // Position this alien below the lowest one with minimum spacing
+                                newY = Math.max(newY, lowestAlien.y + window.MIN_ALIEN_SPACING);
+                            }
+                            
+                            // Setup animation
+                            bullet.targetAlien.startX = bullet.targetAlien.x;
+                            bullet.targetAlien.targetX = newX;
+                            bullet.targetAlien.startY = bullet.targetAlien.y;
+                            bullet.targetAlien.targetY = newY;
+                            bullet.targetAlien.moveStartTime = Date.now();
+                            bullet.targetAlien.isMoving = true;
                             
                             if (!bullet.targetAlien.previousWrongAnswers) {
                                 bullet.targetAlien.previousWrongAnswers = [];
