@@ -445,37 +445,56 @@
         }
 
         function generateMultipleChoices(correctAnswer, previousAnswers = []) {
+            // Ensure correctAnswer is a number
+            correctAnswer = Number(correctAnswer);
+            
+            // Validate correctAnswer
+            if (isNaN(correctAnswer) || correctAnswer <= 0) {
+                console.error('Invalid correctAnswer:', correctAnswer);
+                return [correctAnswer, correctAnswer + 1, correctAnswer + 2]; // Fallback values
+            }
+            
             // Convert previousAnswers to numbers and add to Set for efficient lookup
             const usedAnswers = new Set([
                 correctAnswer,
                 ...(previousAnswers || []).map(a => Number(a))
             ]);
             
+            // Always start with the correct answer
             const choices = [correctAnswer];
             
-            // Try to generate unique wrong answers
+            // Generate wrong answers with validation
             let attempts = 0;
-            while (choices.length < 3 && attempts < 20) {
+            const maxAttempts = 30; // Increased from 20 to 30
+            
+            while (choices.length < 3 && attempts < maxAttempts) {
                 attempts++;
-                const offset = Math.floor(Math.random() * 5) + 1; // Random offset 1-5
+                
+                // Dynamically adjust offset based on correctAnswer
+                const maxOffset = Math.max(5, Math.floor(correctAnswer * 0.2));
+                const offset = Math.floor(Math.random() * maxOffset) + 1;
                 const wrongAnswer = correctAnswer + (Math.random() < 0.5 ? offset : -offset);
                 
-                // Check if answer is valid and not previously used
+                // Validate wrong answer
                 if (wrongAnswer > 0 && !usedAnswers.has(wrongAnswer)) {
                     choices.push(wrongAnswer);
                     usedAnswers.add(wrongAnswer);
                 }
             }
             
-            // If we couldn't generate enough unique answers, fill with larger offsets
+            // If we still don't have enough choices, add guaranteed different values
             while (choices.length < 3) {
-                const offset = Math.floor(Math.random() * 10) + 6; // Larger offset 6-15
-                const wrongAnswer = correctAnswer + (Math.random() < 0.5 ? offset : -offset);
-                
-                if (wrongAnswer > 0 && !usedAnswers.has(wrongAnswer)) {
-                    choices.push(wrongAnswer);
-                    usedAnswers.add(wrongAnswer);
+                const offset = choices.length === 1 ? correctAnswer + 1 : correctAnswer + 2;
+                if (!usedAnswers.has(offset)) {
+                    choices.push(offset);
+                    usedAnswers.add(offset);
                 }
+            }
+            
+            // Verify correct answer is included
+            if (!choices.includes(correctAnswer)) {
+                console.warn('Correct answer missing, forcing inclusion');
+                choices[0] = correctAnswer;
             }
             
             // Shuffle the choices
@@ -483,6 +502,20 @@
                 const j = Math.floor(Math.random() * (i + 1));
                 [choices[i], choices[j]] = [choices[j], choices[i]];
             }
+            
+            // Final verification
+            if (!choices.includes(correctAnswer)) {
+                console.error('Shuffle removed correct answer, fixing...');
+                choices[0] = correctAnswer;
+            }
+            
+            // Log for debugging
+            console.log('Generated choices:', {
+                correctAnswer,
+                choices,
+                previousAnswers,
+                attemptsNeeded: attempts
+            });
             
             return choices;
         }
