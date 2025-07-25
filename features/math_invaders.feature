@@ -172,15 +172,15 @@ Scenario: Game over conditions
   And I should see a "Game Over" message
   And I should be prompted to enter my initials for the high score
 
-+ @persistence
-+ Scenario: Initials persistence
-+   Given I have previously entered "XYZ" as my initials
-+   When the game ends
-+   Then the initials prompt should be pre-filled with "XYZ"
-+   When I enter new initials "ABC"
-+   Then those initials should be saved for next time
-+   And when I play again and end the game
-+   Then the initials prompt should be pre-filled with "ABC"
+@persistence
+Scenario: Initials persistence
+  Given I have previously entered "XYZ" as my initials
+  When the game ends
+  Then the initials prompt should be pre-filled with "XYZ"
+  When I enter new initials "ABC"
+  Then those initials should be saved for next time
+  And when I play again and end the game
+  Then the initials prompt should be pre-filled with "ABC"
 
 Scenario: High score system
   When the game ends

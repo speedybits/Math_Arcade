@@ -8,3 +8,6 @@ cucumber-report.html
 *.env
 .env.local
 .env.*.local
+
+# Test screenshots (temporary debugging files)
+test-screenshots/
