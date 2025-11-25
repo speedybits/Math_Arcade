@@ -17,6 +17,9 @@
     "puppeteer": "^21.11.0",
     "ts-node": "^10.9.2"
   },
+  "overrides": {
+    "tar-fs": ">=3.1.1"
+  },
   "main": "cucumber.js",
   "keywords": [],
   "author": "",
