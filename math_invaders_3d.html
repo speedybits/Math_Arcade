@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Math Invaders 3D</title>
+<style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+        margin: 0; padding: 0; height: 100%; overflow: hidden;
+        background: #000; color: #fff;
+        font-family: "Trebuchet MS", Arial, sans-serif;
+        user-select: none; -webkit-user-select: none;
+    }
+    #scene { position: fixed; inset: 0; display: block; touch-action: none; }
+
+    /* ---------- Shield bar (top of the viewscreen) ---------- */
+    #shieldWrap {
+        position: fixed; top: 0; left: 0; right: 0; height: 46px;
+        padding: 8px 12px 0; pointer-events: none; z-index: 5;
+    }
+    #shieldLabel {
+        font-size: 11px; letter-spacing: 2px; color: #7fd7ff; opacity: .85;
+        display: flex; justify-content: space-between;
+    }
+    #shieldTrack {
+        margin-top: 4px; height: 14px; border: 1px solid rgba(127,215,255,.5);
+        border-radius: 3px; background: rgba(0,20,35,.6); overflow: hidden;
+    }
+    #shieldFill {
+        height: 100%; width: 100%;
+        background: linear-gradient(90deg, #29d0ff, #7ef9ff);
+        box-shadow: 0 0 12px rgba(60,220,255,.8) inset;
+        transition: width .35s ease-out, background .3s;
+    }
+    #shieldFill.low { background: linear-gradient(90deg, #ff5a3c, #ffb03a); }
+
+    /* ---------- Instrument panel (bottom) ---------- */
+    #panel {
+        position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
+        background: linear-gradient(180deg, rgba(10,16,26,.55) 0%, #0b1220 22%, #060a12 100%);
+        border-top: 2px solid var(--accent, #39d353);
+        box-shadow: 0 -10px 40px rgba(0,0,0,.9);
+        padding: 8px 10px 14px;
+    }
+    #readout {
+        display: flex; justify-content: space-between; align-items: center;
+        font-size: 12px; letter-spacing: 1px; color: #8fa6c4; margin-bottom: 7px;
+        min-height: 16px;
+    }
+    #targetText { color: #fff; font-size: 17px; letter-spacing: 1px; font-weight: bold; }
+    #choices { display: flex; gap: 8px; }
+    .choice {
+        flex: 1; padding: 16px 4px; font-size: 24px; font-weight: bold;
+        font-family: inherit; color: #eaf6ff;
+        background: linear-gradient(180deg, #16233a, #0d1626);
+        border: 2px solid rgba(140,180,220,.35); border-radius: 8px;
+        cursor: pointer; transition: transform .08s, background .15s;
+    }
+    .choice:active { transform: translateY(2px); background: #24406b; }
+    .choice:disabled { opacity: .3; cursor: default; }
+    .choice .key { display: block; font-size: 10px; color: #6d8299; font-weight: normal; margin-top: 3px; }
+
+    /* ---------- Overlays ---------- */
+    .screen {
+        position: fixed; inset: 0; z-index: 20; overflow-y: auto;
+        background: radial-gradient(ellipse at 50% 30%, #0b1a30 0%, #000 70%);
+        padding: 18px 14px 30px; text-align: center;
+    }
+    .screen h1 { font-size: 30px; margin: 6px 0 2px; letter-spacing: 3px; }
+    .screen .sub { color: #8fa6c4; font-size: 13px; margin-bottom: 16px; line-height: 1.5; }
+    #squadrons { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; max-width: 900px; margin: 0 auto; }
+    .squadron {
+        flex: 1 1 200px; min-width: 180px; max-width: 215px;
+        border: 2px solid var(--c); border-radius: 10px; padding: 10px 8px;
+        background: rgba(255,255,255,.03);
+    }
+    .squadron h2 { margin: 0; font-size: 19px; color: var(--c); letter-spacing: 2px; }
+    .squadron .op { font-size: 12px; color: #93a7bd; margin: 2px 0 9px; letter-spacing: 1px; }
+    .ships { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .ship {
+        background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.15);
+        border-radius: 7px; padding: 5px 2px 3px; cursor: pointer; transition: background .15s, transform .1s;
+    }
+    .ship:hover, .ship:active { background: rgba(255,255,255,.18); transform: translateY(-2px); }
+    .ship svg { width: 100%; height: 34px; display: block; }
+    .ship span { font-size: 9px; color: #b9c8d8; letter-spacing: .5px; }
+    .note { color: #6d8299; font-size: 11.5px; margin-top: 16px; line-height: 1.6; max-width: 620px; margin-left: auto; margin-right: auto; }
+    .btn {
+        margin-top: 16px; padding: 13px 30px; font-size: 16px; font-family: inherit;
+        background: #2a6df4; color: #fff; border: none; border-radius: 6px; cursor: pointer;
+    }
+    .btn.ghost { background: #2c3a4d; }
+    #gameOver { display: none; }
+    #gameOver h1 { color: #ff6a4d; }
+    .stat { font-size: 15px; color: #cfe0f0; margin: 5px 0; }
+    .stat b { color: #fff; font-size: 21px; }
+    #flash {
+        position: fixed; inset: 0; z-index: 10; pointer-events: none; opacity: 0;
+        background: radial-gradient(ellipse at center, transparent 30%, rgba(255,40,20,.85) 100%);
+    }
+    #toast {
+        position: fixed; left: 50%; top: 30%; transform: translate(-50%,-50%);
+        z-index: 12; pointer-events: none; font-size: 26px; font-weight: bold;
+        letter-spacing: 2px; opacity: 0; text-shadow: 0 0 18px currentColor;
+    }
+</style>
+</head>
+<body>
+
+<canvas id="scene"></canvas>
+
+<div id="shieldWrap" style="display:none">
+    <div id="shieldLabel"><span>SHIELDS</span><span id="shieldPct">100%</span></div>
+    <div id="shieldTrack"><div id="shieldFill"></div></div>
+</div>
+
+<div id="panel" style="display:none">
+    <div id="readout">
+        <span id="shipName">—</span>
+        <span id="targetText">NO TARGET</span>
+        <span id="scoreText">SCORE 0</span>
+    </div>
+    <div id="choices">
+        <button class="choice" data-slot="0">—<span class="key">1</span></button>
+        <button class="choice" data-slot="1">—<span class="key">2</span></button>
+        <button class="choice" data-slot="2">—<span class="key">3</span></button>
+    </div>
+</div>
+
+<div id="flash"></div>
+<div id="toast"></div>
+
+<div class="screen" id="selectScreen">
+    <h1>MATH INVADERS 3D</h1>
+    <div class="sub">Pick your squadron. The squadron chooses your operation —<br>the six ships inside it are just for looks.</div>
+    <div id="squadrons"></div>
+    <div class="note">
+        <b>How to fly:</b> drag anywhere on the screen (or use the arrow keys) to look around your sector.
+        Facts drift toward you — swing your view onto one and it locks as your target.
+        Tap one of the three answers in the panel to fire it. Keys 1, 2, 3 work too.<br><br>
+        A fact that reaches you halves your shields and gets remembered. It comes back as a green
+        <b>asteroid</b> — answer that one right and you get those shields back.
+    </div>
+    <button class="btn ghost" onclick="location.href='index.html'">Back to the Arcade</button>
+</div>
+
+<div class="screen" id="gameOver">
+    <h1>SHIP DESTROYED</h1>
+    <div class="sub">Your shields fell below 10%.</div>
+    <div class="stat">SCORE <b id="finalScore">0</b></div>
+    <div class="stat">FACTS CLEARED <b id="finalCleared">0</b></div>
+    <div class="stat">FACTS THAT GOT THROUGH <b id="finalMissed">0</b></div>
+    <div class="note" id="missedList"></div>
+    <button class="btn" onclick="location.reload()">Fly Again</button>
+    <button class="btn ghost" onclick="location.href='index.html'">Back to the Arcade</button>
+</div>
+
+<script>
+/* =========================================================================
+   Math Invaders 3D — rough playable prototype
+   Everything is drawn with the 2D canvas; the 3D is a hand-rolled
+   perspective projection, so there are no libraries and no build step.
+   ========================================================================= */
+
+/* ---------------- Squadrons & ships ---------------- */
+const SQUADRONS = [
+    { id: 'add', name: 'Addion',   op: 'Addition',       color: '#39d353', symbol: '+' },
+    { id: 'sub', name: 'Subtrion', op: 'Subtraction',    color: '#ff4d4d', symbol: '−' },
+    { id: 'mul', name: 'Multion',  op: 'Multiplication', color: '#4d9cff', symbol: '×' },
+    { id: 'div', name: 'Divion',   op: 'Division',       color: '#ffd23f', symbol: '÷' }
+];
+
+// Six cosmetic hull shapes. No stats attached to any of them, by design.
+const HULLS = [
+    { name: 'Dart',    poly: '50,4 74,78 50,64 26,78' },
+    { name: 'Falcon',  poly: '50,10 92,68 60,60 50,88 40,60 8,68' },
+    { name: 'Delta',   poly: '50,6 88,86 50,70 12,86' },
+    { name: 'Star',    poly: '50,4 60,42 96,52 60,62 50,96 40,62 4,52 40,42' },
+    { name: 'Anvil',   poly: '18,18 82,18 66,46 82,90 50,72 18,90 34,46' },
+    { name: 'Needle',  poly: '50,2 63,58 56,92 44,92 37,58' }
+];
+
+/* ---------------- Game state ---------------- */
+const MISSED_KEY = 'mathInvaders3D_missedFacts';
+const PANEL_FALLBACK = 150;
+
+const G = {
+    running: false,
+    squadron: null,
+    hull: null,
+    yaw: 0, pitch: 0,
+    shields: 100,
+    score: 0,
+    cleared: 0,
+    breaches: 0,
+    wave: 0,
+    waveTimer: 0,
+    objects: [],
+    shots: [],
+    stars: [],
+    target: null,
+    shake: 0,
+    spawnTimer: 1.2,
+    asteroidTimer: 6,
+    lastFrame: 0
+};
+window.MI3D = G;
+
+const canvas = document.getElementById('scene');
+const ctx = canvas.getContext('2d');
+let W = 0, H = 0, PANEL = PANEL_FALLBACK, focal = 600, horizonY = 0;
+let canopyPath = null, hullPath = null, canopyBottom = 0;
+
+/* The canopy is a rounded hexagonal window. The 3D scene is clipped to it and
+   the hull is everything outside, so the player really is looking out of a ship. */
+function buildCanopy() {
+    const vh = H - PANEL;
+    const top = 74;
+    const pts = [
+        [W * 0.10,  top],
+        [W * 0.90,  top],
+        [W * 0.995, vh * 0.40],
+        [W * 0.88,  vh * 0.86],
+        [W * 0.12,  vh * 0.86],
+        [W * 0.005, vh * 0.40]
+    ];
+    canopyBottom = vh * 0.86;
+    const r = Math.min(W, vh) * 0.07;
+    const path = new Path2D();
+    const n = pts.length;
+    path.moveTo((pts[0][0] + pts[1][0]) / 2, (pts[0][1] + pts[1][1]) / 2);
+    for (let i = 1; i <= n; i++) {
+        const cur = pts[i % n], next = pts[(i + 1) % n];
+        path.arcTo(cur[0], cur[1], next[0], next[1], r);
+    }
+    path.closePath();
+    canopyPath = path;
+
+    const hull = new Path2D();
+    hull.rect(0, 0, W, vh);
+    hull.addPath(path);
+    hullPath = hull;
+}
+
+function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width = Math.floor(W * dpr);
+    canvas.height = Math.floor(H * dpr);
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const panelEl = document.getElementById('panel');
+    PANEL = panelEl.offsetHeight || PANEL_FALLBACK;
+    // Roughly a 72-degree horizontal field of view.
+    focal = (W / 2) / Math.tan((72 * Math.PI / 180) / 2);
+    horizonY = (H - PANEL) * 0.47;
+    buildCanopy();
+}
+window.addEventListener('resize', resize);
+
+/* ---------------- Small helpers ---------------- */
+const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+const clamp = (v, a, b) => v < a ? a : (v > b ? b : v);
+function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+}
+
+/* ---------------- Sound ----------------
+   Threats and rewards must be tellable apart by ear as well as by eye,
+   so approach warnings, hits and heals all use distinct tones.        */
+let audioCtx = null;
+function beep(freq, dur, type, vol) {
+    try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type || 'square';
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(vol == null ? 0.08 : vol, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(); osc.stop(audioCtx.currentTime + dur);
+    } catch (e) { /* audio is a nicety, never a blocker */ }
+}
+const SFX = {
+    fire:  () => beep(760, 0.10, 'square', 0.05),
+    hit:   () => { beep(180, 0.14, 'sawtooth', 0.07); beep(240, 0.10, 'square', 0.04); },
+    wrong: () => beep(120, 0.22, 'sawtooth', 0.06),
+    heal:  () => { beep(660, 0.10, 'sine', 0.09); setTimeout(() => beep(990, 0.16, 'sine', 0.09), 90); },
+    breach:() => { beep(70, 0.55, 'sawtooth', 0.14); beep(45, 0.7, 'square', 0.1); },
+    warn:  () => beep(320, 0.07, 'triangle', 0.035)
+};
+
+/* ---------------- Missed-fact memory ---------------- */
+function loadMissed() {
+    try { return JSON.parse(localStorage.getItem(MISSED_KEY)) || []; }
+    catch (e) { return []; }
+}
+function saveMissed(list) {
+    try { localStorage.setItem(MISSED_KEY, JSON.stringify(list)); } catch (e) { /* private mode */ }
+}
+function rememberMissed(problem) {
+    const list = loadMissed();
+    const found = list.find(m => m.key === problem.key);
+    if (found) found.count++;
+    else list.push({ key: problem.key, op: problem.op, text: problem.text, answer: problem.answer, count: 1 });
+    saveMissed(list);
+}
+function forgiveMissed(key) {
+    const list = loadMissed().filter(m => m.key !== key);
+    saveMissed(list);
+}
+
+/* ---------------- Problem generation ----------------
+   NOTE: this is a placeholder difficulty ramp. The real game needs a proper
+   ordered ladder for each operation (multiplication already has one in the
+   2D game); see math_invaders_3d.md.                                       */
+function makeProblem(op, wave) {
+    const max = clamp(4 + wave * 2, 4, 12);
+    let a, b, answer, text;
+    if (op === 'add') {
+        a = rnd(1, max); b = rnd(1, max); answer = a + b; text = a + ' + ' + b;
+    } else if (op === 'sub') {
+        a = rnd(1, max); b = rnd(1, a); answer = a - b; text = a + ' − ' + b;
+    } else if (op === 'mul') {
+        a = rnd(1, max); b = rnd(1, max); answer = a * b; text = a + ' × ' + b;
+    } else {
+        b = rnd(1, max); answer = rnd(1, max); a = b * answer; text = a + ' ÷ ' + b;
+    }
+    return { op: op, text: text, answer: answer, key: op + ':' + text };
+}
+
+// Three choices, exactly one correct, never repeating an answer already tried.
+function makeChoices(answer, exclude) {
+    exclude = exclude || [];
+    const picked = [answer];
+    const cands = [];
+    for (let d = 1; d <= 6; d++) { cands.push(answer + d); cands.push(answer - d); }
+    cands.push(answer + 10, answer - 10, answer * 2);
+    shuffle(cands);
+    for (const c of cands) {
+        if (picked.length >= 3) break;
+        if (c >= 0 && picked.indexOf(c) === -1 && exclude.indexOf(c) === -1) picked.push(c);
+    }
+    let f = answer + 7;
+    while (picked.length < 3) {
+        if (f >= 0 && picked.indexOf(f) === -1 && exclude.indexOf(f) === -1) picked.push(f);
+        f++;
+    }
+    return shuffle(picked);
+}
+
+/* ---------------- Spawning ---------------- */
+function randomDirection() {
+    // Kept in a band around the player's eye level so nothing hides straight up.
+    const ang = Math.random() * Math.PI * 2;
+    const y = (Math.random() - 0.5) * 0.42;
+    const h = Math.sqrt(Math.max(0.05, 1 - y * y));
+    return { x: Math.cos(ang) * h, y: y, z: Math.sin(ang) * h };
+}
+
+function spawnFact() {
+    const dir = randomDirection();
+    const dist = 190 + Math.random() * 40;
+    const problem = makeProblem(G.squadron.id, G.wave);
+    const missed = loadMissed().some(m => m.key === problem.key);
+    G.objects.push({
+        kind: 'fact',
+        x: dir.x * dist, y: dir.y * dist, z: dir.z * dist,
+        speed: 9 + G.wave * 1.6,
+        problem: problem,
+        choices: makeChoices(problem.answer),
+        tried: [],
+        wasMissed: missed,
+        spin: Math.random() * Math.PI * 2,
+        warned: false,
+        dead: false
+    });
+}
+
+function spawnAsteroid() {
+    const memory = loadMissed();
+    if (!memory.length) return;
+    const pick = memory[rnd(0, memory.length - 1)];
+    const dir = randomDirection();
+    const dist = 170 + Math.random() * 40;
+    const problem = { op: pick.op, text: pick.text, answer: pick.answer, key: pick.key };
+    G.objects.push({
+        kind: 'asteroid',
+        x: dir.x * dist, y: dir.y * dist, z: dir.z * dist,
+        speed: 6.5,
+        problem: problem,
+        choices: makeChoices(problem.answer),
+        tried: [],
+        spin: Math.random() * Math.PI * 2,
+        lumps: Array.from({ length: 13 }, () => 0.62 + Math.random() * 0.62),
+        craters: Array.from({ length: 4 }, () => ({
+            a: Math.random() * Math.PI * 2, d: 0.2 + Math.random() * 0.45, r: 0.09 + Math.random() * 0.13
+        })),
+        life: 34,
+        dead: false
+    });
+}
+
+/* ---------------- 3D projection ---------------- */
+function project(p) {
+    const cy = Math.cos(G.yaw), sy = Math.sin(G.yaw);
+    const x1 = p.x * cy - p.z * sy;
+    const z1 = p.x * sy + p.z * cy;
+    const cp = Math.cos(G.pitch), sp = Math.sin(G.pitch);
+    const y2 = p.y * cp + z1 * sp;
+    const z2 = -p.y * sp + z1 * cp;
+    if (z2 < 6) return null;
+    const scale = focal / z2;
+    return { sx: W / 2 + x1 * scale, sy: horizonY - y2 * scale, scale: scale, depth: z2 };
+}
+
+function forwardVector() {
+    const cp = Math.cos(G.pitch);
+    return { x: Math.sin(G.yaw) * cp, y: Math.sin(G.pitch), z: Math.cos(G.yaw) * cp };
+}
+
+/* ---------------- Starfield & nebulae ---------------- */
+const NEBULA_TINTS = ['80,40,150', '20,80,160', '150,40,90', '30,110,120', '90,60,170'];
+function makeStars() {
+    G.stars = [];
+    for (let i = 0; i < 340; i++) {
+        const d = randomDirection();
+        const r = 900;
+        G.stars.push({ x: d.x * r, y: (Math.random() - 0.5) * 1.6 * r, z: d.z * r, b: 0.25 + Math.random() * 0.75 });
+    }
+    G.nebulae = [];
+    for (let i = 0; i < 5; i++) {
+        const a = (i / 5) * Math.PI * 2 + Math.random();
+        const r = 780;
+        G.nebulae.push({
+            x: Math.cos(a) * r, y: (Math.random() - 0.5) * 260, z: Math.sin(a) * r,
+            size: 340 + Math.random() * 260, tint: NEBULA_TINTS[i]
+        });
+    }
+}
+
+function drawNebulae() {
+    if (!G.nebulae) return;
+    for (const n of G.nebulae) {
+        const p = project(n);
+        if (!p) continue;
+        const rad = n.size * p.scale;
+        if (rad < 4 || p.sx < -rad || p.sx > W + rad) continue;
+        const g = ctx.createRadialGradient(p.sx, p.sy, 0, p.sx, p.sy, rad);
+        g.addColorStop(0, 'rgba(' + n.tint + ',0.34)');
+        g.addColorStop(0.5, 'rgba(' + n.tint + ',0.13)');
+        g.addColorStop(1, 'rgba(' + n.tint + ',0)');
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(p.sx, p.sy, rad, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
+/* ---------------- Input ---------------- */
+let dragging = false, lastX = 0, lastY = 0;
+canvas.addEventListener('pointerdown', e => {
+    if (!G.running) return;
+    dragging = true; lastX = e.clientX; lastY = e.clientY;
+    canvas.setPointerCapture(e.pointerId);
+});
+canvas.addEventListener('pointermove', e => {
+    if (!dragging || !G.running) return;
+    const dx = e.clientX - lastX, dy = e.clientY - lastY;
+    lastX = e.clientX; lastY = e.clientY;
+    G.yaw -= dx * 0.0042;
+    G.pitch = clamp(G.pitch + dy * 0.0035, -0.55, 0.55);
+});
+const endDrag = () => { dragging = false; };
+canvas.addEventListener('pointerup', endDrag);
+canvas.addEventListener('pointercancel', endDrag);
+
+const keys = {};
+window.addEventListener('keydown', e => {
+    keys[e.key] = true;
+    if (!G.running) return;
+    if (e.key === '1' || e.key === '2' || e.key === '3') fireSlot(parseInt(e.key, 10) - 1);
+});
+window.addEventListener('keyup', e => { keys[e.key] = false; });
+
+document.querySelectorAll('.choice').forEach(btn => {
+    btn.addEventListener('click', () => fireSlot(parseInt(btn.dataset.slot, 10)));
+});
+
+/* ---------------- Firing ---------------- */
+function fireSlot(slot) {
+    const t = G.target;
+    if (!G.running || !t || t.dead) return;
+    const value = t.choices[slot];
+    if (value === undefined) return;
+    const f = forwardVector();
+    G.shots.push({
+        x: f.x * 10, y: f.y * 10 - 4, z: f.z * 10,
+        t: 0, value: value, target: t
+    });
+    SFX.fire();
+}
+
+function resolveShot(shot) {
+    const t = shot.target;
+    if (!t || t.dead) return;
+    if (shot.value === t.problem.answer) {
+        t.dead = true;
+        if (t.kind === 'asteroid') {
+            // Undo one halving: exactly the shields that fact cost.
+            const before = G.shields;
+            G.shields = Math.min(100, G.shields * 2);
+            forgiveMissed(t.problem.key);
+            G.score += 20 + G.wave * 4;
+            SFX.heal();
+            showToast('SHIELDS +' + Math.round(G.shields - before) + '%', '#4dff9d');
+        } else {
+            G.cleared++;
+            G.score += (10 + G.wave * 2) * (t.wasMissed ? 2 : 1);
+            SFX.hit();
+            if (t.wasMissed) {
+                forgiveMissed(t.problem.key);
+                showToast('DOUBLE POINTS', '#ffd23f');
+            }
+        }
+        updateHUD();
+    } else {
+        // A miss costs nothing but time: fresh choices, minus the one just tried.
+        t.tried.push(shot.value);
+        t.choices = makeChoices(t.problem.answer, t.tried);
+        SFX.wrong();
+        updateHUD();
+    }
+}
+
+/* ---------------- Shield breach ---------------- */
+function breach(obj) {
+    obj.dead = true;
+    G.breaches++;
+    G.shields = G.shields / 2;
+    rememberMissed(obj.problem);
+    G.shake = 0.85;
+    SFX.breach();
+    flashScreen();
+    showToast('SHIELDS ' + Math.round(G.shields) + '%', '#ff6a4d');
+    updateHUD();
+    if (G.shields < 10) endGame();
+}
+
+function flashScreen() {
+    const f = document.getElementById('flash');
+    f.style.transition = 'none';
+    f.style.opacity = '1';
+    requestAnimationFrame(() => {
+        f.style.transition = 'opacity .7s ease-out';
+        f.style.opacity = '0';
+    });
+}
+
+let toastTimer = null;
+function showToast(msg, color) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.style.color = color;
+    el.style.transition = 'none';
+    el.style.opacity = '1';
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+        el.style.transition = 'opacity .6s';
+        el.style.opacity = '0';
+    }, 700);
+}
+
+/* ---------------- HUD ---------------- */
+function updateHUD() {
+    const pct = clamp(G.shields, 0, 100);
+    const fill = document.getElementById('shieldFill');
+    fill.style.width = pct + '%';
+    fill.classList.toggle('low', pct < 30);
+    document.getElementById('shieldPct').textContent = Math.round(pct) + '%';
+    document.getElementById('scoreText').textContent = 'SCORE ' + G.score;
+
+    const t = G.target;
+    const readout = document.getElementById('targetText');
+    const btns = document.querySelectorAll('.choice');
+    if (t && !t.dead) {
+        readout.textContent = t.problem.text + ' =';
+        readout.style.color = t.kind === 'asteroid' ? '#4dff9d' : '#fff';
+        btns.forEach((b, i) => {
+            b.disabled = false;
+            b.firstChild.textContent = t.choices[i];
+            b.style.borderColor = t.kind === 'asteroid' ? 'rgba(77,255,157,.6)' : 'rgba(140,180,220,.35)';
+        });
+    } else {
+        readout.textContent = 'NO TARGET';
+        readout.style.color = '#6d8299';
+        btns.forEach(b => {
+            b.disabled = true;
+            b.firstChild.textContent = '—';
+            b.style.borderColor = 'rgba(140,180,220,.2)';
+        });
+    }
+}
+
+/* ---------------- Target acquisition ---------------- */
+function pickTarget() {
+    let best = null, bestD = 1e9;
+    const limit = Math.min(W, H - PANEL) * 0.35;
+    for (const o of G.objects) {
+        if (o.dead) continue;
+        const p = project(o);
+        if (!p) continue;
+        const d = Math.hypot(p.sx - W / 2, p.sy - horizonY);
+        if (d < limit && d < bestD) { bestD = d; best = o; }
+    }
+    if (best !== G.target) { G.target = best; updateHUD(); }
+}
+
+/* ---------------- Update ---------------- */
+function update(dt) {
+    if (keys.ArrowLeft) G.yaw -= 1.7 * dt;
+    if (keys.ArrowRight) G.yaw += 1.7 * dt;
+    if (keys.ArrowUp) G.pitch = clamp(G.pitch - 1.2 * dt, -0.55, 0.55);
+    if (keys.ArrowDown) G.pitch = clamp(G.pitch + 1.2 * dt, -0.55, 0.55);
+
+    G.shake = Math.max(0, G.shake - dt * 1.6);
+
+    G.waveTimer += dt;
+    if (G.waveTimer > 45) { G.waveTimer = 0; G.wave++; showToast('SECTOR ' + (G.wave + 1), '#7fd7ff'); }
+
+    const liveFacts = G.objects.filter(o => o.kind === 'fact' && !o.dead).length;
+    G.spawnTimer -= dt;
+    if (G.spawnTimer <= 0 && liveFacts < 5) {
+        spawnFact();
+        G.spawnTimer = Math.max(1.6, 4.2 - G.wave * 0.4);
+    }
+    G.asteroidTimer -= dt;
+    if (G.asteroidTimer <= 0) {
+        spawnAsteroid();
+        G.asteroidTimer = 9 + Math.random() * 6;
+    }
+
+    for (const o of G.objects) {
+        if (o.dead) continue;
+        o.spin += dt * 0.6;
+        const d = Math.hypot(o.x, o.y, o.z);
+        if (d > 0.001) {
+            const step = (o.speed * dt) / d;
+            o.x -= o.x * step; o.y -= o.y * step; o.z -= o.z * step;
+        }
+        const nd = Math.hypot(o.x, o.y, o.z);
+        if (o.kind === 'fact') {
+            if (!o.warned && nd < 70) { o.warned = true; SFX.warn(); }
+            if (nd < 14) breach(o);
+        } else {
+            // Asteroids drift past harmlessly and come back another time.
+            o.life -= dt;
+            if (nd < 12 || o.life <= 0) o.dead = true;
+        }
+    }
+
+    for (const s of G.shots) {
+        s.t += dt * 2.6;
+        if (s.t >= 1) { resolveShot(s); s.done = true; }
+    }
+    G.shots = G.shots.filter(s => !s.done && s.target && !(s.target.dead && !s.done));
+    G.objects = G.objects.filter(o => !o.dead);
+
+    if (G.target && G.target.dead) G.target = null;
+    pickTarget();
+}
+
+/* ---------------- Drawing ---------------- */
+function drawStars() {
+    for (const s of G.stars) {
+        const p = project(s);
+        if (!p) continue;
+        if (p.sx < -5 || p.sx > W + 5 || p.sy < -5 || p.sy > H) continue;
+        ctx.fillStyle = 'rgba(255,255,255,' + (s.b * 0.85) + ')';
+        ctx.fillRect(p.sx, p.sy, 1.6, 1.6);
+    }
+}
+
+/* Draws a math fact so it always fits inside the object carrying it. */
+function drawLabel(text, maxWidth, baseSize, color) {
+    let fs = baseSize;
+    ctx.font = 'bold ' + fs + 'px "Trebuchet MS", Arial';
+    const w = ctx.measureText(text).width;
+    if (w > maxWidth) {
+        fs = Math.max(7, fs * (maxWidth / w));
+        ctx.font = 'bold ' + fs + 'px "Trebuchet MS", Arial';
+    }
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = color;
+    ctx.fillText(text, 0, 0);
+}
+
+function drawFact(o, p) {
+    const s = clamp(p.scale * 24, 11, 170);
+    const isTarget = (o === G.target);
+    const rx = s * 1.30, ry = s * 0.72;
+    ctx.save();
+    ctx.translate(p.sx, p.sy);
+    ctx.rotate(Math.sin(o.spin) * 0.09);
+
+    const stroke = o.wasMissed ? '#ff9e2c' : '#ff3ea5';
+
+    // Fins first, so they sit behind the hull plate.
+    ctx.beginPath();
+    for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2 + Math.PI / 6;
+        const bx = Math.cos(a) * rx, by = Math.sin(a) * ry;
+        const tx = Math.cos(a) * rx * 1.45, ty = Math.sin(a) * ry * 1.55;
+        const px = -Math.sin(a) * rx * 0.16, py = Math.cos(a) * ry * 0.16;
+        ctx.moveTo(bx + px, by + py);
+        ctx.lineTo(tx, ty);
+        ctx.lineTo(bx - px, by - py);
+        ctx.closePath();
+    }
+    ctx.fillStyle = stroke;
+    ctx.globalAlpha = 0.75;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // Hull: a wide, hard-edged hexagon. Nothing round about it.
+    ctx.beginPath();
+    for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2 + Math.PI / 6;
+        const px = Math.cos(a) * rx, py = Math.sin(a) * ry;
+        i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fillStyle = o.wasMissed ? 'rgba(78,30,8,.93)' : 'rgba(62,8,42,.93)';
+    ctx.fill();
+    ctx.lineWidth = Math.max(1.6, s * 0.09);
+    ctx.lineJoin = 'miter';
+    ctx.strokeStyle = stroke;
+    ctx.shadowColor = stroke;
+    ctx.shadowBlur = isTarget ? 26 : 11;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    ctx.rotate(-Math.sin(o.spin) * 0.09);
+    drawLabel(o.problem.text, rx * 1.65, clamp(s * 0.62, 8, 46), '#fff');
+    ctx.restore();
+}
+
+function drawAsteroid(o, p) {
+    const s = clamp(p.scale * 30, 14, 210);
+    const isTarget = (o === G.target);
+    ctx.save();
+    ctx.translate(p.sx, p.sy);
+    ctx.rotate(o.spin * 0.3);
+
+    // Lumpy rock — round where the threats are spiky.
+    ctx.beginPath();
+    const n = o.lumps.length;
+    for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2;
+        const r = s * o.lumps[i];
+        const px = Math.cos(a) * r, py = Math.sin(a) * r;
+        i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(50,64,52,.92)';
+    ctx.fill();
+    ctx.save();
+    ctx.clip();
+    ctx.fillStyle = 'rgba(28,38,30,.9)';
+    for (const c of o.craters) {
+        ctx.beginPath();
+        ctx.arc(Math.cos(c.a) * s * c.d, Math.sin(c.a) * s * c.d, s * c.r, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    ctx.restore();
+    ctx.lineWidth = Math.max(1.6, s * 0.06);
+    ctx.strokeStyle = '#4dff9d';
+    ctx.shadowColor = '#4dff9d';
+    ctx.shadowBlur = isTarget ? 30 : 16;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.rotate(-o.spin * 0.3);
+
+    drawLabel(o.problem.text, s * 1.25, clamp(s * 0.5, 8, 44), '#eaffe9');
+    ctx.restore();
+}
+
+function drawShots() {
+    for (const s of G.shots) {
+        const t = s.target;
+        if (!t) continue;
+        const pos = {
+            x: s.x + (t.x - s.x) * s.t,
+            y: s.y + (t.y - s.y) * s.t,
+            z: s.z + (t.z - s.z) * s.t
+        };
+        const p = project(pos);
+        if (!p) continue;
+        const fs = clamp(p.scale * 12, 10, 40);
+        ctx.save();
+        ctx.font = 'bold ' + fs + 'px "Trebuchet MS", Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#eaf6ff';
+        ctx.shadowColor = G.squadron.color;
+        ctx.shadowBlur = 18;
+        ctx.fillText(s.value, p.sx, p.sy);
+        ctx.restore();
+    }
+}
+
+function drawTargetBrackets() {
+    const t = G.target;
+    if (!t) return;
+    const p = project(t);
+    if (!p) return;
+    const s = clamp(p.scale * (t.kind === 'asteroid' ? 34 : 30), 20, 220);
+    ctx.save();
+    ctx.strokeStyle = t.kind === 'asteroid' ? '#4dff9d' : '#ff6a4d';
+    ctx.lineWidth = 2;
+    const c = s * 0.42;
+    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([dx, dy]) => {
+        const x = p.sx + dx * s, y = p.sy + dy * s;
+        ctx.beginPath();
+        ctx.moveTo(x, y - dy * c); ctx.lineTo(x, y); ctx.lineTo(x - dx * c, y);
+        ctx.stroke();
+    });
+    ctx.restore();
+}
+
+function drawCrosshair() {
+    ctx.save();
+    ctx.strokeStyle = 'rgba(200,230,255,.5)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(W / 2 - 16, horizonY); ctx.lineTo(W / 2 - 5, horizonY);
+    ctx.moveTo(W / 2 + 5, horizonY); ctx.lineTo(W / 2 + 16, horizonY);
+    ctx.moveTo(W / 2, horizonY - 16); ctx.lineTo(W / 2, horizonY - 5);
+    ctx.moveTo(W / 2, horizonY + 5); ctx.lineTo(W / 2, horizonY + 16);
+    ctx.stroke();
+    ctx.restore();
+}
+
+/* A 360-degree contact strip, so hunting for facts is a hunt and not a chore. */
+function drawCompass() {
+    const y = 60, half = W * 0.44, h = 26;
+    ctx.save();
+    // Housing, so it reads as instrumentation rather than a stray line.
+    ctx.fillStyle = 'rgba(6,12,22,.92)';
+    ctx.strokeStyle = 'rgba(127,215,255,.28)';
+    ctx.lineWidth = 1;
+    roundRect(W / 2 - half, y - h / 2, half * 2, h, 5);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.strokeStyle = 'rgba(127,215,255,.09)';
+    for (let i = -2; i <= 2; i++) {
+        const x = W / 2 + (i / 2) * half;
+        ctx.beginPath();
+        ctx.moveTo(x, y - h / 2 + 4);
+        ctx.lineTo(x, y + h / 2 - 4);
+        ctx.stroke();
+    }
+
+    for (const o of G.objects) {
+        if (o.dead) continue;
+        const bearing = Math.atan2(o.x, o.z) - G.yaw;
+        const rel = Math.atan2(Math.sin(bearing), Math.cos(bearing));
+        const x = W / 2 + (rel / Math.PI) * half;
+        const dist = Math.hypot(o.x, o.y, o.z);
+        const urgency = clamp(1 - dist / 200, 0.12, 1);
+        const col = o.kind === 'asteroid' ? '#4dff9d' : (o.wasMissed ? '#ff9e2c' : '#ff3ea5');
+        ctx.fillStyle = col;
+        ctx.shadowColor = col;
+        ctx.shadowBlur = 8 * urgency;
+        ctx.globalAlpha = 0.5 + urgency * 0.5;
+        const bh = 6 + urgency * 12;
+        ctx.fillRect(x - 2, y - bh / 2, 4, bh);
+    }
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 1;
+
+    // Boresight marker: dead ahead.
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.moveTo(W / 2, y - h / 2 - 1);
+    ctx.lineTo(W / 2 - 5, y - h / 2 - 8);
+    ctx.lineTo(W / 2 + 5, y - h / 2 - 8);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+}
+
+function roundRect(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+}
+
+/* The hull: everything outside the canopy window, plus the dashboard hood. */
+function drawCockpit() {
+    const accent = G.squadron.color;
+    const vh = H - PANEL;
+    ctx.save();
+
+    // Vignette inside the glass.
+    ctx.save();
+    ctx.clip(canopyPath);
+    const vg = ctx.createRadialGradient(W / 2, horizonY, Math.min(W, vh) * 0.25, W / 2, horizonY, Math.max(W, vh) * 0.8);
+    vg.addColorStop(0, 'rgba(0,0,0,0)');
+    vg.addColorStop(1, 'rgba(0,0,0,.75)');
+    ctx.fillStyle = vg;
+    ctx.fillRect(0, 0, W, vh);
+    // A faint sheen across the canopy glass.
+    const sheen = ctx.createLinearGradient(0, 0, W * 0.7, vh);
+    sheen.addColorStop(0, 'rgba(190,225,255,.055)');
+    sheen.addColorStop(0.4, 'rgba(190,225,255,0)');
+    ctx.fillStyle = sheen;
+    ctx.fillRect(0, 0, W, vh);
+    ctx.restore();
+
+    // Hull plating.
+    const plate = ctx.createLinearGradient(0, 0, 0, vh);
+    plate.addColorStop(0, '#0d1420');
+    plate.addColorStop(0.45, '#070b12');
+    plate.addColorStop(1, '#121a28');
+    ctx.fillStyle = plate;
+    ctx.fill(hullPath, 'evenodd');
+
+    // Canopy seal: dark gasket, bright inner bevel, squadron accent.
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#05080e';
+    ctx.lineWidth = 12;
+    ctx.stroke(canopyPath);
+    ctx.strokeStyle = 'rgba(190,220,255,.18)';
+    ctx.lineWidth = 3;
+    ctx.stroke(canopyPath);
+    ctx.strokeStyle = accent;
+    ctx.globalAlpha = 0.75;
+    ctx.lineWidth = 1.6;
+    ctx.stroke(canopyPath);
+    ctx.globalAlpha = 1;
+
+    // Dashboard hood between the canopy and the instrument panel.
+    const hoodTop = canopyBottom - 4;
+    const hood = ctx.createLinearGradient(0, hoodTop, 0, vh);
+    hood.addColorStop(0, '#0a111c');
+    hood.addColorStop(1, '#141d2c');
+    ctx.fillStyle = hood;
+    ctx.beginPath();
+    ctx.moveTo(0, hoodTop + (vh - hoodTop) * 0.45);
+    ctx.quadraticCurveTo(W / 2, hoodTop - 14, W, hoodTop + (vh - hoodTop) * 0.45);
+    ctx.lineTo(W, vh);
+    ctx.lineTo(0, vh);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = accent;
+    ctx.globalAlpha = 0.5;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(0, hoodTop + (vh - hoodTop) * 0.45);
+    ctx.quadraticCurveTo(W / 2, hoodTop - 14, W, hoodTop + (vh - hoodTop) * 0.45);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    // Hood indicator lights. Purely decorative — the ship has no systems to fail.
+    const lights = 7;
+    for (let i = 0; i < lights; i++) {
+        const t = (i + 0.5) / lights;
+        const lx = t * W;
+        const ly = vh - 12;
+        const on = ((Date.now() / 420 | 0) + i) % 4 !== 0;
+        ctx.fillStyle = on ? accent : 'rgba(255,255,255,.10)';
+        ctx.globalAlpha = on ? 0.55 : 1;
+        ctx.beginPath();
+        ctx.arc(lx, ly, 2.6, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    ctx.restore();
+}
+
+function render() {
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#02030a';
+    ctx.fillRect(0, 0, W, H);
+
+    const sx = G.shake > 0 ? (Math.random() - 0.5) * G.shake * 26 : 0;
+    const sy = G.shake > 0 ? (Math.random() - 0.5) * G.shake * 26 : 0;
+
+    ctx.save();
+    ctx.clip(canopyPath);
+    ctx.translate(sx, sy);
+
+    drawNebulae();
+    drawStars();
+
+    const drawable = [];
+    for (const o of G.objects) {
+        const p = project(o);
+        if (p) drawable.push({ o: o, p: p });
+    }
+    drawable.sort((a, b) => b.p.depth - a.p.depth);
+    for (const d of drawable) {
+        if (d.o.kind === 'asteroid') drawAsteroid(d.o, d.p); else drawFact(d.o, d.p);
+    }
+    drawShots();
+    drawTargetBrackets();
+    drawCrosshair();
+    ctx.restore();
+
+    drawCockpit();
+    drawCompass();
+}
+
+/* ---------------- Loop ---------------- */
+function frame(now) {
+    if (!G.running) return;
+    const dt = Math.min(0.05, (now - G.lastFrame) / 1000 || 0.016);
+    G.lastFrame = now;
+    update(dt);
+    render();
+    requestAnimationFrame(frame);
+}
+
+/* ---------------- Start / end ---------------- */
+function startGame(squadron, hullIndex) {
+    G.squadron = squadron;
+    G.hull = HULLS[hullIndex];
+    G.yaw = 0; G.pitch = 0;
+    G.shields = 100; G.score = 0; G.cleared = 0; G.breaches = 0;
+    G.wave = 0; G.waveTimer = 0;
+    G.objects = []; G.shots = []; G.target = null;
+    G.spawnTimer = 1.0; G.asteroidTimer = 7; G.shake = 0;
+
+    document.documentElement.style.setProperty('--accent', squadron.color);
+    document.getElementById('selectScreen').style.display = 'none';
+    document.getElementById('shieldWrap').style.display = 'block';
+    document.getElementById('panel').style.display = 'block';
+    document.getElementById('shipName').textContent = squadron.name + ' • ' + G.hull.name;
+    document.getElementById('shipName').style.color = squadron.color;
+
+    resize();
+    makeStars();
+    spawnFact();
+    spawnFact();
+    updateHUD();
+    beep(440, 0.08, 'sine', 0.05);
+
+    G.running = true;
+    G.lastFrame = performance.now();
+    requestAnimationFrame(frame);
+}
+
+function endGame() {
+    G.running = false;
+    document.getElementById('finalScore').textContent = G.score;
+    document.getElementById('finalCleared').textContent = G.cleared;
+    document.getElementById('finalMissed').textContent = G.breaches;
+    const memory = loadMissed();
+    document.getElementById('missedList').innerHTML = memory.length
+        ? 'Facts your ship is still carrying, and will meet again as asteroids:<br><b style="color:#ff9e2c">'
+          + memory.map(m => m.text).join('  •  ') + '</b>'
+        : 'You cleared every fact you missed. Nothing left in memory.';
+    document.getElementById('gameOver').style.display = 'block';
+    document.getElementById('panel').style.display = 'none';
+    document.getElementById('shieldWrap').style.display = 'none';
+}
+
+/* ---------------- Ship select screen ---------------- */
+function buildSelectScreen() {
+    const wrap = document.getElementById('squadrons');
+    SQUADRONS.forEach(sq => {
+        const card = document.createElement('div');
+        card.className = 'squadron';
+        card.style.setProperty('--c', sq.color);
+        card.innerHTML = '<h2>' + sq.name + '</h2><div class="op">' + sq.symbol + '  ' + sq.op + '</div>';
+        const ships = document.createElement('div');
+        ships.className = 'ships';
+        HULLS.forEach((hull, i) => {
+            const b = document.createElement('div');
+            b.className = 'ship';
+            b.innerHTML =
+                '<svg viewBox="0 0 100 100"><polygon points="' + hull.poly + '" fill="' + sq.color +
+                '" fill-opacity="0.75" stroke="' + sq.color + '" stroke-width="4"/></svg>' +
+                '<span>' + hull.name + '</span>';
+            b.addEventListener('click', () => startGame(sq, i));
+            ships.appendChild(b);
+        });
+        card.appendChild(ships);
+        wrap.appendChild(card);
+    });
+}
+
+buildSelectScreen();
+resize();
+</script>
+</body>
+</html>

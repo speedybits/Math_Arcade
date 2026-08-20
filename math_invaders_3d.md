@@ -130,3 +130,26 @@ unbuilt design in this concept. Three of the four squadrons cannot ship without 
 - **Does the 3D actually feel good on a phone?** No document can answer this. A rough
   playable cockpit prototype is the cheapest way to find out, and should come before
   any serious build.
+
+## Prototype
+
+A rough playable version lives in `math_invaders_3d.html`, reachable from the arcade
+menu alongside the two 2D games. It exists to answer the "does this feel good on a
+phone" question, not to be the shipping game.
+
+What it implements: all four squadrons and 24 cosmetic hulls, the swipe-to-look
+cockpit, facts and asteroids sharing one sky, the three-choice instrument panel, the
+shield halving and 10% destruction floor, and the missed-fact-to-asteroid redemption
+loop.
+
+Two things it adds that the concept above did not call for:
+
+- **A contact strip** across the top of the hull, showing the bearing and urgency of
+  every object in the sector. Without it, hunting for facts across 360 degrees is a
+  chore rather than a hunt.
+- **A placeholder difficulty ramp** — problem sizes simply grow with the sector
+  number. This stands in for the four real level ladders and should be thrown away
+  when those are written.
+
+Known gaps: no high score table, no scoring balance between operations, and no sound
+beyond simple tones.
