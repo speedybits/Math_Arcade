@@ -176,10 +176,17 @@ plus at most one asteroid — so the sky stays readable.
 fact never dies the same way twice, and a heavy metallic clank when an asteroid is mined for
 shields. These are synthesised in the browser rather than played from files.
 
-**Ships.** Six airframes per squadron, each shaped around its own operator — Addion wears a
-cross, Subtrion a long bar, Multion a swept X, Divion a split twin-pod. Class 2 hulls are
-heavier, with an extra wing pair and more engines, and unlock after clearing 30 facts in a
-single flight. Ship choice remains purely cosmetic.
+**Ships.** Six hulls per squadron, drawn from the concept art. Class 1 is the Vanguard
+flight — the Vanguard interceptor, the Aethelgard capital ship and the Nomad modular
+hauler. Class 2 is the Aurelia-class medium cruisers, AUR-01 through AUR-03, unlocked by
+clearing 30 facts in a single flight. Each squadron flies the same six hulls in its own
+colour. Ship choice remains purely cosmetic.
+
+**The bridge.** A wide oval window set into a plated steel frame with segment seams,
+rivets and corner gussets, following the reference bridge view: cyan status blocks in the
+lower corners of the glass, a segmented shield column up the right-hand side, and a
+console below the window. The starfield is deliberately sparse — pinpricks plus a scatter
+of distant galaxies rather than a snowstorm.
 
 ## Still Open
 

@@ -93,6 +93,7 @@
     .squadron h2 { margin: 0; font-size: 19px; color: var(--c); letter-spacing: 2px; }
     .squadron .op { font-size: 12px; color: #93a7bd; margin: 2px 0 9px; letter-spacing: 1px; }
     .ships { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .ship span { display: block; }
     .ship {
         background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
         border: 1px solid rgba(255,255,255,.15);
@@ -100,7 +101,7 @@
         transition: background .15s, transform .1s, border-color .15s;
     }
     .ship:hover, .ship:active { background: rgba(255,255,255,.2); transform: translateY(-2px); border-color: var(--c); }
-    .ship svg { width: 100%; height: 46px; display: block; }
+    .ship svg { width: 100%; height: 92px; display: block; }
     .ship span { font-size: 9px; color: #b9c8d8; letter-spacing: .5px; }
 
     .toggleRow { margin: 16px auto 0; max-width: 640px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
@@ -111,6 +112,16 @@
     .btn.ghost { background: #2c3a4d; }
     .btn.on { background: #1e9e58; }
     .note { color: #6d8299; font-size: 11.5px; margin-top: 14px; line-height: 1.65; max-width: 640px; margin-left: auto; margin-right: auto; }
+    @media (max-height: 520px) {
+        #panel { padding: 4px 8px calc(6px + env(safe-area-inset-bottom)); }
+        #ladderText { display: none; }
+        #readout { font-size: 11px; margin-bottom: 3px; min-height: 13px; }
+        #targetText { font-size: 15px; }
+        .choice { padding: 8px 4px; font-size: 19px; }
+        .choice .key { display: none; }
+        #shieldWrap { height: 34px; padding-top: 4px; }
+        #shieldTrack { height: 10px; }
+    }
     #gameOver { display: none; }
     #gameOver h1 { color: #ff6a4d; }
     .stat { font-size: 15px; color: #cfe0f0; margin: 4px 0; }
@@ -203,15 +214,21 @@
 
 /* ---------------- Squadrons ---------------- */
 const SQUADRONS = [
-    { id: 'add', name: 'Addion',   op: 'Addition',       color: '#39d353', symbol: '+' },
-    { id: 'sub', name: 'Subtrion', op: 'Subtraction',    color: '#ff4d4d', symbol: '−' },
-    { id: 'mul', name: 'Multion',  op: 'Multiplication', color: '#4d9cff', symbol: '×' },
-    { id: 'div', name: 'Divion',   op: 'Division',       color: '#ffd23f', symbol: '÷' }
+    { id: 'add', name: 'Addion',   op: 'Addition',       color: '#39d353', symbol: '+',
+      light: '#a8ff7c', mid: '#3fcb2b', dark: '#12560d', glow: '#8dff5a' },
+    { id: 'sub', name: 'Subtrion', op: 'Subtraction',    color: '#ff4d4d', symbol: '−',
+      light: '#ff9b86', mid: '#e02222', dark: '#5f0b0b', glow: '#ff7a4d' },
+    { id: 'mul', name: 'Multion',  op: 'Multiplication', color: '#4d9cff', symbol: '×',
+      light: '#a8c8ff', mid: '#2f5fd0', dark: '#14265f', glow: '#7ad4ff' },
+    { id: 'div', name: 'Divion',   op: 'Division',       color: '#ffd23f', symbol: '÷',
+      light: '#ffee9c', mid: '#f0b81f', dark: '#6f5106', glow: '#ffe066' }
 ];
 
+/* Two flights of three, drawn from the concept art: the Vanguard line to start with,
+   the Aurelia-class medium cruisers once they have been earned. */
 const HULL_NAMES = {
-    1: ['Dart', 'Falcon', 'Delta', 'Kite', 'Anvil', 'Needle'],
-    2: ['Vanguard', 'Sabre', 'Titan', 'Nova', 'Bastion', 'Lance']
+    1: ['Vanguard', 'Aethelgard', 'Nomad'],
+    2: ['AUR-01', 'AUR-02', 'AUR-03']
 };
 
 // Class 2 is earned, not given.
@@ -222,94 +239,146 @@ const BEST_KEY = 'mathInvaders3D_bestCleared';
    Each squadron flies a hull family shaped like its own operator: Addion wears a
    cross, Subtrion a long bar, Multion a swept X, Divion a split twin-pod. Class 2
    is the same family with a second wing pair, twin engines and a brighter canopy.  */
-/* Six genuinely different airframes per squadron: span, wing rake (some rake
-   forward), body width, nose, engine count and tail all change. */
-const HULL_SPECS = [
-    { span: 0.80, chord: 0.85, sweep:  0.55, nose: 14, body: 0.85, engines: 1, tail: false, pods: false },
-    { span: 1.10, chord: 1.00, sweep:  0.85, nose:  9, body: 1.00, engines: 2, tail: false, pods: false },
-    { span: 0.92, chord: 1.25, sweep: -0.45, nose: 11, body: 1.10, engines: 2, tail: true,  pods: false },
-    { span: 1.22, chord: 0.70, sweep:  1.15, nose:  6, body: 0.80, engines: 3, tail: false, pods: true  },
-    { span: 0.72, chord: 1.55, sweep:  0.25, nose:  4, body: 1.35, engines: 2, tail: true,  pods: true  },
-    { span: 0.60, chord: 0.60, sweep:  0.95, nose: 20, body: 0.62, engines: 1, tail: true,  pods: false }
-];
-
+/* =========================================================================
+   SHIP ART
+   Six hulls per squadron, drawn to the concept art: the Vanguard flight
+   (interceptor, capital ship, modular hauler) and the Aurelia-class cruisers.
+   Every hull is cosmetic — no ship flies or shoots better than another.
+   ========================================================================= */
 function shipSVG(sqIndex, hullIndex, cls) {
     const sq = SQUADRONS[sqIndex];
-    const c = sq.color;
-    const big = cls === 2;
-    const h = HULL_SPECS[hullIndex];
-    const cx = 50, cy = 54;
-    const parts = [];
-    const wingOp = big ? 0.55 : 0.4;
-    const P = (pts, fill, op, stroke, sw) =>
-        parts.push('<polygon points="' + pts.map(n => Math.round(n * 10) / 10).join(' ') + '" fill="' + fill +
-            '" fill-opacity="' + op + '"' + (stroke ? ' stroke="' + stroke + '" stroke-width="' + (sw || 1.4) +
-            '" stroke-linejoin="round"' : '') + '/>');
+    const id = 'sh' + sqIndex + '_' + hullIndex + '_' + cls;
+    const P = [];
 
-    const span = (big ? 44 : 37) * h.span;
-    const chord = 5 * h.chord;
-    const rake = 9 * h.sweep;               // negative rakes the wing forward
+    // Small helpers. Everything is drawn nose-up and symmetric about x = 50.
+    const poly = (pts, fill, stroke, sw) => P.push('<polygon points="' + pts.join(' ') +
+        '" fill="' + fill + '"' + (stroke ? ' stroke="' + stroke + '" stroke-width="' + (sw || 0.7) + '"' : '') + '/>');
+    const rect = (x, y, w, h, fill, rx) => P.push('<rect x="' + x + '" y="' + y + '" width="' + w +
+        '" height="' + h + '" rx="' + (rx || 0) + '" fill="' + fill + '"/>');
+    const ell = (cx, cy, rx, ry, fill, op) => P.push('<ellipse cx="' + cx + '" cy="' + cy + '" rx="' + rx +
+        '" ry="' + ry + '" fill="' + fill + '"' + (op != null ? ' fill-opacity="' + op + '"' : '') + '/>');
+    const line = (x1, y1, x2, y2, st, w) => P.push('<line x1="' + x1 + '" y1="' + y1 + '" x2="' + x2 +
+        '" y2="' + y2 + '" stroke="' + st + '" stroke-width="' + (w || 0.8) + '"/>');
+    const mirror = fn => { fn(1); fn(-1); };
+    const mx = (x, s) => 50 + (x - 50) * s;
 
-    // --- wings, shaped like the squadron's operator ---
-    if (sq.id === 'add') {
-        P([cx - span, cy - chord - rake * 0.4, cx + span, cy - chord + rake * 0.4,
-           cx + span, cy + chord + rake * 0.4, cx - span, cy + chord - rake * 0.4], c, wingOp, c);
-        P([cx - chord, cy - 26 * h.chord, cx + chord, cy - 26 * h.chord,
-           cx + chord, cy + 26 * h.chord, cx - chord, cy + 26 * h.chord], c, wingOp, c);
-    } else if (sq.id === 'sub') {
-        P([cx - span, cy - chord - rake * 0.3, cx + span, cy - chord + rake * 0.3,
-           cx + span, cy + chord + rake * 0.3, cx - span, cy + chord - rake * 0.3], c, wingOp, c);
-        P([cx - span * 0.55, cy + 15, cx + span * 0.55, cy + 15,
-           cx + span * 0.55, cy + 15 + chord, cx - span * 0.55, cy + 15 + chord], c, wingOp * 0.9, c, 1.1);
-    } else if (sq.id === 'mul') {
-        const d = span * 0.8, r = d * (0.55 + h.sweep * 0.4);
-        P([cx - d, cy - r, cx - d * 0.7, cy - r - chord, cx + d * 0.7, cy + r - chord, cx + d, cy + r], c, wingOp, c);
-        P([cx + d, cy - r, cx + d * 0.7, cy - r - chord, cx - d * 0.7, cy + r - chord, cx - d, cy + r], c, wingOp, c);
+    // Engine bell plus its plume.
+    const engine = (x, y, w, len) => {
+        rect(x - w / 2, y, w, 4, sq.dark, 1);
+        P.push('<ellipse cx="' + x + '" cy="' + (y + 4 + len * 0.45) + '" rx="' + (w * 0.42) +
+            '" ry="' + (len * 0.5) + '" fill="' + sq.glow + '" fill-opacity="0.85"/>');
+        P.push('<ellipse cx="' + x + '" cy="' + (y + 4 + len * 0.7) + '" rx="' + (w * 0.8) +
+            '" ry="' + (len * 0.85) + '" fill="' + sq.glow + '" fill-opacity="0.22"/>');
+    };
+    // A raised plate, lighter on one side, that gives the hull its panelled look.
+    const plate = (x, y, w, h, rx) => {
+        rect(x, y, w, h, 'url(#' + id + 'v)', rx || 1);
+        rect(x, y, w, Math.max(1, h * 0.18), sq.light, rx || 1);
+        P.push('<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="' + (rx || 1) +
+            '" fill="none" stroke="' + sq.dark + '" stroke-width="0.7"/>');
+    };
+
+    const defs = '<defs>' +
+        '<linearGradient id="' + id + 'h" x1="0" y1="0" x2="1" y2="0">' +
+            '<stop offset="0" stop-color="' + sq.dark + '"/>' +
+            '<stop offset="0.30" stop-color="' + sq.mid + '"/>' +
+            '<stop offset="0.50" stop-color="' + sq.light + '"/>' +
+            '<stop offset="0.72" stop-color="' + sq.mid + '"/>' +
+            '<stop offset="1" stop-color="' + sq.dark + '"/>' +
+        '</linearGradient>' +
+        '<linearGradient id="' + id + 'v" x1="0" y1="0" x2="0" y2="1">' +
+            '<stop offset="0" stop-color="' + sq.mid + '"/>' +
+            '<stop offset="1" stop-color="' + sq.dark + '"/>' +
+        '</linearGradient>' +
+        '</defs>';
+    const HULL = 'url(#' + id + 'h)';
+
+    if (cls === 1 && hullIndex === 0) {
+        /* ---- Vanguard: the swept interceptor ---- */
+        mirror(s => poly([mx(50,s)+','+46, mx(12,s)+','+96, mx(24,s)+','+101, mx(50,s)+','+80].map(String), HULL, sq.dark));
+        mirror(s => poly([mx(46,s)+','+36, mx(24,s)+','+56, mx(35,s)+','+59, mx(48,s)+','+48].map(String), sq.mid, sq.dark));
+        poly(['50,2', '57,32', '58,96', '42,96', '43,32'], HULL, sq.dark, 0.8);
+        mirror(s => poly([mx(44,s)+','+88, mx(34,s)+','+114, mx(41,s)+','+114, mx(47,s)+','+92].map(String), sq.mid, sq.dark));
+        plate(45, 44, 10, 34, 2);
+        mirror(s => line(mx(40,s), 60, mx(20,s), 90, sq.dark, 0.6));
+        ell(50, 26, 4.2, 9, '#0d1622');
+        ell(50, 24, 3, 6, sq.light, 0.55);
+        [38, 45.5, 54.5, 62].forEach(x => engine(x, 96, 6, 14));
+
+    } else if (cls === 1 && hullIndex === 1) {
+        /* ---- Aethelgard: the capital ship ---- */
+        poly(['30,72', '70,72', '80,106', '20,106'], HULL, sq.dark, 0.8);
+        mirror(s => plate(s > 0 ? 62 : 26, 50, 12, 30, 2));
+        rect(31, 40, 38, 34, HULL, 2);
+        rect(37, 18, 26, 24, HULL, 2);
+        rect(44, 5, 12, 15, sq.mid, 2);
+        plate(41, 44, 18, 22, 2);
+        plate(43, 22, 14, 15, 2);
+        mirror(s => plate(s > 0 ? 55 : 39, 76, 6, 22, 1));
+        rect(22, 100, 56, 8, sq.dark, 2);
+        [30, 40, 50, 60, 70].forEach(x => engine(x, 106, 8, 16));
+        mirror(s => line(mx(34,s), 44, mx(34,s), 70, sq.dark, 0.7));
+        [24, 30, 36].forEach(y => line(38, y, 62, y, sq.dark, 0.5));
+        ell(50, 12, 2.4, 3.4, sq.light, 0.9);
+
+    } else if (cls === 1 && hullIndex === 2) {
+        /* ---- Nomad: the modular hauler ---- */
+        mirror(s => line(mx(42,s), 36, mx(26,s), 44, sq.dark, 1.4));
+        mirror(s => line(mx(42,s), 74, mx(26,s), 80, sq.dark, 1.4));
+        mirror(s => { line(mx(30,s), 30, mx(30,s), 96, sq.dark, 1.2); });
+        rect(43, 14, 14, 84, HULL, 2);
+        mirror(s => plate(s > 0 ? 58 : 22, 28, 20, 24, 2));
+        mirror(s => plate(s > 0 ? 58 : 22, 62, 20, 26, 2));
+        rect(40, 6, 20, 12, sq.mid, 2);
+        plate(45, 34, 10, 44, 2);
+        for (let y = 34; y < 92; y += 8) { mirror(s => line(mx(38,s), y, mx(28,s), y + 8, sq.dark, 0.5)); }
+        ell(50, 12, 3, 3.4, sq.light, 0.85);
+        [32, 50, 68].forEach(x => engine(x, 98, 9, 15));
+        mirror(s => engine(mx(68, s), 88, 6, 10));
+
+    } else if (cls === 2 && hullIndex === 0) {
+        /* ---- Aurelia AUR-01 ---- */
+        mirror(s => ell(mx(26,s), 62, 10, 24, HULL));
+        mirror(s => poly([mx(20,s)+','+82, mx(30,s)+','+82, mx(34,s)+','+104, mx(24,s)+','+104].map(String), sq.mid, sq.dark));
+        ell(50, 60, 21, 44, HULL);
+        ell(50, 24, 12, 17, HULL);
+        ell(50, 46, 14, 20, sq.mid, 0.75);
+        ell(50, 78, 15, 18, sq.mid, 0.6);
+        ell(50, 22, 6, 9, '#0d1622');
+        ell(50, 20, 4, 6, sq.light, 0.5);
+        mirror(s => ell(mx(36,s), 44, 5, 11, sq.light, 0.35));
+        [38, 62].forEach(x => engine(x, 100, 11, 20));
+        engine(50, 104, 9, 16);
+
+    } else if (cls === 2 && hullIndex === 1) {
+        /* ---- Aurelia AUR-02: the rounded one ---- */
+        ell(50, 78, 25, 32, HULL);
+        ell(50, 44, 11, 18, HULL);
+        ell(50, 20, 14, 17, HULL);
+        ell(50, 74, 17, 22, sq.mid, 0.65);
+        ell(50, 92, 20, 14, sq.mid, 0.5);
+        mirror(s => ell(mx(32,s), 76, 7, 16, sq.light, 0.32));
+        ell(50, 18, 6, 9, '#0d1622');
+        ell(50, 16, 4, 6, sq.light, 0.55);
+        mirror(s => line(mx(43,s), 34, mx(43,s), 56, sq.dark, 0.7));
+        [37, 63].forEach(x => engine(x, 104, 10, 18));
+        engine(50, 108, 11, 20);
+
     } else {
-        P([cx - span, cy - chord * 0.5, cx + span, cy - chord * 0.5,
-           cx + span, cy + chord * 0.5, cx - span, cy + chord * 0.5], c, wingOp, c);
-        const pr = (big ? 9 : 7) * h.chord * 0.8;
-        const py = 19 * h.chord * 0.85;
-        parts.push('<ellipse cx="' + cx + '" cy="' + (cy - py) + '" rx="' + pr + '" ry="' + (pr * 0.8) +
-            '" fill="' + c + '" fill-opacity="0.6" stroke="' + c + '" stroke-width="1.3"/>');
-        parts.push('<ellipse cx="' + cx + '" cy="' + (cy + py) + '" rx="' + pr + '" ry="' + (pr * 0.8) +
-            '" fill="' + c + '" fill-opacity="0.6" stroke="' + c + '" stroke-width="1.3"/>');
+        /* ---- Aurelia AUR-03: cruiser with angular arms ---- */
+        mirror(s => poly([mx(30,s)+','+44, mx(16,s)+','+56, mx(14,s)+','+88, mx(28,s)+','+92].map(String), HULL, sq.dark));
+        mirror(s => rect(s > 0 ? 60 : 34, 34, 6, 16, sq.mid, 1));
+        ell(50, 62, 20, 42, HULL);
+        ell(50, 26, 12, 17, HULL);
+        ell(50, 50, 13, 18, sq.mid, 0.7);
+        ell(50, 84, 15, 16, sq.mid, 0.55);
+        mirror(s => poly([mx(26,s)+','+90, mx(34,s)+','+90, mx(36,s)+','+106, mx(26,s)+','+106].map(String), sq.mid, sq.dark));
+        ell(50, 24, 6, 9, '#0d1622');
+        ell(50, 22, 4, 6, sq.light, 0.5);
+        [30, 50, 70].forEach(x => engine(x, 102, 10, 18));
     }
 
-    // --- wingtip pods ---
-    if (h.pods) {
-        [-1, 1].forEach(sgn => parts.push('<rect x="' + (cx + sgn * span - 3) + '" y="' + (cy - 7) +
-            '" width="6" height="15" rx="3" fill="' + c + '" fill-opacity="0.75"/>'));
-    }
-
-    // --- Class 2 gets a second, outer wing pair ---
-    if (big && sq.id !== 'div') {
-        P([cx - span - 9, cy + 13, cx - span * 0.45, cy + 3, cx - span * 0.45, cy + 17], c, 0.65, c, 1.1);
-        P([cx + span + 9, cy + 13, cx + span * 0.45, cy + 3, cx + span * 0.45, cy + 17], c, 0.65, c, 1.1);
-    }
-
-    // --- tail fin ---
-    const fh = (big ? 34 : 29) * (0.85 + h.body * 0.2);
-    if (h.tail) P([cx, cy + fh - 4, cx - 4 * h.body, cy + fh + 12, cx + 4 * h.body, cy + fh + 12], c, 0.8, c, 1.1);
-
-    // --- fuselage ---
-    const bw = 9 * h.body;
-    P([cx, cy - fh - h.nose, cx + bw, cy - fh * 0.25, cx + bw * 0.78, cy + fh,
-       cx - bw * 0.78, cy + fh, cx - bw, cy - fh * 0.25], '#0f1724', 0.97, c, big ? 2.2 : 1.7);
-
-    // --- canopy ---
-    parts.push('<ellipse cx="' + cx + '" cy="' + (cy - fh * 0.42) + '" rx="' + ((big ? 6 : 5) * h.body) +
-        '" ry="' + ((big ? 10 : 8) * (0.8 + h.body * 0.25)) + '" fill="#9fe6ff" fill-opacity="' + (big ? 0.88 : 0.62) + '"/>');
-
-    // --- engines ---
-    const n = h.engines + (big ? 1 : 0);
-    for (let i = 0; i < n; i++) {
-        const dx = (i - (n - 1) / 2) * 6.4;
-        parts.push('<rect x="' + (cx + dx - 2.5) + '" y="' + (cy + fh - 3) + '" width="5" height="8" rx="2" fill="' + c + '"/>');
-        parts.push('<ellipse cx="' + (cx + dx) + '" cy="' + (cy + fh + 8) + '" rx="2.8" ry="6" fill="' + c + '" fill-opacity="0.45"/>');
-    }
-
-    return '<svg viewBox="0 0 100 112">' + parts.join('') + '</svg>';
+    return '<svg viewBox="0 0 100 124">' + defs + P.join('') + '</svg>';
 }
 
 /* =========================================================================
@@ -686,27 +755,21 @@ const ctx = canvas.getContext('2d');
 let W = 0, H = 0, PANEL = PANEL_FALLBACK, focal = 600, horizonY = 0;
 let canopyPath = null, hullPath = null, canopyBottom = 0;
 
+let canopyCX = 0, canopyCY = 0, canopyRX = 0, canopyRY = 0;
+
+/* The bridge window is a wide oval set into a heavy segmented frame. */
 function buildCanopy() {
     const vh = H - PANEL;
-    const top = 74;
-    const pts = [
-        [W * 0.10,  top],
-        [W * 0.90,  top],
-        [W * 0.995, vh * 0.40],
-        [W * 0.88,  vh * 0.86],
-        [W * 0.12,  vh * 0.86],
-        [W * 0.005, vh * 0.40]
-    ];
-    canopyBottom = vh * 0.86;
-    const r = Math.min(W, vh) * 0.07;
+    const top = 80, bottom = vh * 0.88;
+    const left = W * 0.045, right = W * 0.955;
+    canopyCX = (left + right) / 2;
+    canopyCY = (top + bottom) / 2;
+    canopyRX = (right - left) / 2;
+    canopyRY = (bottom - top) / 2;
+    canopyBottom = bottom;
+    horizonY = canopyCY;
     const path = new Path2D();
-    const n = pts.length;
-    path.moveTo((pts[0][0] + pts[1][0]) / 2, (pts[0][1] + pts[1][1]) / 2);
-    for (let i = 1; i <= n; i++) {
-        const cur = pts[i % n], next = pts[(i + 1) % n];
-        path.arcTo(cur[0], cur[1], next[0], next[1], r);
-    }
-    path.closePath();
+    path.ellipse(canopyCX, canopyCY, canopyRX, canopyRY, 0, 0, Math.PI * 2);
     canopyPath = path;
     const hull = new Path2D();
     hull.rect(0, 0, W, vh);
@@ -722,7 +785,6 @@ function resize() {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     PANEL = document.getElementById('panel').offsetHeight || PANEL_FALLBACK;
     focal = (W / 2) / Math.tan((72 * Math.PI / 180) / 2);
-    horizonY = (H - PANEL) * 0.47;
     buildCanopy();
 }
 window.addEventListener('resize', resize);
@@ -759,6 +821,14 @@ function makeStars() {
         const d = randomDirection();
         const r = 900;
         G.stars.push({ x: d.x * r, y: (Math.random() - 0.5) * 1.6 * r, z: d.z * r, b: 0.3 + Math.random() * 0.6 });
+    }
+    G.galaxies = [];
+    for (let i = 0; i < 14; i++) {
+        const d = randomDirection();
+        const r = 860;
+        G.galaxies.push({ x: d.x * r, y: (Math.random() - 0.5) * 1.2 * r, z: d.z * r,
+                          size: 4 + Math.random() * 9, tilt: Math.random() * Math.PI,
+                          hue: ['#cfe4ff','#ffd9b0','#ffc9e0','#c8fff0'][rnd(0,3)] });
     }
     G.nebulae = [];
     for (let i = 0; i < 4; i++) {
@@ -1153,12 +1223,37 @@ function drawNebulae() {
         const rad = n.size * p.scale;
         if (rad < 4 || p.sx < -rad || p.sx > W + rad) continue;
         const g = ctx.createRadialGradient(p.sx, p.sy, 0, p.sx, p.sy, rad);
-        g.addColorStop(0, 'rgba(' + n.tint + ',0.26)');
-        g.addColorStop(0.5, 'rgba(' + n.tint + ',0.10)');
+        g.addColorStop(0, 'rgba(' + n.tint + ',0.13)');
+        g.addColorStop(0.5, 'rgba(' + n.tint + ',0.05)');
         g.addColorStop(1, 'rgba(' + n.tint + ',0)');
         ctx.fillStyle = g;
         ctx.beginPath(); ctx.arc(p.sx, p.sy, rad, 0, Math.PI * 2); ctx.fill();
     }
+}
+
+/* A scatter of far-off galaxies, as in the reference bridge view. */
+function drawGalaxies() {
+    if (!G.galaxies) return;
+    for (const g of G.galaxies) {
+        const p = project(g);
+        if (!p) continue;
+        const r = clamp(g.size * p.scale * 7, 2, 16);
+        if (p.sx < -r || p.sx > W + r) continue;
+        ctx.save();
+        ctx.translate(p.sx, p.sy);
+        ctx.rotate(g.tilt);
+        const grd = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+        grd.addColorStop(0, g.hue);
+        grd.addColorStop(0.35, g.hue);
+        grd.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.globalAlpha = 0.7;
+        ctx.fillStyle = grd;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, r, r * 0.42, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    }
+    ctx.globalAlpha = 1;
 }
 
 function drawStars() {
@@ -1185,7 +1280,7 @@ function drawLabel(text, maxWidth, baseSize, color) {
 }
 
 function drawFact(o, p) {
-    const s = clamp(p.scale * 24, 11, 170);
+    const s = clamp(p.scale * 24, 11, Math.min(170, canopyRY * 0.52));
     const isTarget = (o === G.target);
     const rx = s * 1.30, ry = s * 0.72;
     const stroke = o.wasMissed ? '#ff9e2c' : '#ff3ea5';
@@ -1224,7 +1319,7 @@ function drawFact(o, p) {
 }
 
 function drawAsteroid(o, p) {
-    const s = clamp(p.scale * 30, 14, 210);
+    const s = clamp(p.scale * 30, 14, Math.min(210, canopyRY * 0.62));
     const isTarget = (o === G.target);
     ctx.save();
     ctx.translate(p.sx, p.sy);
@@ -1342,8 +1437,11 @@ function roundRect(x, y, w, h, r) {
 function drawCompass() {
     const y = COMPASS_Y, half = W * 0.44, h = 26;
     ctx.save();
-    ctx.fillStyle = 'rgba(6,12,22,.92)';
-    ctx.strokeStyle = 'rgba(127,215,255,.28)';
+    const hg = ctx.createLinearGradient(0, y - h / 2, 0, y + h / 2);
+    hg.addColorStop(0, '#2c353f');
+    hg.addColorStop(1, '#141a21');
+    ctx.fillStyle = hg;
+    ctx.strokeStyle = 'rgba(110,227,255,.45)';
     ctx.lineWidth = 1;
     roundRect(W / 2 - half, y - h / 2, half * 2, h, 5);
     ctx.fill(); ctx.stroke();
@@ -1377,94 +1475,182 @@ function drawCompass() {
     ctx.restore();
 }
 
-/* Two console readouts set into the dashboard hood, clear of the glass. */
-function drawConsoles() {
-    if (W < 330) return;
-    const vh = H - PANEL;
-    const accent = G.squadron.color;
-    const boxW = Math.min(104, W * 0.28), boxH = 38;
-    const y = vh - boxH - 20;
+/* Cyan status blocks set into the lower corners of the glass, as on the reference
+   bridge: what rung you are on, what you are shooting at, how the ship is doing. */
+function drawReadouts() {
+    const lineH = 12;
+    const y = canopyCY + canopyRY * 0.60;
+    // Measure the window's width at the BOTTOM of the boxes, or the oval clips them.
+    const rBot = (y + 3 * lineH + 10 - canopyCY) / canopyRY;
+    const halfW = canopyRX * Math.sqrt(Math.max(0.04, 1 - rBot * rBot));
+    const boxW = Math.min(140, (halfW * 2 - 22) / 2);
+    if (boxW < 84) return;                       // too narrow to read; leave it off
     const ladder = FACT_LADDERS[G.squadron.id];
-    const panels = [
-        { x: 10, label: 'RUNG', value: (G.level + 1) + ' / ' + ladder.length },
-        { x: W - boxW - 10, label: 'CLEARED', value: String(G.cleared) }
+    const contacts = G.objects.filter(o => !o.dead).length;
+    const target = G.target && !G.target.dead ? G.target.problem.text : 'NONE';
+
+    const left = [
+        ['SQUADRON', G.squadron.name.toUpperCase()],
+        ['RUNG', (G.level + 1) + ' / ' + ladder.length],
+        ['SHIELD STATUS', Math.round(clamp(G.shields, 0, 100)) + '%']
     ];
-    ctx.save();
-    ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-    for (const p of panels) {
-        ctx.fillStyle = 'rgba(4,9,17,.9)';
-        ctx.strokeStyle = 'rgba(255,255,255,.10)';
+    const right = [
+        ['CONTACTS', String(contacts)],
+        ['CLEARED', String(G.cleared)],
+        ['TARGET', target]
+    ];
+
+    const box = (x, rows) => {
+        const h = rows.length * lineH + 10;
+        ctx.fillStyle = 'rgba(4,18,26,.82)';
+        ctx.strokeStyle = 'rgba(110,227,255,.55)';
         ctx.lineWidth = 1;
-        roundRect(p.x, y, boxW, boxH, 4);
+        roundRect(x, y, boxW, h, 3);
         ctx.fill(); ctx.stroke();
-        ctx.fillStyle = 'rgba(150,175,200,.75)';
-        ctx.font = '9px "Trebuchet MS", Arial';
-        ctx.fillText(p.label, p.x + 8, y + 6);
-        ctx.fillStyle = accent;
-        ctx.font = 'bold 17px "Trebuchet MS", Arial';
-        ctx.fillText(p.value, p.x + 8, y + 17);
-    }
+        ctx.textBaseline = 'top';
+        rows.forEach((r, i) => {
+            const ry = y + 6 + i * lineH;
+            ctx.font = '9px "Trebuchet MS", Arial';
+            ctx.textAlign = 'left';
+            ctx.fillStyle = 'rgba(110,227,255,.7)';
+            ctx.fillText(r[0] + ':', x + 6, ry);
+            ctx.textAlign = 'right';
+            ctx.fillStyle = '#bdf3ff';
+            ctx.fillText(r[1], x + boxW - 6, ry);
+        });
+    };
+
+    ctx.save();
+    box(canopyCX - halfW + 6, left);
+    box(canopyCX + halfW - boxW - 6, right);
     ctx.restore();
 }
 
+/* Segmented shield column up the right-hand side of the glass. */
+function drawShieldColumn() {
+    const segs = 10;
+    const h = canopyRY * 0.55, segH = h / segs - 3;
+    const x = canopyCX + canopyRX * 0.84;
+    const top = canopyCY - h / 2;
+    const lit = Math.ceil(clamp(G.shields, 0, 100) / 10);
+    ctx.save();
+    for (let i = 0; i < segs; i++) {
+        const yy = top + (segs - 1 - i) * (segH + 3);
+        const on = i < lit;
+        ctx.fillStyle = on ? (i < 3 ? '#ff5a3c' : (i < 6 ? '#ffd23f' : '#6fe3ff')) : 'rgba(110,227,255,.13)';
+        ctx.fillRect(x, yy, 9, segH);
+    }
+    ctx.strokeStyle = 'rgba(110,227,255,.35)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x - 2.5, top - 3, 14, h + 3);
+    ctx.restore();
+}
+
+/* The hull: a heavy plated ring around the window, with segment seams, rivets and
+   structural gussets in the corners. */
 function drawCockpit() {
     const accent = G.squadron.color;
     const vh = H - PANEL;
     ctx.save();
 
+    // Glass: vignette plus a diagonal sheen.
     ctx.save();
     ctx.clip(canopyPath);
-    const vg = ctx.createRadialGradient(W/2, horizonY, Math.min(W, vh) * 0.25, W/2, horizonY, Math.max(W, vh) * 0.8);
+    const vg = ctx.createRadialGradient(canopyCX, canopyCY, Math.min(canopyRX, canopyRY) * 0.35,
+                                        canopyCX, canopyCY, Math.max(canopyRX, canopyRY) * 1.15);
     vg.addColorStop(0, 'rgba(0,0,0,0)');
-    vg.addColorStop(1, 'rgba(0,0,0,.75)');
+    vg.addColorStop(1, 'rgba(0,0,0,.72)');
     ctx.fillStyle = vg;
     ctx.fillRect(0, 0, W, vh);
-    const sheen = ctx.createLinearGradient(0, 0, W * 0.7, vh);
-    sheen.addColorStop(0, 'rgba(190,225,255,.055)');
-    sheen.addColorStop(0.4, 'rgba(190,225,255,0)');
+    const sheen = ctx.createLinearGradient(0, 0, W * 0.75, vh);
+    sheen.addColorStop(0, 'rgba(200,232,255,.06)');
+    sheen.addColorStop(0.45, 'rgba(200,232,255,0)');
     ctx.fillStyle = sheen;
     ctx.fillRect(0, 0, W, vh);
     ctx.restore();
 
+    // Plated steel hull.
     const plate = ctx.createLinearGradient(0, 0, 0, vh);
-    plate.addColorStop(0, '#0d1420');
-    plate.addColorStop(0.45, '#070b12');
-    plate.addColorStop(1, '#121a28');
+    plate.addColorStop(0,    '#aeb9c6');
+    plate.addColorStop(0.28, '#7d8998');
+    plate.addColorStop(0.55, '#59636f');
+    plate.addColorStop(0.80, '#7b8694');
+    plate.addColorStop(1,    '#39424d');
     ctx.fillStyle = plate;
     ctx.fill(hullPath, 'evenodd');
 
-    ctx.lineJoin = 'round';
-    ctx.strokeStyle = '#05080e'; ctx.lineWidth = 12; ctx.stroke(canopyPath);
-    ctx.strokeStyle = 'rgba(190,220,255,.18)'; ctx.lineWidth = 3; ctx.stroke(canopyPath);
-    ctx.strokeStyle = accent; ctx.globalAlpha = 0.75; ctx.lineWidth = 1.6; ctx.stroke(canopyPath);
-    ctx.globalAlpha = 1;
-
-    const hoodTop = canopyBottom - 4;
-    const hood = ctx.createLinearGradient(0, hoodTop, 0, vh);
-    hood.addColorStop(0, '#0a111c');
-    hood.addColorStop(1, '#141d2c');
-    ctx.fillStyle = hood;
+    // Seams radiating out of the window, and rivets around its lip.
+    ctx.save();
+    ctx.clip(hullPath, 'evenodd');
+    ctx.strokeStyle = 'rgba(20,26,33,.55)';
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 24; i++) {
+        const a = (i / 24) * Math.PI * 2;
+        const ca = Math.cos(a), sa = Math.sin(a);
+        ctx.beginPath();
+        ctx.moveTo(canopyCX + ca * canopyRX, canopyCY + sa * canopyRY);
+        ctx.lineTo(canopyCX + ca * canopyRX * 2.4, canopyCY + sa * canopyRY * 2.4);
+        ctx.stroke();
+    }
+    ctx.strokeStyle = 'rgba(210,222,236,.35)';
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(0, hoodTop + (vh - hoodTop) * 0.45);
-    ctx.quadraticCurveTo(W / 2, hoodTop - 14, W, hoodTop + (vh - hoodTop) * 0.45);
-    ctx.lineTo(W, vh); ctx.lineTo(0, vh); ctx.closePath();
-    ctx.fill();
-    ctx.strokeStyle = accent; ctx.globalAlpha = 0.5; ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(0, hoodTop + (vh - hoodTop) * 0.45);
-    ctx.quadraticCurveTo(W / 2, hoodTop - 14, W, hoodTop + (vh - hoodTop) * 0.45);
+    ctx.ellipse(canopyCX, canopyCY, canopyRX * 1.10, canopyRY * 1.13, 0, 0, Math.PI * 2);
     ctx.stroke();
+    for (let i = 0; i < 40; i++) {
+        const a = (i / 40) * Math.PI * 2;
+        ctx.fillStyle = 'rgba(226,236,247,.5)';
+        ctx.beginPath();
+        ctx.arc(canopyCX + Math.cos(a) * canopyRX * 1.055,
+                canopyCY + Math.sin(a) * canopyRY * 1.065, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    ctx.restore();
+
+    // Corner gussets.
+    const g = Math.min(W, vh) * 0.26;
+    ctx.fillStyle = '#2f3841';
+    [[0, 0, 1, 1], [W, 0, -1, 1], [0, vh, 1, -1], [W, vh, -1, -1]].forEach(([x, y, sx2, sy2]) => {
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + sx2 * g, y);
+        ctx.lineTo(x, y + sy2 * g * 0.85);
+        ctx.closePath();
+        ctx.fill();
+    });
+
+    // Window bezel: dark gasket, bright bevel, squadron trim.
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#151b22'; ctx.lineWidth = 13; ctx.stroke(canopyPath);
+    ctx.strokeStyle = 'rgba(228,238,250,.55)'; ctx.lineWidth = 3.5; ctx.stroke(canopyPath);
+    ctx.strokeStyle = '#0a0f15'; ctx.lineWidth = 2.5; ctx.stroke(canopyPath);
+    ctx.strokeStyle = accent; ctx.globalAlpha = 0.85; ctx.lineWidth = 1.6; ctx.stroke(canopyPath);
     ctx.globalAlpha = 1;
 
-    drawConsoles();
-
+    // Console block under the window.
+    const cTop = canopyBottom + (vh - canopyBottom) * 0.30;
+    const cw = W * 0.42;
+    const cg = ctx.createLinearGradient(0, cTop, 0, vh);
+    cg.addColorStop(0, '#8e99a8');
+    cg.addColorStop(1, '#3a434e');
+    ctx.fillStyle = cg;
+    ctx.beginPath();
+    ctx.moveTo(W / 2 - cw / 2, vh);
+    ctx.lineTo(W / 2 - cw / 2 + 14, cTop);
+    ctx.lineTo(W / 2 + cw / 2 - 14, cTop);
+    ctx.lineTo(W / 2 + cw / 2, vh);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(20,26,33,.6)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
     const lights = 7;
     for (let i = 0; i < lights; i++) {
         const on = ((G.lastFrame / 420 | 0) + i) % 4 !== 0;
-        ctx.fillStyle = on ? accent : 'rgba(255,255,255,.10)';
-        ctx.globalAlpha = on ? 0.55 : 1;
+        ctx.fillStyle = on ? accent : 'rgba(10,14,20,.5)';
+        ctx.globalAlpha = on ? 0.8 : 1;
         ctx.beginPath();
-        ctx.arc(((i + 0.5) / lights) * W, vh - 12, 2.6, 0, Math.PI * 2);
+        ctx.arc(W / 2 - cw / 2 + 20 + (i + 0.5) * ((cw - 40) / lights), (cTop + vh) / 2, 2.8, 0, Math.PI * 2);
         ctx.fill();
     }
     ctx.globalAlpha = 1;
@@ -1483,6 +1669,7 @@ function render() {
     ctx.clip(canopyPath);
     ctx.translate(sx, sy);
     drawNebulae();
+    drawGalaxies();
     drawStars();
     const drawable = [];
     for (const o of G.objects) {
@@ -1499,6 +1686,11 @@ function render() {
     ctx.restore();
 
     drawGlassGrid();
+    ctx.save();
+    ctx.clip(canopyPath);
+    drawReadouts();
+    drawShieldColumn();
+    ctx.restore();
     drawCockpit();
     drawCompass();
 }
@@ -1597,7 +1789,7 @@ function buildSelectScreen() {
     });
 
     document.getElementById('unlockNote').textContent = unlocked
-        ? (selectedClass === 2 ? 'Class 2: heavier hulls, twin engines. Same maths, more ship.' : '')
+        ? (selectedClass === 2 ? 'Aurelia-class medium cruisers. Same maths, more ship.' : 'The Vanguard flight: interceptor, capital ship, modular hauler.')
         : 'Class 2 unlocks after clearing ' + UNLOCK_TARGET + ' facts in a single flight. Best so far: ' + best + '.';
 
     const wrap = document.getElementById('squadrons');
