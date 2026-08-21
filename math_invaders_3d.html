@@ -182,8 +182,12 @@
 
     <div class="note">
         <b>Flying:</b> drag anywhere to look around — left and right to turn, up and down to
-        pitch. Tap a fact out in the sector to swing straight onto it. On an iPhone or iPad
-        you can switch on <b>Tilt to Look</b> and steer by tipping the device.<br><br>
+        pitch. Tap a fact out in the sector to swing straight onto it.<br><br>
+        <b>Tilt to Look</b> turns the device into a window on the sector, the way a
+        stargazing app works. Hold it up in front of you and turn on the spot: the view goes
+        wherever the back of the device points, and comes back when you do. Whichever way you
+        are facing when a flight begins counts as straight ahead. With tilt on, tap a fact to
+        lock onto it rather than to swing the view.<br><br>
         <b>Fighting:</b> the fact you are pointed at locks as your target and its three answers
         appear in the panel. Tap one to fire it. A fact that reaches you halves your shields and
         is remembered; it comes back as a green asteroid, and answering that one right gives the
@@ -814,9 +818,9 @@ const G = {
     shields: 100, score: 0, cleared: 0, breaches: 0,
     level: 0, clearedSinceAdvance: 0,
     objects: [], shots: [], stars: [], nebulae: [],
-    target: null, shake: 0, threat: Infinity,
+    target: null, manualTarget: null, shake: 0, threat: Infinity,
     spawnTimer: 0.6, asteroidTimer: 8,
-    tilt: { on: false, beta0: null, gamma0: null, beta: 0, gamma: 0 },
+    tilt: { on: false, have: false, yaw0: null, raw: { x: 0, y: 0, z: 1 }, sm: { x: 0, y: 0, z: 1 } },
     lastFrame: 0
 };
 window.MI3D = G;
@@ -1032,38 +1036,68 @@ function applySlew(dt) {
     if (G.slewLeft <= 0) G.slewTo = null;
 }
 
-/* Device tilt: rate control on the turn, direct control on the pitch, so a small
-   physical tilt can still sweep the whole sector. */
+/* ---------------- Tilt to Look ----------------
+   Works the way a stargazing app does: the device is a window, and the view goes
+   wherever the back of the device is pointed. Hold it up and turn on the spot to
+   sweep the sector. Orientation is read absolutely from the sensors rather than
+   as a rate, so putting the device back where it was puts the view back too.     */
+const D2R = Math.PI / 180;
+
 function handleOrientation(e) {
-    if (e.beta == null || e.gamma == null) return;
+    if (e.alpha == null || e.beta == null || e.gamma == null) return;
+    const A = e.alpha * D2R, B = e.beta * D2R, C = e.gamma * D2R;
+    const cA = Math.cos(A), sA = Math.sin(A);
+    const cB = Math.cos(B), sB = Math.sin(B);
+    const cC = Math.cos(C), sC = Math.sin(C);
+
+    // The device's own Z axis points out of the screen toward the user, so the
+    // direction being aimed at the sky is its negative, expressed in the earth
+    // frame (east, north, up).
+    const east  = -(cA * sC + sA * sB * cC);
+    const north = -(sA * sC - cA * sB * cC);
+    const up    = -(cB * cC);
+
+    // Into the game's frame: x east, y up, z north.
     const t = G.tilt;
-    if (t.beta0 === null) { t.beta0 = e.beta; t.gamma0 = e.gamma; }
-    t.beta = e.beta; t.gamma = e.gamma;
+    t.raw.x = east; t.raw.y = up; t.raw.z = north;
+    t.have = true;
 }
+
 function applyTilt(dt) {
     const t = G.tilt;
-    if (!t.on || t.beta0 === null) return;
-    const dg = t.gamma - t.gamma0;
-    const dead = 6;
-    if (Math.abs(dg) > dead) {
-        const rate = clamp((Math.abs(dg) - dead) / 30, 0, 1) * 2.0 * Math.sign(dg);
-        G.yaw += rate * dt;
-    }
-    const db = t.beta - t.beta0;
-    const wanted = clamp(db * 0.022, -0.75, 0.75);
-    G.pitch += (wanted - G.pitch) * Math.min(1, dt * 6);
+    if (!t.on || !t.have) return;
+
+    // Smooth the pointing vector rather than the angles — no wrap-around to trip over.
+    const k = 1 - Math.exp(-dt * 14);
+    t.sm.x += (t.raw.x - t.sm.x) * k;
+    t.sm.y += (t.raw.y - t.sm.y) * k;
+    t.sm.z += (t.raw.z - t.sm.z) * k;
+    const len = Math.hypot(t.sm.x, t.sm.y, t.sm.z);
+    if (len < 0.001) return;
+    const x = t.sm.x / len, y = t.sm.y / len, z = t.sm.z / len;
+
+    const yaw = Math.atan2(x, z);
+    // Whichever way the ship was facing when tilt began counts as dead ahead, so a
+    // sensor with no true-north reference still starts you pointing at the sector.
+    if (t.yaw0 === null) t.yaw0 = yaw;
+    G.yaw = yaw - t.yaw0;
+    G.pitch = clamp(Math.asin(clamp(y, -1, 1)), -1.0, 1.0);
+    G.slewTo = null;
 }
 
 function enableTilt() {
     const btn = document.getElementById('tiltBtn');
     const start = () => {
+        // deviceorientationabsolute is steadier where it exists; iOS only has the other.
+        window.addEventListener('deviceorientationabsolute', handleOrientation);
         window.addEventListener('deviceorientation', handleOrientation);
-        G.tilt.on = true; G.tilt.beta0 = null;
+        G.tilt.on = true; G.tilt.yaw0 = null; G.tilt.have = false;
         btn.textContent = 'Tilt to Look: On';
         btn.classList.add('on');
     };
     if (G.tilt.on) {
         G.tilt.on = false;
+        window.removeEventListener('deviceorientationabsolute', handleOrientation);
         window.removeEventListener('deviceorientation', handleOrientation);
         btn.textContent = 'Tilt to Look: Off';
         btn.classList.remove('on');
@@ -1093,6 +1127,7 @@ canvas.addEventListener('pointermove', e => {
     const dx = e.clientX - lastX, dy = e.clientY - lastY;
     lastX = e.clientX; lastY = e.clientY;
     moved += Math.abs(dx) + Math.abs(dy);
+    if (G.tilt.on) return;                    // the device is aiming, not the finger
     if (moved > 8) G.slewTo = null;           // a deliberate drag cancels an auto-swing
     G.yaw -= dx * 0.0042;
     G.pitch = clamp(G.pitch + dy * 0.0035, -0.75, 0.75);
@@ -1127,7 +1162,9 @@ function tapAt(x, y) {
             if (d < 22 && d < bestD) { bestD = d; best = o; }
         }
     }
-    if (best) { slewTo(best); SFX.lock(); }
+    if (!best) return;
+    if (G.tilt.on) { G.manualTarget = best; SFX.lock(); }
+    else { slewTo(best); SFX.lock(); }
 }
 
 const keys = {};
@@ -1269,6 +1306,14 @@ function updateHUD() {
 }
 
 function pickTarget() {
+    // A contact picked by tapping stays locked until it dies or you point away.
+    if (G.manualTarget) {
+        if (G.manualTarget.dead) G.manualTarget = null;
+        else if (project(G.manualTarget)) {
+            if (G.target !== G.manualTarget) { G.target = G.manualTarget; SFX.lock(); updateHUD(); }
+            return;
+        } else G.manualTarget = null;
+    }
     let best = null, bestD = 1e9;
     const limit = Math.min(W, H - PANEL) * 0.35;
     for (const o of G.objects) {
@@ -1287,10 +1332,12 @@ function pickTarget() {
 
 /* ---------------- Update ---------------- */
 function update(dt) {
-    if (keys.ArrowLeft) { G.yaw -= 1.7 * dt; G.slewTo = null; }
-    if (keys.ArrowRight) { G.yaw += 1.7 * dt; G.slewTo = null; }
-    if (keys.ArrowUp) { G.pitch = clamp(G.pitch - 1.2 * dt, -0.75, 0.75); G.slewTo = null; }
-    if (keys.ArrowDown) { G.pitch = clamp(G.pitch + 1.2 * dt, -0.75, 0.75); G.slewTo = null; }
+    if (!G.tilt.on) {
+        if (keys.ArrowLeft) { G.yaw -= 1.7 * dt; G.slewTo = null; }
+        if (keys.ArrowRight) { G.yaw += 1.7 * dt; G.slewTo = null; }
+        if (keys.ArrowUp) { G.pitch = clamp(G.pitch - 1.2 * dt, -0.75, 0.75); G.slewTo = null; }
+        if (keys.ArrowDown) { G.pitch = clamp(G.pitch + 1.2 * dt, -0.75, 0.75); G.slewTo = null; }
+    }
 
     applyTilt(dt);
     applySlew(dt);
@@ -2184,9 +2231,10 @@ function startGame(sqIndex, hullIndex, cls) {
     G.yaw = 0; G.pitch = 0; G.slewTo = null;
     G.shields = 100; G.score = 0; G.cleared = 0; G.breaches = 0;
     G.level = 0; G.clearedSinceAdvance = 0;
-    G.objects = []; G.shots = []; G.target = null;
+    G.objects = []; G.shots = []; G.target = null; G.manualTarget = null;
     G.spawnTimer = 0.5; G.asteroidTimer = 9; G.shake = 0;
-    G.tilt.beta0 = null;
+    G.tilt.yaw0 = null;
+    G.tilt.sm = { x: 0, y: 0, z: 1 };
 
     document.documentElement.style.setProperty('--accent', G.squadron.color);
     document.getElementById('selectScreen').style.display = 'none';

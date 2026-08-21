@@ -164,10 +164,18 @@ A playable version lives in `math_invaders_3d.html`, reachable from the arcade m
 alongside the two 2D games.
 
 **Flying.** Drag to look — left and right to turn, up and down to pitch. Tap a fact, on the
-glass or as a blip on the contact strip, to swing the view straight onto it. On an iPhone or
-iPad, *Tilt to Look* steers by tipping the device: tilting left or right turns the ship (the
-further you tilt, the faster it turns, so you can sweep the whole sector), and tipping
-forward or back looks up and down.
+glass or as a blip on the contact strip, to swing the view straight onto it.
+
+**Tilt to Look** works the way a stargazing app does. The device becomes a window on the
+sector: hold it up in front of you and turn on the spot, and the view goes wherever the back
+of the device points. Orientation is read absolutely from the sensors rather than as a rate,
+so returning the device to where it was returns the view with it — turn right and back again
+and you are looking at the same fact. Whichever way the player is facing when a flight begins
+counts as straight ahead, which means it works on hardware with no true-north reference.
+
+With tilt on, dragging no longer moves the view (the device is doing the aiming) and tapping
+a fact locks onto it where it is rather than swinging the view across. The horizon does not
+roll when the device is rolled — deliberately, so the problems stay upright and readable.
 
 **The sector.** Never more than three facts at once, spawned at least fifty degrees apart,
 plus at most one asteroid — so the sky stays readable.
