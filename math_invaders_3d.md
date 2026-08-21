@@ -182,11 +182,17 @@ hauler. Class 2 is the Aurelia-class medium cruisers, AUR-01 through AUR-03, unl
 clearing 30 facts in a single flight. Each squadron flies the same six hulls in its own
 colour. Ship choice remains purely cosmetic.
 
-**The bridge.** A broad rounded-rectangle window set into a plated steel frame with
-radial segment seams, a rivet line and corner gussets, following the reference bridge
-view: cyan status blocks in the lower corners of the glass, a segmented shield column up
-the right-hand side, faint navigation arcs etched on the glass, and a console below the
-window.
+**The bridge.** A broad rounded-rectangle window set into the forward bulkhead: plated
+hull with bevelled seams, structural stanchions up the side pillars, a bracing beam across
+the top, hatched corner gussets and a ribbed collar following the window's own shape.
+Cyan status blocks sit in the lower corners of the glass, a segmented shield column runs
+up the right-hand side, and faint navigation arcs are etched across it.
+
+**The control console** occupies the deck below the window and is instrumentation rather
+than decoration: a lit switch bank whose first lamp shows target lock, two dials reading
+shield strength and progress toward the next rung, a scope plotting every contact in the
+sector by bearing and range, throttle levers and an auxiliary rocker bank. On a shallow
+deck — a phone held sideways — the same stations lay out wide instead of tall.
 
 **The starfield** follows the same reference — stars in white, blue, gold and amber, the
 brighter ones carrying a soft halo and the brightest a cross flare, with a scatter of

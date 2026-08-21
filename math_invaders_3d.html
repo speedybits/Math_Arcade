@@ -826,41 +826,46 @@ const ctx = canvas.getContext('2d');
 let W = 0, H = 0, PANEL = PANEL_FALLBACK, focal = 600, horizonY = 0;
 let canopyPath = null, hullPath = null, canopyBottom = 0;
 
-let canopyCX = 0, canopyCY = 0, canopyRX = 0, canopyRY = 0, canopyR = 0;
+let canopyCX = 0, canopyCY = 0, canopyRX = 0, canopyRY = 0, canopyR = 0, consoleTop = 0;
 
-/* The bridge window: a broad rounded rectangle, heavily radiused at the corners,
-   set into a plated steel frame. */
+/* A rounded-rectangle path, reused for the window and for the structural collar
+   that frames it. */
+function roundRectPath(cx, cy, rx, ry, r) {
+    const path = new Path2D();
+    const x = cx - rx, y = cy - ry, w = rx * 2, h = ry * 2;
+    const rr = Math.min(r, Math.min(rx, ry));
+    path.moveTo(x + rr, y);
+    path.arcTo(x + w, y, x + w, y + h, rr);
+    path.arcTo(x + w, y + h, x, y + h, rr);
+    path.arcTo(x, y + h, x, y, rr);
+    path.arcTo(x, y, x + w, y, rr);
+    path.closePath();
+    return path;
+}
+
+/* The bridge: a broad rounded window in the forward bulkhead, with the control
+   console occupying the deck below it. */
 function buildCanopy() {
     const vh = H - PANEL;
-    const top = 80, bottom = vh * 0.88;
-    const left = W * 0.045, right = W * 0.955;
+    const consoleH = clamp(vh * 0.19, 44, 138);
+    const top = 78, bottom = vh - consoleH;
+    const left = W * 0.065, right = W * 0.935;
+    consoleTop = bottom;
     canopyCX = (left + right) / 2;
     canopyCY = (top + bottom) / 2;
     canopyRX = (right - left) / 2;
-    canopyRY = (bottom - top) / 2;
-    canopyR = Math.min(canopyRX, canopyRY) * 0.78;
+    canopyRY = Math.max(30, (bottom - top) / 2);
+    canopyR = Math.min(canopyRX, canopyRY) * 0.7;
     canopyBottom = bottom;
     horizonY = canopyCY;
 
-    const path = new Path2D();
-    const x = canopyCX - canopyRX, y = canopyCY - canopyRY;
-    const w = canopyRX * 2, h = canopyRY * 2, r = canopyR;
-    path.moveTo(x + r, y);
-    path.arcTo(x + w, y, x + w, y + h, r);
-    path.arcTo(x + w, y + h, x, y + h, r);
-    path.arcTo(x, y + h, x, y, r);
-    path.arcTo(x, y, x + w, y, r);
-    path.closePath();
-    canopyPath = path;
-
+    canopyPath = roundRectPath(canopyCX, canopyCY, canopyRX, canopyRY, canopyR);
     const hull = new Path2D();
     hull.rect(0, 0, W, vh);
-    hull.addPath(path);
+    hull.addPath(canopyPath);
     hullPath = hull;
 }
 
-/* How wide the window is at a given height — used to keep the corner readouts
-   and the shield column inside the glass. */
 function canopyHalfWidthAt(y) {
     const dy = Math.abs(y - canopyCY);
     const flat = canopyRY - canopyR;
@@ -1705,9 +1710,38 @@ function drawShieldColumn() {
 
 /* The hull: a heavy plated ring around the window, with segment seams, rivets and
    structural gussets in the corners. */
-/* The bridge frame never changes between frames, so it is rendered once into an
-   offscreen canvas and blitted. Only the running lights are drawn live. */
+/* The bulkhead and console never change between frames, so they are rendered once
+   into an offscreen canvas and blitted. Only the live instruments are drawn on top. */
 let bridgeSprite = null, bridgeKey = '';
+
+/* Where each console station starts and ends, as a fraction of the deck width. */
+const CONSOLE_CUTS = [0, 0.20, 0.44, 0.62, 0.81, 1];
+
+/* A recessed panel: dark well, lit top-left edge, shadowed bottom-right. */
+function panelWell(g, x, y, w, h, r) {
+    if (w <= 2 || h <= 2) return;
+    g.save();
+    const p = roundRectPath(x + w / 2, y + h / 2, w / 2, h / 2, r || 3);
+    g.fillStyle = '#1b222b';
+    g.fill(p);
+    g.strokeStyle = 'rgba(12,16,21,.9)';
+    g.lineWidth = 2;
+    g.stroke(p);
+    g.strokeStyle = 'rgba(226,236,247,.28)';
+    g.lineWidth = 1;
+    g.beginPath();
+    g.moveTo(x + 2, y + h - 2); g.lineTo(x + 2, y + 2); g.lineTo(x + w - 2, y + 2);
+    g.stroke();
+    g.restore();
+}
+
+function bezelLabel(g, text, x, y, colour) {
+    g.font = '7px "Trebuchet MS", Arial';
+    g.textAlign = 'left';
+    g.textBaseline = 'top';
+    g.fillStyle = colour || 'rgba(160,185,210,.75)';
+    g.fillText(text, x, y);
+}
 
 function buildBridgeSprite() {
     const vh = H - PANEL;
@@ -1720,13 +1754,13 @@ function buildBridgeSprite() {
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     const accent = G.squadron ? G.squadron.color : '#8fa6c4';
 
-    // Glass: vignette plus a diagonal sheen.
+    /* ---- glass ---- */
     g.save();
     g.clip(canopyPath);
     const vg = g.createRadialGradient(canopyCX, canopyCY, Math.min(canopyRX, canopyRY) * 0.35,
                                       canopyCX, canopyCY, Math.max(canopyRX, canopyRY) * 1.15);
     vg.addColorStop(0, 'rgba(0,0,0,0)');
-    vg.addColorStop(1, 'rgba(0,0,0,.55)');
+    vg.addColorStop(1, 'rgba(0,0,0,.5)');
     g.fillStyle = vg;
     g.fillRect(0, 0, W, vh);
     const sheen = g.createLinearGradient(0, 0, W * 0.75, vh);
@@ -1736,105 +1770,317 @@ function buildBridgeSprite() {
     g.fillRect(0, 0, W, vh);
     g.restore();
 
-    // Plated steel hull.
+    /* ---- forward bulkhead ---- */
     const plate = g.createLinearGradient(0, 0, 0, vh);
-    plate.addColorStop(0,    '#aeb9c6');
-    plate.addColorStop(0.28, '#7d8998');
-    plate.addColorStop(0.55, '#59636f');
-    plate.addColorStop(0.80, '#7b8694');
-    plate.addColorStop(1,    '#39424d');
+    plate.addColorStop(0,    '#8d99a8');
+    plate.addColorStop(0.30, '#6c7887');
+    plate.addColorStop(0.62, '#4d5765');
+    plate.addColorStop(1,    '#333c47');
     g.fillStyle = plate;
     g.fill(hullPath, 'evenodd');
 
-    // Seams radiating out of the window, and a rivet line around its lip.
     g.save();
     g.clip(hullPath, 'evenodd');
-    g.strokeStyle = 'rgba(20,26,33,.55)';
-    g.lineWidth = 2;
-    for (let i = 0; i < 24; i++) {
-        const a = (i / 24) * Math.PI * 2;
-        const ca = Math.cos(a), sa = Math.sin(a);
-        g.beginPath();
-        g.moveTo(canopyCX + ca * canopyRX, canopyCY + sa * canopyRY);
-        g.lineTo(canopyCX + ca * canopyRX * 2.4, canopyCY + sa * canopyRY * 2.4);
-        g.stroke();
+
+    // Hull plating: a grid of seams, each lit on one edge and shadowed on the other.
+    const pw = Math.max(64, W / 7), ph = Math.max(58, vh / 7);
+    g.lineWidth = 1;
+    for (let x = pw; x < W; x += pw) {
+        g.strokeStyle = 'rgba(16,21,27,.75)';
+        g.beginPath(); g.moveTo(x, 0); g.lineTo(x, vh); g.stroke();
+        g.strokeStyle = 'rgba(214,226,240,.16)';
+        g.beginPath(); g.moveTo(x + 1.2, 0); g.lineTo(x + 1.2, vh); g.stroke();
     }
-    g.strokeStyle = 'rgba(210,222,236,.32)';
-    g.lineWidth = 2;
-    g.beginPath();
-    g.ellipse(canopyCX, canopyCY, canopyRX * 1.11, canopyRY * 1.14, 0, 0, Math.PI * 2);
-    g.stroke();
-    for (let i = 0; i < 44; i++) {
-        const a = (i / 44) * Math.PI * 2;
-        g.fillStyle = 'rgba(226,236,247,.5)';
+    for (let y = ph; y < vh; y += ph) {
+        g.strokeStyle = 'rgba(16,21,27,.75)';
+        g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke();
+        g.strokeStyle = 'rgba(214,226,240,.16)';
+        g.beginPath(); g.moveTo(0, y + 1.2); g.lineTo(W, y + 1.2); g.stroke();
+    }
+
+    // Structural ribs bracing the window, following its shape rather than a circle.
+    const collar = roundRectPath(canopyCX, canopyCY, canopyRX + 16, canopyRY + 16, canopyR + 16);
+    g.strokeStyle = 'rgba(24,30,38,.85)'; g.lineWidth = 9; g.stroke(collar);
+    g.strokeStyle = 'rgba(206,219,234,.30)'; g.lineWidth = 2; g.stroke(collar);
+    const collar2 = roundRectPath(canopyCX, canopyCY, canopyRX + 30, canopyRY + 30, canopyR + 30);
+    g.strokeStyle = 'rgba(20,26,33,.5)'; g.lineWidth = 2; g.stroke(collar2);
+
+    // Vertical stanchions up the side pillars, horizontal beams across the top.
+    const pillar = canopyCX - canopyRX;
+    if (pillar > 26) {
+        [pillar * 0.42, pillar * 0.78].forEach(px => {
+            [px, W - px].forEach(x => {
+                g.fillStyle = 'rgba(26,33,41,.55)';
+                g.fillRect(x - 4, 0, 8, vh);
+                g.fillStyle = 'rgba(214,226,240,.13)';
+                g.fillRect(x - 4, 0, 2, vh);
+            });
+        });
+    }
+    const topBand = canopyCY - canopyRY;
+    if (topBand > 40) {
+        g.fillStyle = 'rgba(26,33,41,.5)';
+        g.fillRect(0, topBand * 0.42 - 3, W, 6);
+        g.fillStyle = 'rgba(214,226,240,.12)';
+        g.fillRect(0, topBand * 0.42 - 3, W, 1.6);
+    }
+
+    // Corner bracing, hatched.
+    const gs = Math.min(W, vh) * 0.22;
+    [[0, 0, 1, 1], [W, 0, -1, 1], [0, vh, 1, -1], [W, vh, -1, -1]].forEach(([x, y, sx2, sy2]) => {
+        g.save();
         g.beginPath();
-        g.arc(canopyCX + Math.cos(a) * canopyRX * 1.06,
-              canopyCY + Math.sin(a) * canopyRY * 1.07, 1.5, 0, Math.PI * 2);
+        g.moveTo(x, y); g.lineTo(x + sx2 * gs, y); g.lineTo(x, y + sy2 * gs * 0.9);
+        g.closePath();
+        g.fillStyle = '#2b333d';
         g.fill();
+        g.clip();
+        g.strokeStyle = 'rgba(16,21,27,.5)';
+        g.lineWidth = 2;
+        for (let i = 0; i < gs * 2; i += 9) {
+            g.beginPath(); g.moveTo(x + sx2 * i, y); g.lineTo(x, y + sy2 * i); g.stroke();
+        }
+        g.restore();
+    });
+
+    // Fasteners along the collar, spaced around the rounded rectangle.
+    g.fillStyle = 'rgba(226,236,247,.42)';
+    const per = 26;
+    const rw = canopyRX + 23, rh = canopyRY + 23;
+    for (let i = 0; i < 4; i++) {
+        const horiz = i % 2 === 0;
+        const len = horiz ? rw * 2 - canopyR * 2 : rh * 2 - canopyR * 2;
+        const n = Math.max(2, Math.floor(len / per));
+        for (let k = 0; k <= n; k++) {
+            const t = -0.5 + k / n;
+            let fx, fy;
+            if (i === 0) { fx = canopyCX + t * (len); fy = canopyCY - rh; }
+            else if (i === 1) { fx = canopyCX + rw; fy = canopyCY + t * len; }
+            else if (i === 2) { fx = canopyCX + t * len; fy = canopyCY + rh; }
+            else { fx = canopyCX - rw; fy = canopyCY + t * len; }
+            g.beginPath(); g.arc(fx, fy, 1.6, 0, Math.PI * 2); g.fill();
+        }
     }
     g.restore();
 
-    // Corner gussets.
-    const gs = Math.min(W, vh) * 0.26;
-    g.fillStyle = '#2f3841';
-    [[0, 0, 1, 1], [W, 0, -1, 1], [0, vh, 1, -1], [W, vh, -1, -1]].forEach(([x, y, sx2, sy2]) => {
-        g.beginPath();
-        g.moveTo(x, y);
-        g.lineTo(x + sx2 * gs, y);
-        g.lineTo(x, y + sy2 * gs * 0.85);
-        g.closePath();
-        g.fill();
-    });
-
-    // Window bezel: dark gasket, bright bevel, squadron trim.
+    /* ---- window bezel ---- */
     g.lineJoin = 'round';
-    g.strokeStyle = '#151b22'; g.lineWidth = 13; g.stroke(canopyPath);
-    g.strokeStyle = 'rgba(228,238,250,.55)'; g.lineWidth = 3.5; g.stroke(canopyPath);
+    g.strokeStyle = '#141a21'; g.lineWidth = 12; g.stroke(canopyPath);
+    g.strokeStyle = 'rgba(228,238,250,.5)'; g.lineWidth = 3; g.stroke(canopyPath);
     g.strokeStyle = '#0a0f15'; g.lineWidth = 2.5; g.stroke(canopyPath);
-    g.strokeStyle = accent; g.globalAlpha = 0.85; g.lineWidth = 1.6; g.stroke(canopyPath);
+    g.strokeStyle = accent; g.globalAlpha = 0.8; g.lineWidth = 1.6; g.stroke(canopyPath);
     g.globalAlpha = 1;
 
-    // Console block under the window.
-    const cTop = canopyBottom + (vh - canopyBottom) * 0.30;
-    const cw = W * 0.42;
-    const cg = g.createLinearGradient(0, cTop, 0, vh);
-    cg.addColorStop(0, '#8e99a8');
-    cg.addColorStop(1, '#3a434e');
-    g.fillStyle = cg;
-    g.beginPath();
-    g.moveTo(W / 2 - cw / 2, vh);
-    g.lineTo(W / 2 - cw / 2 + 14, cTop);
-    g.lineTo(W / 2 + cw / 2 - 14, cTop);
-    g.lineTo(W / 2 + cw / 2, vh);
-    g.closePath();
-    g.fill();
-    g.strokeStyle = 'rgba(20,26,33,.6)';
-    g.lineWidth = 1.5;
-    g.stroke();
+    /* ---- control console ---- */
+    buildConsole(g, vh, accent);
 
     bridgeSprite = c;
     bridgeKey = W + 'x' + vh + ':' + accent;
 }
 
+/* The deck below the window: switch banks, dials, a scope and throttle levers. */
+function buildConsole(g, vh, accent) {
+    const top = consoleTop, dh = vh - top;
+    if (dh < 8) return;
+
+    // Desk surface, tipped toward the pilot.
+    const dg = g.createLinearGradient(0, top, 0, vh);
+    dg.addColorStop(0, '#77828f');
+    dg.addColorStop(0.35, '#4e5865');
+    dg.addColorStop(1, '#252c35');
+    g.fillStyle = dg;
+    g.fillRect(0, top, W, dh);
+    g.fillStyle = 'rgba(226,236,247,.30)';
+    g.fillRect(0, top, W, 2);
+    g.fillStyle = 'rgba(10,14,19,.8)';
+    g.fillRect(0, vh - 5, W, 5);
+
+    const pad = 8;
+    const y0 = top + pad, ih = dh - pad * 2 - 5;
+    if (ih < 22) {                       // shallow deck: a single strip of lamps
+        g.fillStyle = 'rgba(16,21,27,.6)';
+        g.fillRect(0, top + 3, W, Math.max(6, dh - 8));
+        return;
+    }
+
+    // Five stations across the deck.
+    const cuts = CONSOLE_CUTS;
+    const zone = i => ({ x: cuts[i] * W + pad, w: (cuts[i + 1] - cuts[i]) * W - pad * 2 });
+
+    // 1. Switch bank.
+    let z = zone(0);
+    panelWell(g, z.x, y0, z.w, ih);
+    bezelLabel(g, 'NAV', z.x + 5, y0 + 3);
+    (function () {
+        const cols = 4, rows = ih > 54 ? 2 : 1;
+        const bw = (z.w - 14) / cols - 3, bh = Math.min(14, (ih - 18) / rows - 3);
+        for (let r = 0; r < rows; r++) for (let cI = 0; cI < cols; cI++) {
+            const bx = z.x + 7 + cI * (bw + 3), by = y0 + 13 + r * (bh + 3);
+            g.fillStyle = '#0e131a';
+            g.fillRect(bx, by, bw, bh);
+            g.fillStyle = (cI + r) % 3 === 0 ? accent : 'rgba(150,175,200,.35)';
+            g.globalAlpha = (cI + r) % 3 === 0 ? 0.75 : 1;
+            g.fillRect(bx + 1.5, by + 1.5, bw - 3, bh - 3);
+            g.globalAlpha = 1;
+        }
+    })();
+
+    // 2. Twin dials (needles are drawn live).
+    z = zone(1);
+    panelWell(g, z.x, y0, z.w, ih);
+    (function () {
+        const r = Math.min(z.w / 4 - 3, (ih - 14) / 2);
+        if (r < 7) return;
+        [-1, 1].forEach(sg => {
+            const cx = z.x + z.w / 2 + sg * (z.w / 4), cy = y0 + 10 + r;
+            g.fillStyle = '#0b1016';
+            g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2); g.fill();
+            g.strokeStyle = 'rgba(200,216,232,.35)';
+            g.lineWidth = 1;
+            g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2); g.stroke();
+            g.strokeStyle = 'rgba(150,175,200,.55)';
+            for (let i = 0; i <= 8; i++) {
+                const a = Math.PI * 0.75 + (i / 8) * Math.PI * 1.5;
+                g.beginPath();
+                g.moveTo(cx + Math.cos(a) * r * 0.72, cy + Math.sin(a) * r * 0.72);
+                g.lineTo(cx + Math.cos(a) * r * 0.92, cy + Math.sin(a) * r * 0.92);
+                g.stroke();
+            }
+        });
+        bezelLabel(g, 'SHLD', z.x + 5, y0 + 3);
+        bezelLabel(g, 'RUNG', z.x + z.w - 26, y0 + 3);
+    })();
+
+    // 3. Scope.
+    z = zone(2);
+    panelWell(g, z.x, y0, z.w, ih);
+    (function () {
+        const sx = z.x + 6, sy = y0 + 12, sw = z.w - 12, sh = ih - 18;
+        if (sw < 20 || sh < 16) return;
+        g.fillStyle = '#04141b';
+        g.fillRect(sx, sy, sw, sh);
+        g.strokeStyle = 'rgba(110,227,255,.18)';
+        g.lineWidth = 1;
+        for (let i = 1; i < 4; i++) {
+            g.beginPath(); g.moveTo(sx + (sw / 4) * i, sy); g.lineTo(sx + (sw / 4) * i, sy + sh); g.stroke();
+            g.beginPath(); g.moveTo(sx, sy + (sh / 4) * i); g.lineTo(sx + sw, sy + (sh / 4) * i); g.stroke();
+        }
+        g.strokeStyle = 'rgba(110,227,255,.5)';
+        g.strokeRect(sx, sy, sw, sh);
+        bezelLabel(g, 'SCOPE', z.x + 5, y0 + 3, 'rgba(110,227,255,.75)');
+    })();
+
+    // 4. Throttle levers.
+    z = zone(3);
+    panelWell(g, z.x, y0, z.w, ih);
+    (function () {
+        const n = 3, tw = 7, gap = (z.w - 14) / n;
+        const ty = y0 + 13, th = ih - 20;
+        if (th < 14) return;
+        for (let i = 0; i < n; i++) {
+            const tx = z.x + 7 + gap * i + gap / 2 - tw / 2;
+            g.fillStyle = '#0c1118';
+            g.fillRect(tx, ty, tw, th);
+            const kn = ty + th * [0.18, 0.46, 0.7][i];
+            g.fillStyle = 'rgba(190,208,226,.85)';
+            g.fillRect(tx - 3, kn, tw + 6, 6);
+            g.fillStyle = accent;
+            g.globalAlpha = 0.8;
+            g.fillRect(tx - 3, kn + 2, tw + 6, 2);
+            g.globalAlpha = 1;
+        }
+        bezelLabel(g, 'PWR', z.x + 5, y0 + 3);
+    })();
+
+    // 5. Rockers and a hazard strip.
+    z = zone(4);
+    panelWell(g, z.x, y0, z.w, ih);
+    (function () {
+        const rows = ih > 54 ? 3 : 2;
+        const rw2 = z.w - 14, rh2 = Math.min(11, (ih - 20) / rows - 3);
+        for (let r = 0; r < rows; r++) {
+            const ry = y0 + 13 + r * (rh2 + 3);
+            g.fillStyle = '#0e131a';
+            g.fillRect(z.x + 7, ry, rw2, rh2);
+            g.fillStyle = r % 2 ? 'rgba(150,175,200,.4)' : 'rgba(226,236,247,.65)';
+            g.fillRect(z.x + 7 + (r % 2 ? rw2 / 2 : 0), ry + 1, rw2 / 2 - 1, rh2 - 2);
+        }
+        bezelLabel(g, 'AUX', z.x + 5, y0 + 3);
+    })();
+
+}
+
+/* Live instruments: running lights, dial needles, and the target lamp. */
 function drawCockpit() {
     const vh = H - PANEL;
     const accent = G.squadron.color;
     if (!bridgeSprite || bridgeKey !== W + 'x' + vh + ':' + accent) buildBridgeSprite();
     if (bridgeSprite) ctx.drawImage(bridgeSprite, 0, 0, W, vh);
 
-    // Running lights along the console — the only part that moves.
-    const cTop = canopyBottom + (vh - canopyBottom) * 0.30;
-    const cw = W * 0.42;
-    const lights = 7;
+    const top = consoleTop, dh = vh - top;
+    const pad = 8, y0 = top + pad, ih = dh - pad * 2 - 5;
+    const cuts = CONSOLE_CUTS;
+
     ctx.save();
+    if (ih >= 22) {
+        // Dial needles: shields on the left, progress toward the next rung on the right.
+        const zx = cuts[1] * W + pad, zw = (cuts[2] - cuts[1]) * W - pad * 2;
+        const r = Math.min(zw / 4 - 3, (ih - 14) / 2);
+        if (r >= 7) {
+            const ladder = FACT_LADDERS[G.squadron.id];
+            const vals = [clamp(G.shields, 0, 100) / 100, G.clearedSinceAdvance / ADVANCE_AFTER];
+            [-1, 1].forEach((sg, i) => {
+                const cx = zx + zw / 2 + sg * (zw / 4), cy = y0 + 10 + r;
+                const a = Math.PI * 0.75 + clamp(vals[i], 0, 1) * Math.PI * 1.5;
+                ctx.strokeStyle = i === 0 ? (G.shields < 30 ? '#ff5a3c' : '#6fe3ff') : accent;
+                ctx.lineWidth = 1.8;
+                ctx.beginPath();
+                ctx.moveTo(cx, cy);
+                ctx.lineTo(cx + Math.cos(a) * r * 0.7, cy + Math.sin(a) * r * 0.7);
+                ctx.stroke();
+                ctx.fillStyle = 'rgba(226,236,247,.8)';
+                ctx.beginPath(); ctx.arc(cx, cy, 1.8, 0, Math.PI * 2); ctx.fill();
+            });
+            void ladder;
+        }
+
+        // Scope: the sector in miniature, contacts and all.
+        const sx = cuts[2] * W + pad + 6, sy = y0 + 12;
+        const sw = (cuts[3] - cuts[2]) * W - pad * 2 - 12, sh = ih - 18;
+        if (sw > 20 && sh > 16) {
+            for (const o of G.objects) {
+                if (o.dead) continue;
+                const rel = angleDiff(bearingOf(o), G.yaw);
+                const dist = clamp(Math.hypot(o.x, o.y, o.z) / 210, 0, 1);
+                const px = sx + sw / 2 + (rel / Math.PI) * (sw / 2) * 0.9;
+                const py = sy + sh - dist * sh * 0.9 - 2;
+                ctx.fillStyle = o.kind === 'asteroid' ? '#4dff9d' : (o.wasMissed ? '#ff9e2c' : '#ff3ea5');
+                ctx.fillRect(px - 1.5, py - 1.5, 3, 3);
+            }
+            ctx.strokeStyle = 'rgba(110,227,255,.35)';
+            ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(sx + sw / 2, sy); ctx.lineTo(sx + sw / 2, sy + sh); ctx.stroke();
+        }
+
+        // Target lamp on the switch bank.
+        const bx = cuts[0] * W + pad + 7, by = y0 + 13;
+        ctx.fillStyle = (G.target && !G.target.dead) ? accent : 'rgba(40,50,62,.9)';
+        ctx.globalAlpha = (G.target && !G.target.dead) ? 0.95 : 1;
+        ctx.fillRect(bx + 1.5, by + 1.5, 10, 10);
+        ctx.globalAlpha = 1;
+    }
+
+    // Running lights along the front lip.
+    const lights = 9;
     for (let i = 0; i < lights; i++) {
         const on = ((G.lastFrame / 420 | 0) + i) % 4 !== 0;
-        ctx.fillStyle = on ? accent : 'rgba(10,14,20,.5)';
-        ctx.globalAlpha = on ? 0.85 : 1;
+        ctx.fillStyle = on ? accent : 'rgba(10,14,20,.6)';
+        ctx.globalAlpha = on ? 0.9 : 1;
         ctx.beginPath();
-        ctx.arc(W / 2 - cw / 2 + 20 + (i + 0.5) * ((cw - 40) / lights), (cTop + vh) / 2, 2.8, 0, Math.PI * 2);
+        ctx.arc((i + 0.5) * (W / lights), vh - 2.5, 1.9, 0, Math.PI * 2);
         ctx.fill();
     }
+    ctx.globalAlpha = 1;
     ctx.restore();
 }
 
