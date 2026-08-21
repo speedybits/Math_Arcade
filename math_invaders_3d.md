@@ -131,25 +131,64 @@ unbuilt design in this concept. Three of the four squadrons cannot ship without 
   playable cockpit prototype is the cheapest way to find out, and should come before
   any serious build.
 
+## Fact Ladders
+
+Multiplication uses **the exact ladder the 2D Math Invaders uses** — ×1, ×2, ×0, ×10, ×5,
+the square facts, ×4, ×3, ×9, ×11, ×6, ×7, ×8, then the Demons (6×7, 7×8 and their kin).
+The other three operations were built to the same teaching order:
+
+| | Addition | Subtraction | Division |
+|---|---|---|---|
+| Start | + 1 (counting on) | − 1 (counting back) | ÷ 1 |
+| | + 2, + 0, + 10, + 5 | − 2, − 0, − 10, − 5 | ÷ 2, ÷ 10, ÷ 5 |
+| Middle | doubles 3+3 … 9+9 | halving the doubles 6−3 … 18−9 | square roots 9÷3 … 81÷9 |
+| | + 4, + 3, + 9, + 11, + 6, + 7, + 8 | − 4, − 3, − 9, − 11, − 6, − 7, − 8 | ÷ 4, ÷ 3, ÷ 9, ÷ 11, ÷ 6, ÷ 7, ÷ 8 |
+| End | Demons (bridging ten) | Demons (crossing ten) | Demons (42÷6, 56÷7 …) |
+
+Division has thirteen rungs rather than fourteen: there is no "divide by zero" fact to
+teach. Every other operation matches rung for rung.
+
+As in the 2D game, reaching a new rung does not retire the old ones — facts are drawn from
+every rung reached so far, so new material is introduced while old material keeps returning.
+
+**Progression is driven by clearing facts, not by a clock.** Six facts cleared without a
+shield breach opens the next rung; a breach resets that count. Once the ladder is exhausted
+the sector simply gets faster.
+
+Multiplication misses are shared with the 2D Math Invaders through its own saved data, so a
+child's problem facts follow them between the two games.
+
 ## Prototype
 
-A rough playable version lives in `math_invaders_3d.html`, reachable from the arcade
-menu alongside the two 2D games. It exists to answer the "does this feel good on a
-phone" question, not to be the shipping game.
+A playable version lives in `math_invaders_3d.html`, reachable from the arcade menu
+alongside the two 2D games.
 
-What it implements: all four squadrons and 24 cosmetic hulls, the swipe-to-look
-cockpit, facts and asteroids sharing one sky, the three-choice instrument panel, the
-shield halving and 10% destruction floor, and the missed-fact-to-asteroid redemption
-loop.
+**Flying.** Drag to look — left and right to turn, up and down to pitch. Tap a fact, on the
+glass or as a blip on the contact strip, to swing the view straight onto it. On an iPhone or
+iPad, *Tilt to Look* steers by tipping the device: tilting left or right turns the ship (the
+further you tilt, the faster it turns, so you can sweep the whole sector), and tipping
+forward or back looks up and down.
 
-Two things it adds that the concept above did not call for:
+**The sector.** Never more than three facts at once, spawned at least fifty degrees apart,
+plus at most one asteroid — so the sky stays readable.
 
-- **A contact strip** across the top of the hull, showing the bearing and urgency of
-  every object in the sector. Without it, hunting for facts across 360 degrees is a
-  chore rather than a hunt.
-- **A placeholder difficulty ramp** — problem sizes simply grow with the sector
-  number. This stands in for the four real level ladders and should be thrown away
-  when those are written.
+**Sound.** A click on target lock, a whoosh on launch, six different explosions so the same
+fact never dies the same way twice, and a heavy metallic clank when an asteroid is mined for
+shields. These are synthesised in the browser rather than played from files.
 
-Known gaps: no high score table, no scoring balance between operations, and no sound
-beyond simple tones.
+**Ships.** Six airframes per squadron, each shaped around its own operator — Addion wears a
+cross, Subtrion a long bar, Multion a swept X, Divion a split twin-pod. Class 2 hulls are
+heavier, with an extra wing pair and more engines, and unlock after clearing 30 facts in a
+single flight. Ship choice remains purely cosmetic.
+
+## Still Open
+
+- **Scoring across operations.** An addition fact and a multiplication fact currently score
+  the same. High score tables may need to be per-squadron.
+- **No high score table yet.**
+- **The licensed sound effects were not used.** The four Epidemic Sound tracks are behind a
+  subscription and cannot be downloaded here. The game synthesises its own equivalents
+  instead. If the real recordings are wanted, they can be dropped into the game's sound
+  table and will be used automatically in place of the synthesised versions.
+- **Whether the tilt control feels good to a child** is still the open question a document
+  cannot answer.
