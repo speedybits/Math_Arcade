@@ -172,6 +172,9 @@ of the device points. Orientation is read absolutely from the sensors rather tha
 so returning the device to where it was returns the view with it — turn right and back again
 and you are looking at the same fact. Whichever way the player is facing when a flight begins
 counts as straight ahead, which means it works on hardware with no true-north reference.
+Up and down are inverted from the usual stargazing convention — tipping the device back looks
+down the sector and tipping it forward looks up — because that is the way round it reads in
+the hand.
 
 With tilt on, dragging no longer moves the view (the device is doing the aiming) and tapping
 a fact locks onto it where it is rather than swinging the view across. The horizon does not

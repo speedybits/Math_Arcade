@@ -1081,7 +1081,9 @@ function applyTilt(dt) {
     // sensor with no true-north reference still starts you pointing at the sector.
     if (t.yaw0 === null) t.yaw0 = yaw;
     G.yaw = yaw - t.yaw0;
-    G.pitch = clamp(Math.asin(clamp(y, -1, 1)), -1.0, 1.0);
+    // Pitch is inverted on purpose: tipping the device back looks down the sector,
+    // tipping it forward looks up. That is the way round it reads in the hand.
+    G.pitch = clamp(-Math.asin(clamp(y, -1, 1)), -1.0, 1.0);
     G.slewTo = null;
 }
 
