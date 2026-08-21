@@ -182,11 +182,20 @@ hauler. Class 2 is the Aurelia-class medium cruisers, AUR-01 through AUR-03, unl
 clearing 30 facts in a single flight. Each squadron flies the same six hulls in its own
 colour. Ship choice remains purely cosmetic.
 
-**The bridge.** A wide oval window set into a plated steel frame with segment seams,
-rivets and corner gussets, following the reference bridge view: cyan status blocks in the
-lower corners of the glass, a segmented shield column up the right-hand side, and a
-console below the window. The starfield is deliberately sparse — pinpricks plus a scatter
-of distant galaxies rather than a snowstorm.
+**The bridge.** A broad rounded-rectangle window set into a plated steel frame with
+radial segment seams, a rivet line and corner gussets, following the reference bridge
+view: cyan status blocks in the lower corners of the glass, a segmented shield column up
+the right-hand side, faint navigation arcs etched on the glass, and a console below the
+window.
+
+**The starfield** follows the same reference — stars in white, blue, gold and amber, the
+brighter ones carrying a soft halo and the brightest a cross flare, with a scatter of
+distant galaxies. It is deliberately thinner than the reference photograph, which is a
+dense sky; here it is roughly a tenth as crowded so the maths stays the thing you look at.
+
+The bridge frame never changes between frames, so it is rendered once and reused, and star
+halos are pre-rendered per colour. Without that the phone loses about a quarter of its
+frame rate to redrawing furniture.
 
 ## Still Open
 
