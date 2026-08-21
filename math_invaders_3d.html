@@ -814,7 +814,7 @@ const G = {
     shields: 100, score: 0, cleared: 0, breaches: 0,
     level: 0, clearedSinceAdvance: 0,
     objects: [], shots: [], stars: [], nebulae: [],
-    target: null, shake: 0,
+    target: null, shake: 0, threat: Infinity,
     spawnTimer: 0.6, asteroidTimer: 8,
     tilt: { on: false, beta0: null, gamma0: null, beta: 0, gamma: 0 },
     lastFrame: 0
@@ -986,7 +986,7 @@ function spawnFact() {
     G.objects.push({
         kind: 'fact',
         x: dir.x * dist, y: dir.y * dist, z: dir.z * dist,
-        speed: 8 + G.level * 0.7,
+        speed: 11 + G.level * 0.8,
         problem: problem, choices: makeChoices(problem.answer), tried: [],
         wasMissed: missed, spin: Math.random() * Math.PI * 2, warned: false, dead: false
     });
@@ -1313,8 +1313,16 @@ function update(dt) {
             o.x -= o.x * step; o.y -= o.y * step; o.z -= o.z * step;
         }
         const nd = Math.hypot(o.x, o.y, o.z);
+        o.dist = nd;
         if (o.kind === 'fact') {
-            if (!o.warned && nd < 70) { o.warned = true; SFX.warn(); }
+            if (!o.warned && nd < 95) { o.warned = true; SFX.warn(); }
+            // The closer it gets, the more insistent it looks and sounds.
+            const near = 1 - clamp(nd / 95, 0, 1);
+            o.pulse = 1 + near * 0.09 * Math.sin(G.lastFrame / 85);
+            if (nd < 60) {
+                o.warnTimer = (o.warnTimer || 0) - dt;
+                if (o.warnTimer <= 0) { SFX.warn(); o.warnTimer = 0.25 + clamp(nd / 60, 0, 1) * 0.95; }
+            }
             if (nd < 14) breach(o);
         } else {
             o.life -= dt;
@@ -1325,6 +1333,10 @@ function update(dt) {
     for (const s of G.shots) {
         s.t += dt * 2.6;
         if (s.t >= 1) { resolveShot(s); s.done = true; }
+    }
+    G.threat = Infinity;
+    for (const o of G.objects) {
+        if (!o.dead && o.kind === 'fact' && o.dist < G.threat) G.threat = o.dist;
     }
     G.shots = G.shots.filter(s => !s.done && s.target && !s.target.dead);
     G.objects = G.objects.filter(o => !o.dead);
@@ -1436,7 +1448,7 @@ function drawLabel(text, maxWidth, baseSize, color) {
 }
 
 function drawFact(o, p) {
-    const s = clamp(p.scale * 24, 11, Math.min(170, canopyRY * 0.52));
+    const s = clamp(p.scale * 24, 11, Math.min(240, canopyRY * 0.95, canopyRX * 1.05)) * (o.pulse || 1);
     const isTarget = (o === G.target);
     const rx = s * 1.30, ry = s * 0.72;
     const stroke = o.wasMissed ? '#ff9e2c' : '#ff3ea5';
@@ -1475,23 +1487,28 @@ function drawFact(o, p) {
 }
 
 function drawAsteroid(o, p) {
-    const s = clamp(p.scale * 30, 14, Math.min(210, canopyRY * 0.62));
+    const s = clamp(p.scale * 30, 14, Math.min(260, canopyRY * 1.0));
     const isTarget = (o === G.target);
     ctx.save();
     ctx.translate(p.sx, p.sy);
     ctx.rotate(o.spin * 0.3);
-    ctx.beginPath();
+
+    // Build the silhouette as its own path, so clipping for the craters cannot
+    // leave a stray circle behind to be stroked.
+    const body = new Path2D();
     const n = o.lumps.length;
     for (let i = 0; i < n; i++) {
         const a = (i / n) * Math.PI * 2;
         const r = s * o.lumps[i];
         const px = Math.cos(a) * r, py = Math.sin(a) * r;
-        i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+        i === 0 ? body.moveTo(px, py) : body.lineTo(px, py);
     }
-    ctx.closePath();
+    body.closePath();
+
     ctx.fillStyle = 'rgba(50,64,52,.92)';
-    ctx.fill();
-    ctx.save(); ctx.clip();
+    ctx.fill(body);
+    ctx.save();
+    ctx.clip(body);
     ctx.fillStyle = 'rgba(28,38,30,.9)';
     for (const c of o.craters) {
         ctx.beginPath();
@@ -1499,10 +1516,14 @@ function drawAsteroid(o, p) {
         ctx.fill();
     }
     ctx.restore();
+
     ctx.lineWidth = Math.max(1.6, s * 0.06);
     ctx.strokeStyle = '#4dff9d';
-    ctx.shadowColor = '#4dff9d'; ctx.shadowBlur = isTarget ? 30 : 16;
-    ctx.stroke(); ctx.shadowBlur = 0;
+    ctx.shadowColor = '#4dff9d';
+    ctx.shadowBlur = isTarget ? 30 : 16;
+    ctx.stroke(body);
+    ctx.shadowBlur = 0;
+
     ctx.rotate(-o.spin * 0.3);
     drawLabel(o.problem.text, s * 1.25, clamp(s * 0.5, 8, 44), '#eaffe9');
     ctx.restore();
@@ -1547,7 +1568,7 @@ function drawTargetBrackets() {
 
 function drawCrosshair() {
     ctx.save();
-    ctx.strokeStyle = 'rgba(200,230,255,.5)';
+    ctx.strokeStyle = (G.target && !G.target.dead) ? 'rgba(200,230,255,.16)' : 'rgba(200,230,255,.5)';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.moveTo(W/2 - 16, horizonY); ctx.lineTo(W/2 - 5, horizonY);
@@ -1642,9 +1663,10 @@ function drawCompass() {
    bridge: what rung you are on, what you are shooting at, how the ship is doing. */
 function drawReadouts() {
     const lineH = 12;
-    const y = canopyCY + canopyRY * 0.60;
+    const y = canopyCY + canopyRY * 0.56;
     // Measure the window's width at the BOTTOM of the boxes, or the oval clips them.
-    const halfW = canopyHalfWidthAt(y + 3 * lineH + 10);
+    const rows = 4;
+    const halfW = canopyHalfWidthAt(y + rows * lineH + 10);
     const boxW = Math.min(140, (halfW * 2 - 22) / 2);
     if (boxW < 84) return;                       // too narrow to read; leave it off
     const ladder = FACT_LADDERS[G.squadron.id];
@@ -1654,10 +1676,12 @@ function drawReadouts() {
     const left = [
         ['SQUADRON', G.squadron.name.toUpperCase()],
         ['RUNG', (G.level + 1) + ' / ' + ladder.length],
+        ['NEXT RUNG', G.clearedSinceAdvance + ' / ' + ADVANCE_AFTER],
         ['SHIELD STATUS', Math.round(clamp(G.shields, 0, 100)) + '%']
     ];
     const right = [
         ['CONTACTS', String(contacts)],
+        ['RANGE', G.threat < Infinity ? String(Math.round(G.threat)) : '—'],
         ['CLEARED', String(G.cleared)],
         ['TARGET', target]
     ];
@@ -2010,6 +2034,24 @@ function buildConsole(g, vh, accent) {
 
 }
 
+/* A red wash creeping in from the edge of the glass as a fact closes on the ship —
+   the cue that something really is coming at you, not just sitting there. */
+function drawProximityAlert() {
+    if (!(G.threat < 70)) return;
+    const near = 1 - clamp((G.threat - 14) / 56, 0, 1);
+    const flash = 0.65 + 0.35 * Math.sin(G.lastFrame / (90 - near * 45));
+    ctx.save();
+    ctx.clip(canopyPath);
+    const r0 = Math.min(canopyRX, canopyRY) * (0.72 - near * 0.32);
+    const r1 = Math.max(canopyRX, canopyRY) * 1.05;
+    const g = ctx.createRadialGradient(canopyCX, canopyCY, r0, canopyCX, canopyCY, r1);
+    g.addColorStop(0, 'rgba(255,40,25,0)');
+    g.addColorStop(1, 'rgba(255,40,25,' + (near * 0.55 * flash).toFixed(3) + ')');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H - PANEL);
+    ctx.restore();
+}
+
 /* Live instruments: running lights, dial needles, and the target lamp. */
 function drawCockpit() {
     const vh = H - PANEL;
@@ -2113,6 +2155,7 @@ function render() {
     ctx.restore();
 
     drawGlassOverlay();
+    drawProximityAlert();
     ctx.save();
     ctx.clip(canopyPath);
     drawReadouts();
@@ -2176,7 +2219,7 @@ function endGame() {
     const memory = loadMissed(G.squadron.id);
     document.getElementById('missedList').innerHTML = memory.length
         ? 'Facts your ship is still carrying, and will meet again as asteroids:<br><b style="color:#ff9e2c">'
-          + memory.map(m => m.text).join('  •  ') + '</b>'
+          + memory.map(m => m.text).join('&nbsp;&nbsp;') + '</b>'
         : 'You cleared every fact you missed. Nothing left in memory.';
 
     const best = Math.max(G.cleared, parseInt(localStorage.getItem(BEST_KEY) || '0', 10) || 0);

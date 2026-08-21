@@ -172,6 +172,10 @@ forward or back looks up and down.
 **The sector.** Never more than three facts at once, spawned at least fifty degrees apart,
 plus at most one asteroid — so the sky stays readable.
 
+**Closing in.** A fact takes about eighteen seconds to reach the ship and keeps growing on
+screen almost the whole way. As it closes it pulses, the proximity tone repeats faster, a
+red wash creeps in from the edge of the glass, and the RANGE readout counts down.
+
 **Sound.** A click on target lock, a whoosh on launch, six different explosions so the same
 fact never dies the same way twice, and a heavy metallic clank when an asteroid is mined for
 shields. These are synthesised in the browser rather than played from files.
