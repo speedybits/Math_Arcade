@@ -678,6 +678,7 @@ const Audio3D = {
         this.noise = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
         const d = this.noise.getChannelData(0);
         for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+        this.buildSpace();
         this.loadFiles();
         this.ready = true;
     },
@@ -700,12 +701,12 @@ const Audio3D = {
         const src = this.ctx.createBufferSource();
         const g = this.ctx.createGain();
         g.gain.value = vol == null ? 0.8 : vol;
-        src.buffer = buf; src.connect(g); g.connect(this.ctx.destination); src.start();
+        src.buffer = buf; src.connect(g); this.route(g, 0.25); src.start();
         return true;
     },
     // A shaped burst of noise: the backbone of whooshes, clanks and explosions.
     burst: function (opts) {
-        const t = this.ctx.currentTime;
+        const t = this.ctx.currentTime + (opts.delay || 0);
         const src = this.ctx.createBufferSource();
         src.buffer = this.noise;
         src.playbackRate.value = opts.rate || 1;
@@ -718,10 +719,10 @@ const Audio3D = {
         g.gain.setValueAtTime(0.0001, t);
         g.gain.exponentialRampToValueAtTime(opts.gain, t + (opts.attack || 0.008));
         g.gain.exponentialRampToValueAtTime(0.0001, t + opts.dur);
-        src.connect(filt); filt.connect(g); g.connect(this.ctx.destination);
+        src.connect(filt); filt.connect(g); this.route(g, opts.send || 0);
         src.start(t); src.stop(t + opts.dur + 0.02);
     },
-    tone: function (freq, endFreq, dur, type, gain, delay) {
+    tone: function (freq, endFreq, dur, type, gain, delay, send) {
         const t = this.ctx.currentTime + (delay || 0);
         const osc = this.ctx.createOscillator();
         const g = this.ctx.createGain();
@@ -731,8 +732,107 @@ const Audio3D = {
         g.gain.setValueAtTime(0.0001, t);
         g.gain.exponentialRampToValueAtTime(gain, t + 0.006);
         g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-        osc.connect(g); g.connect(this.ctx.destination);
+        osc.connect(g); this.route(g, send || 0);
         osc.start(t); osc.stop(t + dur + 0.02);
+    },
+    /* -----------------------------------------------------------------
+       The big empty. Everything can be sent to a long, dark reverb tail
+       so shots and kills sound like they happen in a cavernous vacuum
+       rather than in a small room.
+       ----------------------------------------------------------------- */
+    buildSpace: function () {
+        const ctx = this.ctx;
+        // A limiter on the way out, so a burst of overlapping shots and
+        // kills stays punchy instead of distorting.
+        const master = ctx.createDynamicsCompressor();
+        master.threshold.value = -10;
+        master.knee.value = 6;
+        master.ratio.value = 12;
+        master.attack.value = 0.003;
+        master.release.value = 0.18;
+        const makeup = ctx.createGain();
+        makeup.gain.value = 1.35;   // win back what the limiter takes off
+        master.connect(makeup); makeup.connect(ctx.destination);
+        this.master = master;
+        this.dry = ctx.createGain();
+        this.dry.gain.value = 1;
+        this.dry.connect(master);
+
+        const verb = ctx.createConvolver();
+        const len = Math.floor(ctx.sampleRate * 3.2);
+        const ir = ctx.createBuffer(2, len, ctx.sampleRate);
+        const preDelay = Math.floor(ctx.sampleRate * 0.02);
+        for (let c = 0; c < 2; c++) {
+            const d = ir.getChannelData(c);
+            for (let i = 0; i < len; i++) {
+                if (i < preDelay) { d[i] = 0; continue; }
+                const x = (i - preDelay) / (len - preDelay);
+                d[i] = (Math.random() * 2 - 1) * Math.pow(1 - x, 2.4);
+            }
+        }
+        verb.buffer = ir;
+        const tame = ctx.createBiquadFilter();
+        tame.type = 'lowpass'; tame.frequency.value = 2400;
+        const wet = ctx.createGain(); wet.gain.value = 0.9;
+        this.send = ctx.createGain(); this.send.gain.value = 1;
+        this.send.connect(verb); verb.connect(tame); tame.connect(wet);
+        wet.connect(master);
+    },
+    route: function (node, send) {
+        node.connect(this.dry);
+        if (send > 0) {
+            const s = this.ctx.createGain();
+            s.gain.value = send;
+            node.connect(s); s.connect(this.send);
+        }
+    },
+    // A repeating slap-back: the trick behind every classic movie blaster.
+    echo: function (time, feedback, mix) {
+        const ctx = this.ctx;
+        const dl = ctx.createDelay(1);
+        dl.delayTime.value = time;
+        const fb = ctx.createGain(); fb.gain.value = feedback;
+        const lp = ctx.createBiquadFilter();
+        lp.type = 'lowpass'; lp.frequency.value = 1600;
+        const wet = ctx.createGain(); wet.gain.value = mix;
+        dl.connect(lp); lp.connect(fb); fb.connect(dl);
+        lp.connect(wet); wet.connect(this.dry);
+        const s = ctx.createGain(); s.gain.value = 0.5;
+        wet.connect(s); s.connect(this.send);
+        setTimeout(function () {
+            try { fb.disconnect(); lp.disconnect(); dl.disconnect(); wet.disconnect(); s.disconnect(); }
+            catch (e) { /* already gone */ }
+        }, 2000);
+        return dl;
+    },
+    /* A pitch-diving oscillator pair: the "pew". Detuning the two voices
+       against each other is what gives it the electric edge. */
+    zap: function (opts) {
+        const ctx = this.ctx;
+        const t = ctx.currentTime + (opts.delay || 0);
+        const dur = opts.dur;
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(opts.gain, t);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+        const filt = ctx.createBiquadFilter();
+        filt.type = 'lowpass';
+        filt.Q.value = opts.q == null ? 7 : opts.q;
+        filt.frequency.setValueAtTime(opts.f0 * 1.5, t);
+        filt.frequency.exponentialRampToValueAtTime(Math.max(90, opts.f1 * 1.5), t + dur);
+        filt.connect(g);
+        [0, opts.detune || 0].forEach(function (cents, i) {
+            const osc = ctx.createOscillator();
+            osc.type = i === 0 ? (opts.type || 'sawtooth') : 'square';
+            osc.detune.value = cents;
+            osc.frequency.setValueAtTime(opts.f0, t);
+            osc.frequency.exponentialRampToValueAtTime(Math.max(40, opts.f1), t + dur);
+            const vg = ctx.createGain();
+            vg.gain.value = i === 0 ? 1 : 0.45;
+            osc.connect(vg); vg.connect(filt);
+            osc.start(t); osc.stop(t + dur + 0.02);
+        });
+        this.route(g, opts.send == null ? 0.35 : opts.send);
+        if (opts.echo) g.connect(opts.echo);
     }
 };
 
@@ -744,28 +844,47 @@ const SFX = {
         Audio3D.burst({ f0: 4200, f1: 1400, dur: 0.035, gain: 0.16, filter: 'bandpass', q: 1.6 });
         Audio3D.tone(1900, 1500, 0.045, 'square', 0.05);
     },
-    /* Air moving past the missile as it leaves the rail. */
+    /* A bolt of energy leaving the rail: a hard pitch dive with a
+       slap-back echo chasing it out into the dark. */
     fire: function () {
         if (!Audio3D.ctx) return;
         if (Audio3D.playBuffer('fire', 0.8)) return;
-        Audio3D.burst({ f0: 420, f1: 3200, dur: 0.16, gain: 0.13, filter: 'bandpass', q: 0.8, attack: 0.03 });
-        Audio3D.burst({ f0: 2600, f1: 300, dur: 0.24, gain: 0.09, filter: 'bandpass', q: 1.1, attack: 0.09 });
+        const tail = Audio3D.echo(0.085, 0.42, 0.32);
+        // The bolt itself, diving two and a half octaves in a tenth of a second.
+        Audio3D.zap({ f0: 2100, f1: 180, dur: 0.13, gain: 0.16, detune: 22, echo: tail, send: 0.4 });
+        // A second, lower voice half a beat behind widens it out.
+        Audio3D.zap({ f0: 900, f1: 90, dur: 0.20, gain: 0.09, detune: -18, type: 'square', delay: 0.012, echo: tail, send: 0.45 });
+        // A spit of ionised noise on the muzzle.
+        Audio3D.burst({ f0: 5200, f1: 700, dur: 0.06, gain: 0.07, filter: 'bandpass', q: 1.4, attack: 0.004, send: 0.5 });
     },
-    /* Six explosions, so the same fact never dies the same way twice. */
+    /* Six explosions, so the same fact never dies the same way twice.
+       Airless: a sub-bass concussion, a short flash of debris, and a long
+       reverberant tail instead of a crackling fireball. */
     explode: function () {
         if (!Audio3D.ctx) return;
         const v = rnd(0, 5);
         if (Audio3D.playBuffer('explode' + v, 0.85)) return;
         const spec = [
-            { f0: 2200, f1: 70,  dur: 0.55, gain: 0.26, rate: 0.85, thump: 120 },
-            { f0: 1700, f1: 60,  dur: 0.70, gain: 0.24, rate: 0.7,  thump: 95  },
-            { f0: 3000, f1: 110, dur: 0.40, gain: 0.28, rate: 1.15, thump: 150 },
-            { f0: 1400, f1: 55,  dur: 0.85, gain: 0.22, rate: 0.6,  thump: 80  },
-            { f0: 2600, f1: 90,  dur: 0.48, gain: 0.27, rate: 1.0,  thump: 135 },
-            { f0: 1900, f1: 75,  dur: 0.62, gain: 0.25, rate: 0.78, thump: 105 }
+            { f0: 1800, f1: 60,  dur: 0.70, gain: 0.20, rate: 0.85, sub: 110, tail: 1.5 },
+            { f0: 1400, f1: 50,  dur: 0.85, gain: 0.19, rate: 0.7,  sub: 88,  tail: 1.8 },
+            { f0: 2400, f1: 90,  dur: 0.55, gain: 0.22, rate: 1.15, sub: 140, tail: 1.2 },
+            { f0: 1150, f1: 45,  dur: 1.00, gain: 0.18, rate: 0.6,  sub: 72,  tail: 2.1 },
+            { f0: 2100, f1: 75,  dur: 0.62, gain: 0.21, rate: 1.0,  sub: 125, tail: 1.4 },
+            { f0: 1600, f1: 65,  dur: 0.78, gain: 0.20, rate: 0.78, sub: 96,  tail: 1.7 }
         ][v];
-        Audio3D.burst({ f0: spec.f0, f1: spec.f1, dur: spec.dur, gain: spec.gain, rate: spec.rate });
-        Audio3D.tone(spec.thump, spec.thump * 0.35, spec.dur * 0.8, 'sine', 0.2);
+        // The concussion: a sub-bass note falling off the bottom of hearing.
+        Audio3D.tone(spec.sub, spec.sub * 0.26, spec.dur * 1.1, 'sine', 0.26, 0, 0.5);
+        // The body of the blast, sent hard into the reverb.
+        Audio3D.burst({ f0: spec.f0, f1: spec.f1, dur: spec.dur, gain: spec.gain, rate: spec.rate, send: 0.85 });
+        // A bright shockwave that snaps away almost instantly.
+        Audio3D.burst({ f0: 6000, f1: 900, dur: 0.10, gain: 0.10, filter: 'bandpass', q: 0.7, attack: 0.003, send: 0.7 });
+        // Debris scattering, then a low rumble decaying into the dark.
+        for (let i = 0; i < 3; i++) {
+            Audio3D.burst({ f0: 3000 - i * 700, f1: 400, dur: 0.05, gain: 0.035, filter: 'bandpass',
+                            q: 2.2, attack: 0.004, rate: 1 + i * 0.2, send: 0.9,
+                            delay: 0.06 + i * 0.075 + Math.random() * 0.05 });
+        }
+        Audio3D.burst({ f0: 240, f1: 40, dur: spec.tail, gain: 0.09, rate: 0.4, attack: 0.05, send: 1 });
     },
     /* Heavy metal on metal: the asteroid being mined for shield material. */
     clank: function () {

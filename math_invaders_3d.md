@@ -187,9 +187,13 @@ plus at most one asteroid — so the sky stays readable.
 screen almost the whole way. As it closes it pulses, the proximity tone repeats faster, a
 red wash creeps in from the edge of the glass, and the RANGE readout counts down.
 
-**Sound.** A click on target lock, a whoosh on launch, six different explosions so the same
-fact never dies the same way twice, and a heavy metallic clank when an asteroid is mined for
-shields. These are synthesised in the browser rather than played from files.
+**Sound.** A click on target lock, a diving energy-bolt "pew" with a slap-back echo on
+launch, six different explosions so the same fact never dies the same way twice, and a heavy
+metallic clank when an asteroid is mined for shields. Everything happens in a vacuum: shots
+and kills are fed into a long, dark reverb, and the explosions are built from a sub-bass
+concussion, a bright shockwave and scattering debris rather than a crackling fireball. A
+limiter on the output keeps overlapping shots from distorting. These are synthesised in the
+browser rather than played from files.
 
 **Ships.** Six hulls per squadron, drawn from the concept art. Class 1 is the Vanguard
 flight — the Vanguard interceptor, the Aethelgard capital ship and the Nomad modular
