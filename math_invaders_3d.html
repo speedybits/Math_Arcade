@@ -1355,33 +1355,66 @@ function resolveShot(shot) {
    A solved fact is not destroyed, it is thrown back out of the sector: it
    keeps its shape, tumbles, and shrinks into the distance behind an
    expanding ring of repulsor field. */
-const REPEL_LIFE = 1.6;
+const REPEL_LIFE = 1.4;
 
 function repelFact(o) {
     const d = Math.max(1, Math.hypot(o.x, o.y, o.z));
+    const ux = o.x / d, uy = o.y / d, uz = o.z / d;
+    // A sideways knock, perpendicular to the shove, so the fact visibly
+    // tumbles off across the sky instead of only shrinking away.
+    let px = -uz, py = 0, pz = ux;
+    const pl = Math.max(0.001, Math.hypot(px, py, pz));
+    px /= pl; pz /= pl;
+    const ang = Math.random() * Math.PI * 2;
+    const qx = uy * pz - uz * py, qy = uz * px - ux * pz, qz = ux * py - uy * px;
+    const kick = 0.42 + Math.random() * 0.22;
     G.repelled.push({
         kind: 'fact', problem: o.problem, wasMissed: o.wasMissed,
-        spin: o.spin, tumble: (Math.random() - 0.5) * 5,
+        spin: o.spin,
+        roll: 0, rollRate: (Math.random() < 0.5 ? -1 : 1) * (4.5 + Math.random() * 4),
         x: o.x, y: o.y, z: o.z,
         ox: o.x, oy: o.y, oz: o.z,          // where the field caught it
-        ux: o.x / d, uy: o.y / d, uz: o.z / d,
-        speed: 25, t: 0, alpha: 1
+        ux: ux, uy: uy, uz: uz,
+        lx: (px * Math.cos(ang) + qx * Math.sin(ang)) * kick,
+        ly: (py * Math.cos(ang) + qy * Math.sin(ang)) * kick + 0.12,
+        lz: (pz * Math.cos(ang) + qz * Math.sin(ang)) * kick,
+        speed: 110, t: 0, alpha: 1, trail: []
     });
-    G.shake = Math.max(G.shake, 0.22);      // the push kicks back through the hull
+    G.shake = Math.max(G.shake, 0.28);      // the push kicks back through the hull
     SFX.repel();
 }
 
 function updateRepelled(dt) {
     for (const r of G.repelled) {
         r.t += dt;
-        r.speed += 780 * dt;                // the shove keeps building for a moment
-        r.spin += dt * (1.2 + r.tumble);
-        r.x += r.ux * r.speed * dt;
-        r.y += r.uy * r.speed * dt;
-        r.z += r.uz * r.speed * dt;
+        r.speed += 1150 * dt;               // the shove keeps building for a moment
+        r.roll += r.rollRate * dt;
+        r.spin += dt * 1.2;
+        const step = r.speed * dt;
+        r.x += (r.ux + r.lx) * step;
+        r.y += (r.uy + r.ly) * step;
+        r.z += (r.uz + r.lz) * step;
+        r.trail.unshift({ x: r.x, y: r.y, z: r.z, roll: r.roll });
+        if (r.trail.length > 7) r.trail.pop();
         r.alpha = clamp(1 - Math.pow(r.t / REPEL_LIFE, 2), 0, 1);
     }
     G.repelled = G.repelled.filter(r => r.t < REPEL_LIFE);
+}
+
+/* Two fading copies a few frames behind: the streak of being thrown. */
+function drawRepelTrails() {
+    for (const r of G.repelled) {
+        if (r.alpha <= 0.02) continue;
+        for (let i = 3; i < 7; i += 3) {
+            const g = r.trail[i];
+            if (!g) continue;
+            const p = project(g);
+            if (!p) continue;
+            drawFact({ kind: 'fact', problem: r.problem, wasMissed: r.wasMissed,
+                       spin: r.spin, roll: g.roll,
+                       alpha: r.alpha * (i === 3 ? 0.26 : 0.12) }, p);
+        }
+    }
 }
 
 /* The ring of field left behind at the point of contact. */
@@ -1472,7 +1505,7 @@ function updateHUD() {
 
     const ladder = FACT_LADDERS[G.squadron.id];
     document.getElementById('ladderText').textContent =
-        'NOW PRACTISING: ' + ladder[clamp(G.level, 0, ladder.length - 1)].desc.toUpperCase() +
+        'NOW PRACTICING: ' + ladder[clamp(G.level, 0, ladder.length - 1)].desc.toUpperCase() +
         '   ·   ' + G.clearedSinceAdvance + '/' + ADVANCE_AFTER + ' TO NEXT';
 
     const t = G.target;
@@ -1689,10 +1722,11 @@ function drawFact(o, p) {
     const a = o.alpha == null ? 1 : o.alpha;   // repelled facts fade as they go
     const rx = s * 1.30, ry = s * 0.72;
     const stroke = o.wasMissed ? '#ff9e2c' : '#ff3ea5';
+    const roll = o.roll == null ? Math.sin(o.spin) * 0.09 : o.roll;
     ctx.save();
     ctx.globalAlpha = a;
     ctx.translate(p.sx, p.sy);
-    ctx.rotate(Math.sin(o.spin) * 0.09);
+    ctx.rotate(roll);
 
     ctx.beginPath();
     for (let i = 0; i < 6; i++) {
@@ -1719,7 +1753,7 @@ function drawFact(o, p) {
     ctx.shadowColor = stroke; ctx.shadowBlur = isTarget ? 26 : 11;
     ctx.stroke(); ctx.shadowBlur = 0;
 
-    ctx.rotate(-Math.sin(o.spin) * 0.09);
+    if (o.roll == null) ctx.rotate(-roll);
     drawLabel(o.problem.text, rx * 1.65, clamp(s * 0.62, 8, 46), '#fff');
     ctx.restore();
 }
@@ -2388,6 +2422,7 @@ function render() {
         if (p) drawable.push({ o: r, p: p });
     }
     drawable.sort((a, b) => b.p.depth - a.p.depth);
+    drawRepelTrails();
     for (const d of drawable) {
         if (d.o.kind === 'asteroid') drawAsteroid(d.o, d.p); else drawFact(d.o, d.p);
     }

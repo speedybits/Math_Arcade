@@ -188,9 +188,10 @@ screen almost the whole way. As it closes it pulses, the proximity tone repeats 
 red wash creeps in from the edge of the glass, and the RANGE readout counts down.
 
 **Clearing a fact.** A solved fact is not blown up — the ship's repulsor throws it back out
-of the sector. It keeps its shape, tumbles, shrinks into the distance and fades, leaving an
-expanding ring of field behind at the point of contact, and the push kicks back through the
-hull as a small shake.
+of the sector. It is knocked off at an angle rather than straight back, so it visibly sails
+away across the sky: tumbling end over end, shrinking, fading, dragging a short motion trail
+behind it, with an expanding ring of field left at the point of contact and a kick back
+through the hull.
 
 **Sound.** A click on target lock, a diving energy-bolt "pew" with a slap-back echo on
 launch, a four-flavour repulsor shove when a fact is cleared — a sub-bass push, a rising
