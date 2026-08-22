@@ -675,7 +675,7 @@ function forgiveMissed(problem) {
    Synthesised in the browser: no files to load, nothing to license. Drop real
    recordings into SOUND_URLS below and they are used instead, automatically.
    ========================================================================= */
-const SOUND_URLS = { lock: '', fire: '', repel: [], clank: '', breach: '', warn: '' };
+const SOUND_URLS = { lock: '', fire: '', repel: [], explode: [], clank: '', breach: '', warn: '' };
 
 const Audio3D = {
     ctx: null, noise: null, buffers: {}, ready: false,
@@ -703,6 +703,7 @@ const Audio3D = {
         grab('clank', SOUND_URLS.clank); grab('breach', SOUND_URLS.breach);
         grab('warn', SOUND_URLS.warn);
         (SOUND_URLS.repel || []).forEach((u, i) => grab('repel' + i, u));
+        (SOUND_URLS.explode || []).forEach((u, i) => grab('explode' + i, u));
     },
     playBuffer: function (name, vol) {
         const buf = this.buffers[name];
@@ -893,6 +894,30 @@ const SFX = {
         // A shimmer of the field, ringing on after the fact has gone.
         Audio3D.tone(spec.base * 6, spec.base * 1.6, spec.tail, 'sine', 0.045, 0.04, 1);
     },
+    /* An asteroid does blow apart — facts are repelled, rock is not. Airless:
+       a sub-bass concussion, a bright shockwave and scattering debris rather
+       than a crackling fireball. */
+    explode: function () {
+        if (!Audio3D.ctx) return;
+        const v = rnd(0, 3);
+        if (Audio3D.playBuffer('explode' + v, 0.85)) return;
+        const spec = [
+            { f0: 1800, f1: 60, dur: 0.70, gain: 0.20, rate: 0.85, sub: 110, tail: 1.5 },
+            { f0: 1400, f1: 50, dur: 0.85, gain: 0.19, rate: 0.7,  sub: 88,  tail: 1.8 },
+            { f0: 2400, f1: 90, dur: 0.55, gain: 0.22, rate: 1.15, sub: 140, tail: 1.2 },
+            { f0: 1600, f1: 65, dur: 0.78, gain: 0.20, rate: 0.78, sub: 96,  tail: 1.7 }
+        ][v];
+        Audio3D.tone(spec.sub, spec.sub * 0.26, spec.dur * 1.1, 'sine', 0.26, 0, 0.5);
+        Audio3D.burst({ f0: spec.f0, f1: spec.f1, dur: spec.dur, gain: spec.gain, rate: spec.rate, send: 0.85 });
+        Audio3D.burst({ f0: 6000, f1: 900, dur: 0.10, gain: 0.10, filter: 'bandpass',
+                        q: 0.7, attack: 0.003, send: 0.7 });
+        for (let i = 0; i < 3; i++) {
+            Audio3D.burst({ f0: 3000 - i * 700, f1: 400, dur: 0.05, gain: 0.035, filter: 'bandpass',
+                            q: 2.2, attack: 0.004, rate: 1 + i * 0.2, send: 0.9,
+                            delay: 0.06 + i * 0.075 + Math.random() * 0.05 });
+        }
+        Audio3D.burst({ f0: 240, f1: 40, dur: spec.tail, gain: 0.09, rate: 0.4, attack: 0.05, send: 1 });
+    },
     /* Heavy metal on metal: the asteroid being mined for shield material. */
     clank: function () {
         if (!Audio3D.ctx) return;
@@ -943,7 +968,7 @@ const G = {
     slewTo: null, slewLeft: 0,
     shields: 100, score: 0, cleared: 0, breaches: 0,
     level: 0, clearedSinceAdvance: 0,
-    objects: [], shots: [], repelled: [], stars: [], nebulae: [],
+    objects: [], shots: [], repelled: [], blasts: [], stars: [], nebulae: [],
     target: null, manualTarget: null, shake: 0, threat: Infinity,
     spawnTimer: 0.6, asteroidTimer: 8,
     tilt: { on: false, have: false, yaw0: null, raw: { x: 0, y: 0, z: 1 }, sm: { x: 0, y: 0, z: 1 } },
@@ -1332,7 +1357,8 @@ function resolveShot(shot) {
             G.shields = Math.min(100, G.shields * 2);
             forgiveMissed(t.problem);
             G.score += 20 + G.level * 4;
-            SFX.clank();
+            explodeAsteroid(t);
+            setTimeout(() => SFX.clank(), 170);   // the shield material, gathered
             showToast('SHIELDS +' + Math.round(G.shields - before) + '%', '#4dff9d');
         } else {
             G.cleared++;
@@ -1382,6 +1408,93 @@ function repelFact(o) {
     });
     G.shake = Math.max(G.shake, 0.28);      // the push kicks back through the hull
     SFX.repel();
+}
+
+/* ---------------- Asteroid blast ----------------
+   Rock has no repulsor answer to a direct hit: it comes apart. Chunks fly
+   out in every direction and, with nothing to slow them, keep going in a
+   straight line until they fade. */
+function explodeAsteroid(o) {
+    const chunks = [];
+    for (let i = 0; i < 16; i++) {
+        const th = Math.random() * Math.PI * 2;
+        const ph = Math.acos(2 * Math.random() - 1);
+        const sp = 26 + Math.random() * 74;
+        chunks.push({
+            x: o.x, y: o.y, z: o.z,
+            vx: Math.sin(ph) * Math.cos(th) * sp,
+            vy: Math.cos(ph) * sp,
+            vz: Math.sin(ph) * Math.sin(th) * sp,
+            size: 0.3 + Math.random() * 0.8,
+            roll: Math.random() * 6.3, rollRate: (Math.random() - 0.5) * 9,
+            // Its own ragged outline, so no two pieces look alike.
+            shape: Array.from({ length: 5 + rnd(0, 2) }, () => 0.55 + Math.random() * 0.7),
+            life: 0.55 + Math.random() * 0.6
+        });
+    }
+    G.blasts.push({ x: o.x, y: o.y, z: o.z, t: 0, life: 1.2, chunks: chunks });
+    G.shake = Math.max(G.shake, 0.5);
+    SFX.explode();
+}
+
+function updateBlasts(dt) {
+    for (const b of G.blasts) {
+        b.t += dt;
+        for (const c of b.chunks) {
+            c.x += c.vx * dt; c.y += c.vy * dt; c.z += c.vz * dt;
+            c.roll += c.rollRate * dt;
+        }
+    }
+    G.blasts = G.blasts.filter(b => b.t < b.life);
+}
+
+function drawBlasts() {
+    for (const b of G.blasts) {
+        // The flash at the point of contact, gone in a quarter of a second.
+        const k = b.t / 0.28;
+        if (k < 1) {
+            const p = project(b);
+            if (p) {
+                const rad = Math.max(2, p.scale * 20 * (0.5 + k * 1.9));
+                const g = ctx.createRadialGradient(p.sx, p.sy, 0, p.sx, p.sy, rad);
+                const a = (1 - k) * 0.7;
+                g.addColorStop(0, 'rgba(255,255,235,' + a.toFixed(3) + ')');
+                g.addColorStop(0.35, 'rgba(150,255,190,' + (a * 0.55).toFixed(3) + ')');
+                g.addColorStop(1, 'rgba(77,255,157,0)');
+                ctx.save();
+                ctx.fillStyle = g;
+                ctx.beginPath(); ctx.arc(p.sx, p.sy, rad, 0, Math.PI * 2); ctx.fill();
+                ctx.restore();
+            }
+        }
+        // The rock itself, in pieces.
+        for (const c of b.chunks) {
+            const f = b.t / c.life;
+            if (f >= 1) continue;
+            const p = project(c);
+            if (!p) continue;
+            const s = Math.max(1, p.scale * c.size * 1.7);
+            ctx.save();
+            ctx.globalAlpha = 1 - f * f;
+            ctx.translate(p.sx, p.sy);
+            ctx.rotate(c.roll);
+            ctx.beginPath();
+            const n = c.shape.length;
+            for (let i = 0; i < n; i++) {
+                const ang = (i / n) * Math.PI * 2;
+                const r = s * c.shape[i];
+                i === 0 ? ctx.moveTo(Math.cos(ang) * r, Math.sin(ang) * r)
+                        : ctx.lineTo(Math.cos(ang) * r, Math.sin(ang) * r);
+            }
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(50,64,52,.95)';
+            ctx.fill();
+            ctx.lineWidth = Math.max(0.8, s * 0.14);
+            ctx.strokeStyle = 'rgba(77,255,157,.6)';
+            ctx.stroke();
+            ctx.restore();
+        }
+    }
 }
 
 function updateRepelled(dt) {
@@ -1603,6 +1716,7 @@ function update(dt) {
         if (s.t >= 1) { resolveShot(s); s.done = true; }
     }
     updateRepelled(dt);
+    updateBlasts(dt);
     G.threat = Infinity;
     for (const o of G.objects) {
         if (!o.dead && o.kind === 'fact' && o.dist < G.threat) G.threat = o.dist;
@@ -2427,6 +2541,7 @@ function render() {
         if (d.o.kind === 'asteroid') drawAsteroid(d.o, d.p); else drawFact(d.o, d.p);
     }
     drawRepelRings();
+    drawBlasts();
     drawShots();
     drawTargetBrackets();
     drawCrosshair();
@@ -2462,7 +2577,7 @@ function startGame(sqIndex, hullIndex, cls) {
     G.yaw = 0; G.pitch = 0; G.slewTo = null;
     G.shields = 100; G.score = 0; G.cleared = 0; G.breaches = 0;
     G.level = 0; G.clearedSinceAdvance = 0;
-    G.objects = []; G.shots = []; G.repelled = []; G.target = null; G.manualTarget = null;
+    G.objects = []; G.shots = []; G.repelled = []; G.blasts = []; G.target = null; G.manualTarget = null;
     G.spawnTimer = 0.5; G.asteroidTimer = 9; G.shake = 0;
     G.tilt.yaw0 = null;
     G.tilt.sm = { x: 0, y: 0, z: 1 };

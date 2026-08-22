@@ -193,10 +193,14 @@ away across the sky: tumbling end over end, shrinking, fading, dragging a short 
 behind it, with an expanding ring of field left at the point of contact and a kick back
 through the hull.
 
+**Clearing an asteroid.** Rock has no answer to a direct hit, so asteroids still blow apart:
+a white flash, then a dozen ragged fragments thrown out in every direction. Nothing slows
+them, so they travel in straight lines until they fade — vacuum, not weather.
+
 **Sound.** A click on target lock, a diving energy-bolt "pew" with a slap-back echo on
 launch, a four-flavour repulsor shove when a fact is cleared — a sub-bass push, a rising
-charge, then a bright field falling in pitch as the fact recedes — and a heavy metallic clank
-when an asteroid is mined for shields. Everything happens in a vacuum: shots and clears are
+charge, then a bright field falling in pitch as the fact recedes — and, for asteroids, an
+airless explosion followed by the metallic clank of shield material being gathered. Everything happens in a vacuum: shots and clears are
 fed into a long, dark reverb. A limiter on the output keeps overlapping sounds from
 distorting. These are synthesised in the browser rather than played from files.
 
