@@ -126,6 +126,14 @@
     #gameOver h1 { color: #ff6a4d; }
     .stat { font-size: 15px; color: #cfe0f0; margin: 4px 0; }
     .stat b { color: #fff; font-size: 21px; }
+    .statNote { font-size: 12px; color: #7f97ae; margin: 0 0 6px; }
+    /* Each carried fact gets its own pill, so "2 + 4" and "2 + 6" can never
+       run together into one string of numbers. */
+    .factChip {
+        display: inline-block; margin: 5px 5px 0; padding: 3px 11px;
+        border: 1px solid rgba(255,158,44,.5); border-radius: 999px;
+        color: #ff9e2c; font-weight: bold; font-size: 13.5px; white-space: nowrap;
+    }
     #flash {
         position: fixed; inset: 0; z-index: 10; pointer-events: none; opacity: 0;
         background: radial-gradient(ellipse at center, transparent 30%, rgba(255,40,20,.85) 100%);
@@ -201,7 +209,8 @@
     <div class="stat">SCORE <b id="finalScore">0</b></div>
     <div class="stat">FACTS CLEARED <b id="finalCleared">0</b></div>
     <div class="stat">FACTS THAT GOT THROUGH <b id="finalMissed">0</b></div>
-    <div class="stat">REACHED <b id="finalLevel">—</b></div>
+    <div class="stat">GOT AS FAR AS <b id="finalLevel">—</b></div>
+    <div class="statNote" id="finalLevelNote"></div>
     <div class="note" id="missedList"></div>
     <div class="note" id="unlockMsg"></div>
     <div class="toggleRow">
@@ -2449,12 +2458,15 @@ function endGame() {
     document.getElementById('finalScore').textContent = G.score;
     document.getElementById('finalCleared').textContent = G.cleared;
     document.getElementById('finalMissed').textContent = G.breaches;
-    document.getElementById('finalLevel').textContent = ladder[clamp(G.level, 0, ladder.length - 1)].desc;
+    const rung = clamp(G.level, 0, ladder.length - 1);
+    document.getElementById('finalLevel').textContent = ladder[rung].desc;
+    document.getElementById('finalLevelNote').textContent =
+        'rung ' + (rung + 1) + ' of ' + ladder.length + ' on the ' + G.squadron.name + ' ladder';
 
     const memory = loadMissed(G.squadron.id);
     document.getElementById('missedList').innerHTML = memory.length
-        ? 'Facts your ship is still carrying, and will meet again as asteroids:<br><b style="color:#ff9e2c">'
-          + memory.map(m => m.text).join('&nbsp;&nbsp;') + '</b>'
+        ? 'Facts your ship is still carrying, and will meet again as asteroids:<br>'
+          + memory.map(m => '<span class="factChip">' + m.text + '</span>').join('')
         : 'You cleared every fact you missed. Nothing left in memory.';
 
     const best = Math.max(G.cleared, parseInt(localStorage.getItem(BEST_KEY) || '0', 10) || 0);
