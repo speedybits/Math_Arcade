@@ -666,7 +666,7 @@ function forgiveMissed(problem) {
    Synthesised in the browser: no files to load, nothing to license. Drop real
    recordings into SOUND_URLS below and they are used instead, automatically.
    ========================================================================= */
-const SOUND_URLS = { lock: '', fire: '', explode: [], clank: '', breach: '', warn: '' };
+const SOUND_URLS = { lock: '', fire: '', repel: [], clank: '', breach: '', warn: '' };
 
 const Audio3D = {
     ctx: null, noise: null, buffers: {}, ready: false,
@@ -693,7 +693,7 @@ const Audio3D = {
         grab('lock', SOUND_URLS.lock); grab('fire', SOUND_URLS.fire);
         grab('clank', SOUND_URLS.clank); grab('breach', SOUND_URLS.breach);
         grab('warn', SOUND_URLS.warn);
-        (SOUND_URLS.explode || []).forEach((u, i) => grab('explode' + i, u));
+        (SOUND_URLS.repel || []).forEach((u, i) => grab('repel' + i, u));
     },
     playBuffer: function (name, vol) {
         const buf = this.buffers[name];
@@ -857,34 +857,32 @@ const SFX = {
         // A spit of ionised noise on the muzzle.
         Audio3D.burst({ f0: 5200, f1: 700, dur: 0.06, gain: 0.07, filter: 'bandpass', q: 1.4, attack: 0.004, send: 0.5 });
     },
-    /* Six explosions, so the same fact never dies the same way twice.
-       Airless: a sub-bass concussion, a short flash of debris, and a long
-       reverberant tail instead of a crackling fireball. */
-    explode: function () {
+    /* Nothing blows up. The repulsor gathers for a beat, then throws the
+       fact away: a sub-bass shove, a rising charge, and a bright field that
+       falls in pitch as the fact recedes. Four flavours, so the same fact
+       never leaves the same way twice. */
+    repel: function () {
         if (!Audio3D.ctx) return;
-        const v = rnd(0, 5);
-        if (Audio3D.playBuffer('explode' + v, 0.85)) return;
+        const v = rnd(0, 3);
+        if (Audio3D.playBuffer('repel' + v, 0.85)) return;
         const spec = [
-            { f0: 1800, f1: 60,  dur: 0.70, gain: 0.20, rate: 0.85, sub: 110, tail: 1.5 },
-            { f0: 1400, f1: 50,  dur: 0.85, gain: 0.19, rate: 0.7,  sub: 88,  tail: 1.8 },
-            { f0: 2400, f1: 90,  dur: 0.55, gain: 0.22, rate: 1.15, sub: 140, tail: 1.2 },
-            { f0: 1150, f1: 45,  dur: 1.00, gain: 0.18, rate: 0.6,  sub: 72,  tail: 2.1 },
-            { f0: 2100, f1: 75,  dur: 0.62, gain: 0.21, rate: 1.0,  sub: 125, tail: 1.4 },
-            { f0: 1600, f1: 65,  dur: 0.78, gain: 0.20, rate: 0.78, sub: 96,  tail: 1.7 }
+            { base: 330, dur: 0.75, tail: 1.3 },
+            { base: 262, dur: 0.90, tail: 1.6 },
+            { base: 392, dur: 0.62, tail: 1.1 },
+            { base: 220, dur: 1.00, tail: 1.8 }
         ][v];
-        // The concussion: a sub-bass note falling off the bottom of hearing.
-        Audio3D.tone(spec.sub, spec.sub * 0.26, spec.dur * 1.1, 'sine', 0.26, 0, 0.5);
-        // The body of the blast, sent hard into the reverb.
-        Audio3D.burst({ f0: spec.f0, f1: spec.f1, dur: spec.dur, gain: spec.gain, rate: spec.rate, send: 0.85 });
-        // A bright shockwave that snaps away almost instantly.
-        Audio3D.burst({ f0: 6000, f1: 900, dur: 0.10, gain: 0.10, filter: 'bandpass', q: 0.7, attack: 0.003, send: 0.7 });
-        // Debris scattering, then a low rumble decaying into the dark.
-        for (let i = 0; i < 3; i++) {
-            Audio3D.burst({ f0: 3000 - i * 700, f1: 400, dur: 0.05, gain: 0.035, filter: 'bandpass',
-                            q: 2.2, attack: 0.004, rate: 1 + i * 0.2, send: 0.9,
-                            delay: 0.06 + i * 0.075 + Math.random() * 0.05 });
-        }
-        Audio3D.burst({ f0: 240, f1: 40, dur: spec.tail, gain: 0.09, rate: 0.4, attack: 0.05, send: 1 });
+        // The shove itself: a sub-bass push you feel more than hear.
+        Audio3D.tone(spec.base * 0.30, spec.base * 0.11, 0.34, 'sine', 0.24, 0, 0.45);
+        // The repulsor winding up — a short rising charge before the release.
+        Audio3D.burst({ f0: 280, f1: 2900, dur: 0.14, gain: 0.075, filter: 'bandpass',
+                        q: 0.9, attack: 0.11, send: 0.5 });
+        // The release: pitch falling away as the fact is hurled into the dark.
+        Audio3D.zap({ f0: spec.base * 4.5, f1: spec.base * 0.55, dur: spec.dur, gain: 0.10,
+                      detune: 14, type: 'triangle', q: 4, send: 0.9 });
+        Audio3D.burst({ f0: 3600, f1: 170, dur: spec.dur * 1.05, gain: 0.085, filter: 'bandpass',
+                        q: 1.2, attack: 0.03, rate: 0.9, send: 1 });
+        // A shimmer of the field, ringing on after the fact has gone.
+        Audio3D.tone(spec.base * 6, spec.base * 1.6, spec.tail, 'sine', 0.045, 0.04, 1);
     },
     /* Heavy metal on metal: the asteroid being mined for shield material. */
     clank: function () {
@@ -936,7 +934,7 @@ const G = {
     slewTo: null, slewLeft: 0,
     shields: 100, score: 0, cleared: 0, breaches: 0,
     level: 0, clearedSinceAdvance: 0,
-    objects: [], shots: [], stars: [], nebulae: [],
+    objects: [], shots: [], repelled: [], stars: [], nebulae: [],
     target: null, manualTarget: null, shake: 0, threat: Infinity,
     spawnTimer: 0.6, asteroidTimer: 8,
     tilt: { on: false, have: false, yaw0: null, raw: { x: 0, y: 0, z: 1 }, sm: { x: 0, y: 0, z: 1 } },
@@ -1331,7 +1329,7 @@ function resolveShot(shot) {
             G.cleared++;
             G.clearedSinceAdvance++;
             G.score += (10 + G.level * 2) * (t.wasMissed ? 2 : 1);
-            SFX.explode();
+            repelFact(t);
             if (t.wasMissed) { forgiveMissed(t.problem); showToast('DOUBLE POINTS', '#ffd23f'); }
             if (G.clearedSinceAdvance >= ADVANCE_AFTER) advanceLevel();
         }
@@ -1341,6 +1339,66 @@ function resolveShot(shot) {
         t.choices = makeChoices(t.problem.answer, t.tried);
         SFX.wrong();
         updateHUD();
+    }
+}
+
+/* ---------------- Repulsor ----------------
+   A solved fact is not destroyed, it is thrown back out of the sector: it
+   keeps its shape, tumbles, and shrinks into the distance behind an
+   expanding ring of repulsor field. */
+const REPEL_LIFE = 1.6;
+
+function repelFact(o) {
+    const d = Math.max(1, Math.hypot(o.x, o.y, o.z));
+    G.repelled.push({
+        kind: 'fact', problem: o.problem, wasMissed: o.wasMissed,
+        spin: o.spin, tumble: (Math.random() - 0.5) * 5,
+        x: o.x, y: o.y, z: o.z,
+        ox: o.x, oy: o.y, oz: o.z,          // where the field caught it
+        ux: o.x / d, uy: o.y / d, uz: o.z / d,
+        speed: 25, t: 0, alpha: 1
+    });
+    G.shake = Math.max(G.shake, 0.22);      // the push kicks back through the hull
+    SFX.repel();
+}
+
+function updateRepelled(dt) {
+    for (const r of G.repelled) {
+        r.t += dt;
+        r.speed += 780 * dt;                // the shove keeps building for a moment
+        r.spin += dt * (1.2 + r.tumble);
+        r.x += r.ux * r.speed * dt;
+        r.y += r.uy * r.speed * dt;
+        r.z += r.uz * r.speed * dt;
+        r.alpha = clamp(1 - Math.pow(r.t / REPEL_LIFE, 2), 0, 1);
+    }
+    G.repelled = G.repelled.filter(r => r.t < REPEL_LIFE);
+}
+
+/* The ring of field left behind at the point of contact. */
+function drawRepelRings() {
+    for (const r of G.repelled) {
+        const k = r.t / 0.55;
+        if (k > 1) continue;
+        const p = project({ x: r.ox, y: r.oy, z: r.oz });
+        if (!p) continue;
+        const tint = r.wasMissed ? '255,158,44' : '127,215,255';
+        ctx.save();
+        for (let i = 0; i < 2; i++) {
+            const kk = k - i * 0.18;
+            if (kk <= 0) continue;
+            // Starts just outside the fact, so it never sits over the number.
+            const rad = p.scale * 26 * (1.15 + kk * 2.2);
+            if (rad < 1) continue;
+            ctx.beginPath();
+            ctx.ellipse(p.sx, p.sy, rad, rad * 0.82, 0, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(' + tint + ',' + (0.55 * (1 - kk) * (1 - i * 0.45)).toFixed(3) + ')';
+            ctx.lineWidth = Math.max(1, p.scale * 3 * (1 - kk));
+            ctx.shadowColor = 'rgb(' + tint + ')';
+            ctx.shadowBlur = 18 * (1 - kk);
+            ctx.stroke();
+        }
+        ctx.restore();
     }
 }
 
@@ -1502,6 +1560,7 @@ function update(dt) {
         s.t += dt * 2.6;
         if (s.t >= 1) { resolveShot(s); s.done = true; }
     }
+    updateRepelled(dt);
     G.threat = Infinity;
     for (const o of G.objects) {
         if (!o.dead && o.kind === 'fact' && o.dist < G.threat) G.threat = o.dist;
@@ -1618,26 +1677,28 @@ function drawLabel(text, maxWidth, baseSize, color) {
 function drawFact(o, p) {
     const s = clamp(p.scale * 24, 11, Math.min(240, canopyRY * 0.95, canopyRX * 1.05)) * (o.pulse || 1);
     const isTarget = (o === G.target);
+    const a = o.alpha == null ? 1 : o.alpha;   // repelled facts fade as they go
     const rx = s * 1.30, ry = s * 0.72;
     const stroke = o.wasMissed ? '#ff9e2c' : '#ff3ea5';
     ctx.save();
+    ctx.globalAlpha = a;
     ctx.translate(p.sx, p.sy);
     ctx.rotate(Math.sin(o.spin) * 0.09);
 
     ctx.beginPath();
     for (let i = 0; i < 6; i++) {
-        const a = (i / 6) * Math.PI * 2 + Math.PI / 6;
-        const bx = Math.cos(a) * rx, by = Math.sin(a) * ry;
-        const tx = Math.cos(a) * rx * 1.45, ty = Math.sin(a) * ry * 1.55;
-        const px = -Math.sin(a) * rx * 0.16, py = Math.cos(a) * ry * 0.16;
+        const ang = (i / 6) * Math.PI * 2 + Math.PI / 6;
+        const bx = Math.cos(ang) * rx, by = Math.sin(ang) * ry;
+        const tx = Math.cos(ang) * rx * 1.45, ty = Math.sin(ang) * ry * 1.55;
+        const px = -Math.sin(ang) * rx * 0.16, py = Math.cos(ang) * ry * 0.16;
         ctx.moveTo(bx + px, by + py); ctx.lineTo(tx, ty); ctx.lineTo(bx - px, by - py); ctx.closePath();
     }
-    ctx.fillStyle = stroke; ctx.globalAlpha = 0.75; ctx.fill(); ctx.globalAlpha = 1;
+    ctx.fillStyle = stroke; ctx.globalAlpha = a * 0.75; ctx.fill(); ctx.globalAlpha = a;
 
     ctx.beginPath();
     for (let i = 0; i < 6; i++) {
-        const a = (i / 6) * Math.PI * 2 + Math.PI / 6;
-        const px = Math.cos(a) * rx, py = Math.sin(a) * ry;
+        const ang = (i / 6) * Math.PI * 2 + Math.PI / 6;
+        const px = Math.cos(ang) * rx, py = Math.sin(ang) * ry;
         i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
     }
     ctx.closePath();
@@ -2313,10 +2374,15 @@ function render() {
         const p = project(o);
         if (p) drawable.push({ o: o, p: p });
     }
+    for (const r of G.repelled) {
+        const p = project(r);
+        if (p) drawable.push({ o: r, p: p });
+    }
     drawable.sort((a, b) => b.p.depth - a.p.depth);
     for (const d of drawable) {
         if (d.o.kind === 'asteroid') drawAsteroid(d.o, d.p); else drawFact(d.o, d.p);
     }
+    drawRepelRings();
     drawShots();
     drawTargetBrackets();
     drawCrosshair();
@@ -2352,7 +2418,7 @@ function startGame(sqIndex, hullIndex, cls) {
     G.yaw = 0; G.pitch = 0; G.slewTo = null;
     G.shields = 100; G.score = 0; G.cleared = 0; G.breaches = 0;
     G.level = 0; G.clearedSinceAdvance = 0;
-    G.objects = []; G.shots = []; G.target = null; G.manualTarget = null;
+    G.objects = []; G.shots = []; G.repelled = []; G.target = null; G.manualTarget = null;
     G.spawnTimer = 0.5; G.asteroidTimer = 9; G.shake = 0;
     G.tilt.yaw0 = null;
     G.tilt.sm = { x: 0, y: 0, z: 1 };
