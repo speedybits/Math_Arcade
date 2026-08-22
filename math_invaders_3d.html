@@ -1282,8 +1282,10 @@ canvas.addEventListener('pointermove', e => {
     moved += Math.abs(dx) + Math.abs(dy);
     if (G.tilt.on) return;                    // the device is aiming, not the finger
     if (moved > 8) G.slewTo = null;           // a deliberate drag cancels an auto-swing
+    // Both axes drag the sky itself, so the view follows the finger the way a
+    // map or a photo does. Pitch is negative-is-up, hence the matching minus.
     G.yaw -= dx * 0.0042;
-    G.pitch = clamp(G.pitch + dy * 0.0035, -0.75, 0.75);
+    G.pitch = clamp(G.pitch - dy * 0.0035, -0.75, 0.75);
 });
 function pointerUp(e) {
     if (!dragging) return;
