@@ -675,7 +675,7 @@ function forgiveMissed(problem) {
    Synthesised in the browser: no files to load, nothing to license. Drop real
    recordings into SOUND_URLS below and they are used instead, automatically.
    ========================================================================= */
-const SOUND_URLS = { lock: '', fire: '', repel: [], explode: [], clank: '', breach: '', warn: '' };
+const SOUND_URLS = { lock: '', fire: '', repel: [], servo: '', stow: '', clank: '', breach: '', warn: '' };
 
 const Audio3D = {
     ctx: null, noise: null, buffers: {}, ready: false,
@@ -703,7 +703,7 @@ const Audio3D = {
         grab('clank', SOUND_URLS.clank); grab('breach', SOUND_URLS.breach);
         grab('warn', SOUND_URLS.warn);
         (SOUND_URLS.repel || []).forEach((u, i) => grab('repel' + i, u));
-        (SOUND_URLS.explode || []).forEach((u, i) => grab('explode' + i, u));
+        grab('servo', SOUND_URLS.servo); grab('stow', SOUND_URLS.stow);
     },
     playBuffer: function (name, vol) {
         const buf = this.buffers[name];
@@ -894,29 +894,24 @@ const SFX = {
         // A shimmer of the field, ringing on after the fact has gone.
         Audio3D.tone(spec.base * 6, spec.base * 1.6, spec.tail, 'sine', 0.045, 0.04, 1);
     },
-    /* An asteroid does blow apart — facts are repelled, rock is not. Airless:
-       a sub-bass concussion, a bright shockwave and scattering debris rather
-       than a crackling fireball. */
-    explode: function () {
+    /* The salvage arm running out: a servo whirring under load. */
+    servo: function () {
         if (!Audio3D.ctx) return;
-        const v = rnd(0, 3);
-        if (Audio3D.playBuffer('explode' + v, 0.85)) return;
-        const spec = [
-            { f0: 1800, f1: 60, dur: 0.70, gain: 0.20, rate: 0.85, sub: 110, tail: 1.5 },
-            { f0: 1400, f1: 50, dur: 0.85, gain: 0.19, rate: 0.7,  sub: 88,  tail: 1.8 },
-            { f0: 2400, f1: 90, dur: 0.55, gain: 0.22, rate: 1.15, sub: 140, tail: 1.2 },
-            { f0: 1600, f1: 65, dur: 0.78, gain: 0.20, rate: 0.78, sub: 96,  tail: 1.7 }
-        ][v];
-        Audio3D.tone(spec.sub, spec.sub * 0.26, spec.dur * 1.1, 'sine', 0.26, 0, 0.5);
-        Audio3D.burst({ f0: spec.f0, f1: spec.f1, dur: spec.dur, gain: spec.gain, rate: spec.rate, send: 0.85 });
-        Audio3D.burst({ f0: 6000, f1: 900, dur: 0.10, gain: 0.10, filter: 'bandpass',
-                        q: 0.7, attack: 0.003, send: 0.7 });
-        for (let i = 0; i < 3; i++) {
-            Audio3D.burst({ f0: 3000 - i * 700, f1: 400, dur: 0.05, gain: 0.035, filter: 'bandpass',
-                            q: 2.2, attack: 0.004, rate: 1 + i * 0.2, send: 0.9,
-                            delay: 0.06 + i * 0.075 + Math.random() * 0.05 });
-        }
-        Audio3D.burst({ f0: 240, f1: 40, dur: spec.tail, gain: 0.09, rate: 0.4, attack: 0.05, send: 1 });
+        if (Audio3D.playBuffer('servo', 0.7)) return;
+        Audio3D.burst({ f0: 700, f1: 2000, dur: 0.42, gain: 0.05, filter: 'bandpass',
+                        q: 3.2, attack: 0.12, send: 0.3 });
+        Audio3D.tone(128, 190, 0.44, 'sawtooth', 0.045, 0, 0.25);
+        Audio3D.tone(257, 381, 0.40, 'triangle', 0.022, 0.01, 0.25);
+    },
+    /* The rock coming aboard: a heavy door closing on the hold. */
+    stow: function () {
+        if (!Audio3D.ctx) return;
+        if (Audio3D.playBuffer('stow', 0.85)) return;
+        Audio3D.tone(96, 42, 0.42, 'sine', 0.22, 0, 0.5);
+        Audio3D.burst({ f0: 900, f1: 90, dur: 0.30, gain: 0.13, rate: 0.7, send: 0.6 });
+        // the shield bank taking the charge
+        Audio3D.tone(523, 523, 0.09, 'sine', 0.06, 0.16);
+        Audio3D.tone(784, 784, 0.18, 'sine', 0.07, 0.25);
     },
     /* Heavy metal on metal: the asteroid being mined for shield material. */
     clank: function () {
@@ -968,7 +963,7 @@ const G = {
     slewTo: null, slewLeft: 0,
     shields: 100, score: 0, cleared: 0, breaches: 0,
     level: 0, clearedSinceAdvance: 0,
-    objects: [], shots: [], repelled: [], blasts: [], stars: [], nebulae: [],
+    objects: [], shots: [], repelled: [], hauls: [], stars: [], nebulae: [],
     target: null, manualTarget: null, shake: 0, threat: Infinity,
     spawnTimer: 0.6, asteroidTimer: 8,
     tilt: { on: false, have: false, yaw0: null, raw: { x: 0, y: 0, z: 1 }, sm: { x: 0, y: 0, z: 1 } },
@@ -1355,13 +1350,9 @@ function resolveShot(shot) {
     if (shot.value === t.problem.answer) {
         t.dead = true;
         if (t.kind === 'asteroid') {
-            const before = G.shields;
-            G.shields = Math.min(100, G.shields * 2);
             forgiveMissed(t.problem);
             G.score += 20 + G.level * 4;
-            explodeAsteroid(t);
-            setTimeout(() => SFX.clank(), 170);   // the shield material, gathered
-            showToast('SHIELDS +' + Math.round(G.shields - before) + '%', '#4dff9d');
+            grabAsteroid(t);          // shields are credited when it is stowed
         } else {
             G.cleared++;
             G.clearedSinceAdvance++;
@@ -1412,88 +1403,177 @@ function repelFact(o) {
     SFX.repel();
 }
 
-/* ---------------- Asteroid blast ----------------
-   Rock has no repulsor answer to a direct hit: it comes apart. Chunks fly
-   out in every direction and, with nothing to slow them, keep going in a
-   straight line until they fade. */
-function explodeAsteroid(o) {
-    const chunks = [];
-    for (let i = 0; i < 16; i++) {
-        const th = Math.random() * Math.PI * 2;
-        const ph = Math.acos(2 * Math.random() - 1);
-        const sp = 26 + Math.random() * 74;
-        chunks.push({
-            x: o.x, y: o.y, z: o.z,
-            vx: Math.sin(ph) * Math.cos(th) * sp,
-            vy: Math.cos(ph) * sp,
-            vz: Math.sin(ph) * Math.sin(th) * sp,
-            size: 0.3 + Math.random() * 0.8,
-            roll: Math.random() * 6.3, rollRate: (Math.random() - 0.5) * 9,
-            // Its own ragged outline, so no two pieces look alike.
-            shape: Array.from({ length: 5 + rnd(0, 2) }, () => 0.55 + Math.random() * 0.7),
-            life: 0.55 + Math.random() * 0.6
-        });
-    }
-    G.blasts.push({ x: o.x, y: o.y, z: o.z, t: 0, life: 1.2, chunks: chunks });
-    G.shake = Math.max(G.shake, 0.5);
-    SFX.explode();
+/* ---------------- Salvage claw ----------------
+   An asteroid is not destroyed, it is harvested. A claw runs out from under
+   the canopy, closes on the rock, and hauls it back into the ship; the
+   shields are credited at the moment it is stowed, not when it is hit. */
+const CLAW_REACH = 0.50;      // arm running out
+const CLAW_GRIP  = 0.20;      // fingers closing
+const CLAW_HAUL  = 0.85;      // rock dragged home
+const CLAW_TOTAL = CLAW_REACH + CLAW_GRIP + CLAW_HAUL;
+
+function grabAsteroid(o) {
+    G.hauls.push({
+        x: o.x, y: o.y, z: o.z,
+        x0: o.x, y0: o.y, z0: o.z,
+        problem: o.problem, lumps: o.lumps, craters: o.craters, spin: o.spin,
+        t: 0, gripped: false, stowed: false, dust: 0
+    });
+    SFX.servo();
 }
 
-function updateBlasts(dt) {
-    for (const b of G.blasts) {
-        b.t += dt;
-        for (const c of b.chunks) {
-            c.x += c.vx * dt; c.y += c.vy * dt; c.z += c.vz * dt;
-            c.roll += c.rollRate * dt;
-        }
-    }
-    G.blasts = G.blasts.filter(b => b.t < b.life);
+/* Credit the shields early if the ship is about to take a hit — a rock that
+   is already in the claw should not be lost to timing. */
+function flushHauls() {
+    for (const h of G.hauls) if (!h.stowed) stowHaul(h);
 }
 
-function drawBlasts() {
-    for (const b of G.blasts) {
-        // The flash at the point of contact, gone in a quarter of a second.
-        const k = b.t / 0.28;
-        if (k < 1) {
-            const p = project(b);
-            if (p) {
-                const rad = Math.max(2, p.scale * 20 * (0.5 + k * 1.9));
-                const g = ctx.createRadialGradient(p.sx, p.sy, 0, p.sx, p.sy, rad);
-                const a = (1 - k) * 0.7;
-                g.addColorStop(0, 'rgba(255,255,235,' + a.toFixed(3) + ')');
-                g.addColorStop(0.35, 'rgba(150,255,190,' + (a * 0.55).toFixed(3) + ')');
-                g.addColorStop(1, 'rgba(77,255,157,0)');
-                ctx.save();
-                ctx.fillStyle = g;
-                ctx.beginPath(); ctx.arc(p.sx, p.sy, rad, 0, Math.PI * 2); ctx.fill();
-                ctx.restore();
+function stowHaul(h) {
+    if (h.stowed) return;
+    h.stowed = true;
+    const before = G.shields;
+    G.shields = Math.min(100, G.shields * 2);
+    showToast('SHIELDS +' + Math.round(G.shields - before) + '%', '#4dff9d');
+    SFX.stow();
+    updateHUD();
+}
+
+function updateHauls(dt) {
+    for (const h of G.hauls) {
+        h.t += dt;
+        h.spin += dt * 0.5;
+        if (h.dust > 0) h.dust = Math.max(0, h.dust - dt * 3);
+        if (h.t < CLAW_REACH) {
+            // still drifting in on its own while the arm runs out
+            const d = Math.hypot(h.x, h.y, h.z);
+            if (d > 0.001) {
+                const step = (6 * dt) / d;
+                h.x -= h.x * step; h.y -= h.y * step; h.z -= h.z * step;
             }
+        } else if (h.t < CLAW_REACH + CLAW_GRIP) {
+            if (!h.gripped) { h.gripped = true; h.dust = 1; SFX.clank(); }
+            h.x0 = h.x; h.y0 = h.y; h.z0 = h.z;
+        } else {
+            // hauled home: eased along a line into the ship's belly
+            const k = clamp((h.t - CLAW_REACH - CLAW_GRIP) / CLAW_HAUL, 0, 1);
+            const e = k * k * (3 - 2 * k);
+            h.x = h.x0 + (0 - h.x0) * e;
+            h.y = h.y0 + (-34 - h.y0) * e;    // down, under the ship's nose
+            h.z = h.z0 + (26 - h.z0) * e;
+            if (k >= 1 && !h.stowed) stowHaul(h);
         }
-        // The rock itself, in pieces.
-        for (const c of b.chunks) {
-            const f = b.t / c.life;
-            if (f >= 1) continue;
-            const p = project(c);
-            if (!p) continue;
-            const s = Math.max(1, p.scale * c.size * 1.7);
-            ctx.save();
-            ctx.globalAlpha = 1 - f * f;
-            ctx.translate(p.sx, p.sy);
-            ctx.rotate(c.roll);
-            ctx.beginPath();
-            const n = c.shape.length;
-            for (let i = 0; i < n; i++) {
-                const ang = (i / n) * Math.PI * 2;
-                const r = s * c.shape[i];
-                i === 0 ? ctx.moveTo(Math.cos(ang) * r, Math.sin(ang) * r)
-                        : ctx.lineTo(Math.cos(ang) * r, Math.sin(ang) * r);
-            }
-            ctx.closePath();
-            ctx.fillStyle = 'rgba(50,64,52,.95)';
-            ctx.fill();
-            ctx.lineWidth = Math.max(0.8, s * 0.14);
-            ctx.strokeStyle = 'rgba(77,255,157,.6)';
-            ctx.stroke();
+    }
+    G.hauls = G.hauls.filter(h => h.t < CLAW_TOTAL);
+}
+
+/* The arm is drawn behind the rock and the fingers in front of it, so the
+   claw reads as closing around the rock rather than sitting on top of it. */
+function clawWidth() {
+    return Math.max(6, Math.min(canopyRX, canopyRY) * 0.07);
+}
+
+function drawClawLimb(ox, oy, tx, ty) {
+    const dx = tx - ox, dy = ty - oy;
+    const len = Math.max(1, Math.hypot(dx, dy));
+    const nx = -dy / len, ny = dx / len;
+    // Straightens as it runs out, bunches up as it hauls back in.
+    const bend = clamp(1 - len / (Math.max(canopyRX, canopyRY) * 1.6), 0, 1);
+    const ex = ox + dx * 0.5 + nx * canopyRY * 0.11 * (0.45 + bend);
+    const ey = oy + dy * 0.5 + ny * canopyRY * 0.11 * (0.45 + bend);
+    const w = clawWidth();
+
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(ox, oy); ctx.quadraticCurveTo(ex, ey, tx, ty);
+    ctx.lineWidth = w * 1.15; ctx.strokeStyle = '#0d141c'; ctx.stroke();   // outline
+    ctx.lineWidth = w;        ctx.strokeStyle = '#33445a'; ctx.stroke();   // casing
+    ctx.lineWidth = w * 0.34; ctx.strokeStyle = '#8fb0cc'; ctx.stroke();   // hydraulic
+    ctx.lineWidth = w * 0.10; ctx.strokeStyle = 'rgba(200,235,255,.7)'; ctx.stroke();
+
+    for (const [jx, jy, jr] of [[ox, oy, w * 0.95], [ex, ey, w * 0.7]]) {
+        ctx.beginPath(); ctx.arc(jx, jy, jr, 0, Math.PI * 2);
+        ctx.fillStyle = '#1c2836'; ctx.fill();
+        ctx.lineWidth = Math.max(1.5, w * 0.2); ctx.strokeStyle = '#7fd7ff'; ctx.stroke();
+    }
+    ctx.restore();
+}
+
+function drawClawFingers(tx, ty, ux, uy, grip, rockR) {
+    // The fingers stay splayed to either side of the rock; it is the tips that
+    // curl in and bite, so the claw closes around the rock and not through it.
+    const spread = 1.3 - 0.42 * grip;
+    const curl = 0.5 + 0.95 * grip;
+    const fl = Math.max(12, rockR * 0.95);
+    const w = clawWidth();
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    for (const side of [-1, 1]) {
+        const a = side * spread;
+        const ca = Math.cos(a), sa = Math.sin(a);
+        const fx = ux * ca - uy * sa, fy = ux * sa + uy * ca;
+        const b = side * (spread - curl);
+        const cb = Math.cos(b), sb = Math.sin(b);
+        const gx = ux * cb - uy * sb, gy = ux * sb + uy * cb;
+        const kx = tx + fx * fl * 0.72, ky = ty + fy * fl * 0.72;
+        const ex2 = kx + gx * fl * 0.58, ey2 = ky + gy * fl * 0.58;
+        ctx.beginPath();
+        ctx.moveTo(tx, ty); ctx.lineTo(kx, ky); ctx.lineTo(ex2, ey2);
+        ctx.lineWidth = w * 0.95; ctx.strokeStyle = '#0d141c'; ctx.stroke();
+        ctx.lineWidth = w * 0.66; ctx.strokeStyle = '#3d5268'; ctx.stroke();
+        ctx.lineWidth = w * 0.16; ctx.strokeStyle = 'rgba(127,215,255,.8)'; ctx.stroke();
+        // knuckle
+        ctx.beginPath(); ctx.arc(kx, ky, w * 0.42, 0, Math.PI * 2);
+        ctx.fillStyle = '#1c2836'; ctx.fill();
+        ctx.lineWidth = Math.max(1, w * 0.14); ctx.strokeStyle = '#7fd7ff'; ctx.stroke();
+    }
+    // the wrist block the fingers hang off
+    ctx.beginPath(); ctx.arc(tx, ty, w * 0.8, 0, Math.PI * 2);
+    ctx.fillStyle = '#25333f'; ctx.fill();
+    ctx.lineWidth = Math.max(1.5, w * 0.18); ctx.strokeStyle = '#7fd7ff'; ctx.stroke();
+    ctx.restore();
+}
+
+function drawHauls() {
+    for (const h of G.hauls) {
+        if (h.stowed) continue;
+        const p = project(h);
+        const reach = clamp(h.t / CLAW_REACH, 0, 1);
+        const grip = clamp((h.t - CLAW_REACH) / CLAW_GRIP, 0, 1);
+        // The claw is ship hardware: it runs out from under the canopy.
+        const ox = canopyCX, oy = canopyCY + canopyRY * 1.02;
+        if (!p) continue;
+
+        // The rock is held to a workable size while it is in the claw — it is
+        // being drawn into the hold, not flown into the camera.
+        const haulK = clamp((h.t - CLAW_REACH - CLAW_GRIP) / CLAW_HAUL, 0, 1);
+        const cap = Math.min(260, canopyRY * 0.42);
+        const rockS = Math.min(clamp(p.scale * 30, 6, cap), cap) * (1 - 0.45 * haulK);
+        const rockR = rockS * 1.25;            // lumps run past the base radius
+
+        // Where the wrist sits: at the rock's near face, not buried in it.
+        const back = Math.max(1, Math.hypot(p.sx - ox, p.sy - oy));
+        const ux = (p.sx - ox) / back, uy = (p.sy - oy) / back;
+        const e = reach * reach * (3 - 2 * reach);
+        const px = ox + (p.sx - ox) * e - ux * rockR * 0.85 * e;
+        const py = oy + (p.sy - oy) * e - uy * rockR * 0.85 * e;
+
+        drawClawLimb(ox, oy, px, py);
+        drawAsteroid({ kind: 'asteroid', problem: h.problem, lumps: h.lumps,
+                       craters: h.craters, spin: h.spin,
+                       minSize: 4, maxSize: cap, sizeScale: (1 - 0.45 * haulK) }, p);
+        drawClawFingers(px, py, ux, uy, grip, rockR);
+
+        // A puff of dust at the moment the fingers bite.
+        if (h.dust > 0) {
+            const rad = rockR * (1.1 + (1 - h.dust) * 0.9);
+            const g = ctx.createRadialGradient(p.sx, p.sy, rockR * 0.3, p.sx, p.sy, rad);
+            g.addColorStop(0, 'rgba(190,205,190,' + (0.35 * h.dust).toFixed(3) + ')');
+            g.addColorStop(1, 'rgba(150,170,150,0)');
+            ctx.save(); ctx.fillStyle = g;
+            ctx.beginPath(); ctx.arc(p.sx, p.sy, rad, 0, Math.PI * 2); ctx.fill();
             ctx.restore();
         }
     }
@@ -1579,6 +1659,7 @@ function advanceLevel() {
 /* ---------------- Shield breach ---------------- */
 function breach(obj) {
     obj.dead = true;
+    flushHauls();
     G.breaches++;
     G.clearedSinceAdvance = 0;          // a miss costs you progress toward new facts
     G.shields = G.shields / 2;
@@ -1718,7 +1799,7 @@ function update(dt) {
         if (s.t >= 1) { resolveShot(s); s.done = true; }
     }
     updateRepelled(dt);
-    updateBlasts(dt);
+    updateHauls(dt);
     G.threat = Infinity;
     for (const o of G.objects) {
         if (!o.dead && o.kind === 'fact' && o.dist < G.threat) G.threat = o.dist;
@@ -1875,7 +1956,9 @@ function drawFact(o, p) {
 }
 
 function drawAsteroid(o, p) {
-    const s = clamp(p.scale * 30, 14, Math.min(260, canopyRY * 1.0));
+    const s = clamp(p.scale * 30, o.minSize == null ? 14 : o.minSize,
+                    Math.min(o.maxSize == null ? 260 : o.maxSize, canopyRY * 1.0))
+              * (o.sizeScale || 1);
     const isTarget = (o === G.target);
     ctx.save();
     ctx.translate(p.sx, p.sy);
@@ -2543,7 +2626,7 @@ function render() {
         if (d.o.kind === 'asteroid') drawAsteroid(d.o, d.p); else drawFact(d.o, d.p);
     }
     drawRepelRings();
-    drawBlasts();
+    drawHauls();
     drawShots();
     drawTargetBrackets();
     drawCrosshair();
@@ -2579,7 +2662,7 @@ function startGame(sqIndex, hullIndex, cls) {
     G.yaw = 0; G.pitch = 0; G.slewTo = null;
     G.shields = 100; G.score = 0; G.cleared = 0; G.breaches = 0;
     G.level = 0; G.clearedSinceAdvance = 0;
-    G.objects = []; G.shots = []; G.repelled = []; G.blasts = []; G.target = null; G.manualTarget = null;
+    G.objects = []; G.shots = []; G.repelled = []; G.hauls = []; G.target = null; G.manualTarget = null;
     G.spawnTimer = 0.5; G.asteroidTimer = 9; G.shake = 0;
     G.tilt.yaw0 = null;
     G.tilt.sm = { x: 0, y: 0, z: 1 };

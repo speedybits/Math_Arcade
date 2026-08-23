@@ -193,14 +193,19 @@ away across the sky: tumbling end over end, shrinking, fading, dragging a short 
 behind it, with an expanding ring of field left at the point of contact and a kick back
 through the hull.
 
-**Clearing an asteroid.** Rock has no answer to a direct hit, so asteroids still blow apart:
-a white flash, then a dozen ragged fragments thrown out in every direction. Nothing slows
-them, so they travel in straight lines until they fade — vacuum, not weather.
+**Clearing an asteroid.** An asteroid is harvested, not destroyed. A salvage claw runs out
+from under the canopy on a jointed arm, opens, closes its fingers around the rock with a puff
+of dust, and hauls it back down into the hull. The shields are credited at the moment the
+rock is stowed — about a second and a half after the answer lands — so the reward is
+something the player watches arrive rather than a number that jumps on impact. If a fact
+reaches the ship while a rock is still in the claw, the salvage is banked first, so nothing
+in the claw is lost to timing.
 
 **Sound.** A click on target lock, a diving energy-bolt "pew" with a slap-back echo on
 launch, a four-flavour repulsor shove when a fact is cleared — a sub-bass push, a rising
-charge, then a bright field falling in pitch as the fact recedes — and, for asteroids, an
-airless explosion followed by the metallic clank of shield material being gathered. Everything happens in a vacuum: shots and clears are
+charge, then a bright field falling in pitch as the fact recedes — and, for asteroids, the
+whirr of the salvage arm running out, a clank as the fingers bite, and a heavy thunk with a
+rising two-note chime as the rock comes aboard. Everything happens in a vacuum: shots and clears are
 fed into a long, dark reverb. A limiter on the output keeps overlapping sounds from
 distorting. These are synthesised in the browser rather than played from files.
 
