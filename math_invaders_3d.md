@@ -194,8 +194,10 @@ behind it, with an expanding ring of field left at the point of contact and a ki
 through the hull.
 
 **Clearing an asteroid.** An asteroid is harvested, not destroyed. A salvage claw runs out
-from under the canopy on a jointed arm, opens, closes its fingers around the rock with a puff
-of dust, and hauls it back down into the hull. The shields are credited at the moment the
+from under the canopy on a heavy jointed arm — plated booms with ribbed casing, a hydraulic
+ram whose polished rod slides out as it extends, bolted pivots at the shoulder, elbow and
+knuckles, and caution banding behind the wrist — opens, closes its fingers around the rock
+with a puff of dust, and hauls it back down into the hull. The shields are credited at the moment the
 rock is stowed — about a second and a half after the answer lands — so the reward is
 something the player watches arrive rather than a number that jumps on impact. If a fact
 reaches the ship while a rock is still in the claw, the salvage is banked first, so nothing
