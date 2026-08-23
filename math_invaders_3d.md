@@ -202,9 +202,12 @@ tuned against the perspective so it glides steadily down toward the hull and dis
 it, rather than rushing the camera at the last instant and reading as an impact. The shields
 are credited at the moment the rock is stowed — about a second and a half after the answer
 lands — so the reward is
-something the player watches arrive rather than a number that jumps on impact. If a fact
-reaches the ship while a rock is still in the claw, the salvage is banked first, so nothing
-in the claw is lost to timing.
+something the player watches arrive rather than a number that jumps on impact. While the claw has hold of a rock the sector is
+held: nothing new arrives and nothing closes on the ship, so bringing salvage aboard is a
+moment the player watches rather than a moment they get hit in. Aiming and firing still work
+throughout, and shots already away still land. Everything resumes exactly where it left off
+once the rock is stowed. The earlier safeguard remains as a backstop — if a fact somehow
+reaches the ship with a rock still in the claw, the salvage is banked first.
 
 **Sound.** A click on target lock, a diving energy-bolt "pew" with a slap-back echo on
 launch, a four-flavour repulsor shove when a fact is cleared — a sub-bass push, a rising

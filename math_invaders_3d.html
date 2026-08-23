@@ -1880,35 +1880,47 @@ function update(dt) {
     applySlew(dt);
     G.shake = Math.max(0, G.shake - dt * 1.6);
 
-    G.spawnTimer -= dt;
-    if (G.spawnTimer <= 0) {
-        spawnFact();
-        G.spawnTimer = Math.max(2.2, 5.0 - G.level * 0.18);
+    // While the claw has hold of a rock the sector is held: nothing new
+    // arrives and nothing closes on the ship, so bringing salvage aboard is a
+    // moment the player can watch instead of a moment they get hit in. They
+    // can still aim and fire — shots already away still land.
+    const held = G.hauls.length > 0;
+
+    if (!held) {
+        G.spawnTimer -= dt;
+        if (G.spawnTimer <= 0) {
+            spawnFact();
+            G.spawnTimer = Math.max(2.2, 5.0 - G.level * 0.18);
+        }
+        G.asteroidTimer -= dt;
+        if (G.asteroidTimer <= 0) { spawnAsteroid(); G.asteroidTimer = 11 + Math.random() * 7; }
     }
-    G.asteroidTimer -= dt;
-    if (G.asteroidTimer <= 0) { spawnAsteroid(); G.asteroidTimer = 11 + Math.random() * 7; }
 
     for (const o of G.objects) {
         if (o.dead) continue;
-        o.spin += dt * 0.6;
-        const d = Math.hypot(o.x, o.y, o.z);
-        if (d > 0.001) {
-            const step = (o.speed * dt) / d;
-            o.x -= o.x * step; o.y -= o.y * step; o.z -= o.z * step;
+        o.spin += dt * 0.6;                    // still turning, just not closing
+        if (!held) {
+            const d = Math.hypot(o.x, o.y, o.z);
+            if (d > 0.001) {
+                const step = (o.speed * dt) / d;
+                o.x -= o.x * step; o.y -= o.y * step; o.z -= o.z * step;
+            }
         }
         const nd = Math.hypot(o.x, o.y, o.z);
         o.dist = nd;
         if (o.kind === 'fact') {
-            if (!o.warned && nd < 95) { o.warned = true; SFX.warn(); }
-            // The closer it gets, the more insistent it looks and sounds.
+            if (!held) {
+                if (!o.warned && nd < 95) { o.warned = true; SFX.warn(); }
+                // The closer it gets, the more insistent it looks and sounds.
+                if (nd < 60) {
+                    o.warnTimer = (o.warnTimer || 0) - dt;
+                    if (o.warnTimer <= 0) { SFX.warn(); o.warnTimer = 0.25 + clamp(nd / 60, 0, 1) * 0.95; }
+                }
+                if (nd < 14) breach(o);
+            }
             const near = 1 - clamp(nd / 95, 0, 1);
             o.pulse = 1 + near * 0.09 * Math.sin(G.lastFrame / 85);
-            if (nd < 60) {
-                o.warnTimer = (o.warnTimer || 0) - dt;
-                if (o.warnTimer <= 0) { SFX.warn(); o.warnTimer = 0.25 + clamp(nd / 60, 0, 1) * 0.95; }
-            }
-            if (nd < 14) breach(o);
-        } else {
+        } else if (!held) {
             o.life -= dt;
             if (nd < 12 || o.life <= 0) o.dead = true;
         }
