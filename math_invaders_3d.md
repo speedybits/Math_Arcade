@@ -197,8 +197,11 @@ through the hull.
 from under the canopy on a heavy jointed arm — plated booms with ribbed casing, a hydraulic
 ram whose polished rod slides out as it extends, bolted pivots at the shoulder, elbow and
 knuckles, and caution banding behind the wrist — opens, closes its fingers around the rock
-with a puff of dust, and hauls it back down into the hull. The shields are credited at the moment the
-rock is stowed — about a second and a half after the answer lands — so the reward is
+with a puff of dust, and hauls it back down into the hull. The rock is drawn in at an even pace: the ease is
+tuned against the perspective so it glides steadily down toward the hull and dissolves into
+it, rather than rushing the camera at the last instant and reading as an impact. The shields
+are credited at the moment the rock is stowed — about a second and a half after the answer
+lands — so the reward is
 something the player watches arrive rather than a number that jumps on impact. If a fact
 reaches the ship while a rock is still in the claw, the salvage is banked first, so nothing
 in the claw is lost to timing.
