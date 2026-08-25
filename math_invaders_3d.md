@@ -194,12 +194,13 @@ behind it, with an expanding ring of field left at the point of contact and a ki
 through the hull.
 
 **Moving up a rung.** Clearing enough facts jumps the ship rather than just announcing the
-new rung. The whole run takes about four and a half seconds. The drive spools for a beat with
+new rung. The whole run takes about six seconds. The drive spools for a beat with
 the hull shuddering, the old rung's facts are
 swept away, the stars draw out into lines running away from dead ahead, the sky washes to
-blue-white, and the ship drops back into a freshly generated patch of space with the new
-facts already on their way in. The sector is held throughout, so it is a moment to watch
-rather than survive. The last rung has nowhere further to go, so it keeps the plain
+blue-white, and the ship drops back into a freshly generated patch of space and coasts to a
+stop, the streaks easing back into pinpoints over a second and a half. The sector is held
+until the moment the ship drops out, so the jump itself is a moment to watch rather than
+survive, but the new facts are already drifting in while it slows. The last rung has nowhere further to go, so it keeps the plain
 "SECTOR DEEPENS" banner instead.
 
 **Clearing an asteroid.** An asteroid is harvested, not destroyed. A salvage claw runs out
