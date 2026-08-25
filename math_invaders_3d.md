@@ -194,7 +194,8 @@ behind it, with an expanding ring of field left at the point of contact and a ki
 through the hull.
 
 **Moving up a rung.** Clearing enough facts jumps the ship rather than just announcing the
-new rung. The drive spools for a beat with the hull shuddering, the old rung's facts are
+new rung. The whole run takes about four and a half seconds. The drive spools for a beat with
+the hull shuddering, the old rung's facts are
 swept away, the stars draw out into lines running away from dead ahead, the sky washes to
 blue-white, and the ship drops back into a freshly generated patch of space with the new
 facts already on their way in. The sector is held throughout, so it is a moment to watch
