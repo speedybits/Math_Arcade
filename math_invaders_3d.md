@@ -193,6 +193,14 @@ away across the sky: tumbling end over end, shrinking, fading, dragging a short 
 behind it, with an expanding ring of field left at the point of contact and a kick back
 through the hull.
 
+**Moving up a rung.** Clearing enough facts jumps the ship rather than just announcing the
+new rung. The drive spools for a beat with the hull shuddering, the old rung's facts are
+swept away, the stars draw out into lines running away from dead ahead, the sky washes to
+blue-white, and the ship drops back into a freshly generated patch of space with the new
+facts already on their way in. The sector is held throughout, so it is a moment to watch
+rather than survive. The last rung has nowhere further to go, so it keeps the plain
+"SECTOR DEEPENS" banner instead.
+
 **Clearing an asteroid.** An asteroid is harvested, not destroyed. A salvage claw runs out
 from under the canopy on a heavy jointed arm — plated booms with ribbed casing, a hydraulic
 ram whose polished rod slides out as it extends, bolted pivots at the shoulder, elbow and

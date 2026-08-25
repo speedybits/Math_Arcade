@@ -789,6 +789,28 @@ const SFX = {
         // A shimmer of the field, ringing on after the fact has gone.
         Audio3D.tone(spec.base * 6, spec.base * 1.6, spec.tail, 'sine', 0.045, 0.04, 1);
     },
+    /* Spooling the jump drive: a whine climbing two octaves under building
+       noise, then the punch as the ship goes over. */
+    jumpCharge: function () {
+        if (!Audio3D.ctx) return;
+        Audio3D.tone(90, 760, 1.5, 'sawtooth', 0.085, 0, 0.35);
+        Audio3D.tone(136, 1140, 1.5, 'triangle', 0.045, 0.02, 0.35);
+        Audio3D.burst({ f0: 200, f1: 5400, dur: 1.55, gain: 0.07, filter: 'bandpass',
+                        q: 1.4, attack: 1.2, send: 0.5 });
+    },
+    jumpEnter: function () {
+        if (!Audio3D.ctx) return;
+        Audio3D.tone(150, 38, 0.75, 'sine', 0.30, 0, 0.6);
+        Audio3D.burst({ f0: 7000, f1: 300, dur: 0.85, gain: 0.16, rate: 1.1, send: 0.9 });
+    },
+    /* Dropping back to real space, and the new rung reading in. */
+    jumpArrive: function () {
+        if (!Audio3D.ctx) return;
+        Audio3D.burst({ f0: 4200, f1: 120, dur: 0.9, gain: 0.12, rate: 0.8, send: 1 });
+        Audio3D.tone(110, 55, 0.5, 'sine', 0.18, 0, 0.5);
+        Audio3D.tone(523, 523, 0.10, 'sine', 0.07, 0.14);
+        Audio3D.tone(784, 784, 0.20, 'sine', 0.08, 0.24);
+    },
     /* The salvage arm running out: a servo whirring under load. */
     servo: function () {
         if (!Audio3D.ctx) return;
@@ -858,7 +880,7 @@ const G = {
     slewTo: null, slewLeft: 0,
     shields: 100, score: 0, cleared: 0, breaches: 0,
     level: 0, clearedSinceAdvance: 0,
-    objects: [], shots: [], repelled: [], hauls: [], stars: [], nebulae: [],
+    objects: [], shots: [], repelled: [], hauls: [], jump: null, stars: [], nebulae: [],
     target: null, manualTarget: null, shake: 0, threat: Infinity,
     spawnTimer: 0.6, asteroidTimer: 8,
     tilt: { on: false, have: false, yaw0: null, raw: { x: 0, y: 0, z: 1 }, sm: { x: 0, y: 0, z: 1 } },
@@ -1271,7 +1293,7 @@ function resolveShot(shot) {
    expanding ring of repulsor field. */
 const REPEL_LIFE = 1.4;
 
-function repelFact(o) {
+function repelFact(o, quiet) {
     const d = Math.max(1, Math.hypot(o.x, o.y, o.z));
     const ux = o.x / d, uy = o.y / d, uz = o.z / d;
     // A sideways knock, perpendicular to the shove, so the fact visibly
@@ -1294,8 +1316,10 @@ function repelFact(o) {
         lz: (pz * Math.cos(ang) + qz * Math.sin(ang)) * kick,
         speed: 110, t: 0, alpha: 1, trail: []
     });
-    G.shake = Math.max(G.shake, 0.28);      // the push kicks back through the hull
-    SFX.repel();
+    if (!quiet) {
+        G.shake = Math.max(G.shake, 0.28);  // the push kicks back through the hull
+        SFX.repel();
+    }
 }
 
 /* ---------------- Salvage claw ----------------
@@ -1666,9 +1690,96 @@ function advanceLevel() {
         return;
     }
     G.level++;
-    showToast('NEW FACTS: ' + ladder[G.level].desc, '#7fd7ff');
-    SFX.levelUp();
-    updateHUD();
+    // Jump the ship to the new rung rather than just announcing it.
+    startJump('NEW FACTS: ' + ladder[G.level].desc);
+}
+
+/* ---------------- Hyperspace jump ----------------
+   Clearing a rung takes the ship somewhere else: the drive spools, the stars
+   draw out into lines, the sky washes out, and the ship drops back into a
+   different patch of space with a new set of facts waiting. The sector is
+   held for the duration, so this is a moment to watch rather than survive. */
+const JUMP_CHARGE = 0.60;   // drive spooling, hull shuddering
+const JUMP_STREAK = 1.00;   // stars drawing out into lines
+const JUMP_TUNNEL = 0.50;   // the wash
+const JUMP_ARRIVE = 0.45;   // dropping back to real space
+const JUMP_TOTAL  = JUMP_CHARGE + JUMP_STREAK + JUMP_TUNNEL + JUMP_ARRIVE;
+
+function startJump(desc) {
+    if (G.jump) return;
+    G.jump = { t: 0, desc: desc, arrived: false, entered: false };
+    // The old rung's facts are left behind rather than carried along.
+    for (const o of G.objects) {
+        if (o.dead) continue;
+        o.dead = true;
+        if (o.kind === 'fact') repelFact(o, true);
+    }
+    G.target = null; G.manualTarget = null; G.slewTo = null;
+    SFX.jumpCharge();
+}
+
+/* How far the starfield is drawn out: 0 at rest, 1 inside the jump. */
+function jumpStretch() {
+    const j = G.jump;
+    if (!j) return 0;
+    const t = j.t;
+    if (t < JUMP_CHARGE) return 0.12 * (t / JUMP_CHARGE);
+    if (t < JUMP_CHARGE + JUMP_STREAK) {
+        const k = (t - JUMP_CHARGE) / JUMP_STREAK;
+        return 0.12 + 0.88 * k * k;                 // accelerating away
+    }
+    if (t < JUMP_CHARGE + JUMP_STREAK + JUMP_TUNNEL) return 1;
+    const k = (t - JUMP_CHARGE - JUMP_STREAK - JUMP_TUNNEL) / JUMP_ARRIVE;
+    return Math.max(0, 1 - k * k * 1.7);            // snapping back to points
+}
+
+/* The white-out at the far end of the tunnel. */
+function jumpWash() {
+    const j = G.jump;
+    if (!j) return 0;
+    const t0 = JUMP_CHARGE + JUMP_STREAK;
+    if (j.t < t0) return Math.max(0, (j.t - t0 + 0.28) / 0.28) * 0.35;
+    if (j.t < t0 + JUMP_TUNNEL) return 0.35 + 0.65 * ((j.t - t0) / JUMP_TUNNEL);
+    const k = (j.t - t0 - JUMP_TUNNEL) / JUMP_ARRIVE;
+    return Math.max(0, 1 - k * 1.9);
+}
+
+function updateJump(dt) {
+    const j = G.jump;
+    if (!j) return;
+    j.t += dt;
+    const t0 = JUMP_CHARGE + JUMP_STREAK;
+    if (!j.entered && j.t >= t0) { j.entered = true; SFX.jumpEnter(); }
+    if (!j.arrived && j.t >= t0 + JUMP_TUNNEL) {
+        j.arrived = true;
+        makeStars();                                 // a different patch of sky
+        showToast(j.desc, '#7fd7ff');
+        SFX.jumpArrive();
+        G.spawnTimer = 0.4;                          // arrive to a live sector
+        G.asteroidTimer = Math.max(G.asteroidTimer, 4);
+        updateHUD();
+    }
+    // Shudder through the spool-up, easing off once the ship is over.
+    const shake = j.t < JUMP_CHARGE ? 0.18 + 0.30 * (j.t / JUMP_CHARGE)
+                : j.t < t0 ? 0.48
+                : j.t < t0 + JUMP_TUNNEL ? 0.26 : 0;
+    if (shake) G.shake = Math.max(G.shake, shake);
+    if (j.t >= JUMP_TOTAL) G.jump = null;
+}
+
+function drawJumpWash() {
+    const a = jumpWash();
+    if (a <= 0.01) return;
+    const cx = W / 2, cy = horizonY;
+    const R = Math.max(W, H) * 0.9;
+    const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, R);
+    g.addColorStop(0, 'rgba(255,255,255,' + (a * 0.95).toFixed(3) + ')');
+    g.addColorStop(0.28, 'rgba(190,235,255,' + (a * 0.6).toFixed(3) + ')');
+    g.addColorStop(1, 'rgba(90,170,255,' + (a * 0.12).toFixed(3) + ')');
+    ctx.save();
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
 }
 
 /* ---------------- Shield breach ---------------- */
@@ -1779,7 +1890,7 @@ function update(dt) {
     // arrives and nothing closes on the ship, so bringing salvage aboard is a
     // moment the player can watch instead of a moment they get hit in. They
     // can still aim and fire — shots already away still land.
-    const held = G.hauls.length > 0;
+    const held = G.hauls.length > 0 || G.jump !== null;
 
     if (!held) {
         G.spawnTimer -= dt;
@@ -1827,6 +1938,7 @@ function update(dt) {
     }
     updateRepelled(dt);
     updateHauls(dt);
+    updateJump(dt);
     G.threat = Infinity;
     for (const o of G.objects) {
         if (!o.dead && o.kind === 'fact' && o.dist < G.threat) G.threat = o.dist;
@@ -1902,6 +2014,30 @@ function haloSprite(tint) {
 }
 
 function drawStars() {
+    // Inside a jump every star is drawn as a line running away from dead ahead;
+    // the further out it already sits, the further it is thrown.
+    const stretch = jumpStretch();
+    if (stretch > 0.02) {
+        const cx = W / 2, cy = horizonY;
+        const reach = 1 + stretch * 7;
+        ctx.save();
+        ctx.lineCap = 'round';
+        for (const st of G.stars) {
+            const p = project(st);
+            if (!p) continue;
+            const dx = p.sx - cx, dy = p.sy - cy;
+            const ex = cx + dx * reach, ey = cy + dy * reach;
+            if (Math.min(p.sx, ex) > W + 40 || Math.max(p.sx, ex) < -40) continue;
+            if (Math.min(p.sy, ey) > H + 40 || Math.max(p.sy, ey) < -40) continue;
+            ctx.strokeStyle = 'rgba(' + st.tint + ',' + (st.b * (0.5 + stretch * 0.5)).toFixed(3) + ')';
+            ctx.lineWidth = Math.max(0.8, st.size * (0.5 + stretch * 0.5));
+            ctx.beginPath();
+            ctx.moveTo(p.sx, p.sy); ctx.lineTo(ex, ey);
+            ctx.stroke();
+        }
+        ctx.restore();
+        return;
+    }
     for (const st of G.stars) {
         const p = project(st);
         if (!p) continue;
@@ -2657,6 +2793,7 @@ function render() {
     drawShots();
     drawTargetBrackets();
     drawCrosshair();
+    drawJumpWash();
     ctx.restore();
 
     drawGlassOverlay();
@@ -2689,7 +2826,8 @@ function startGame(sqIndex, hullIndex, cls) {
     G.yaw = 0; G.pitch = 0; G.slewTo = null;
     G.shields = 100; G.score = 0; G.cleared = 0; G.breaches = 0;
     G.level = 0; G.clearedSinceAdvance = 0;
-    G.objects = []; G.shots = []; G.repelled = []; G.hauls = []; G.target = null; G.manualTarget = null;
+    G.objects = []; G.shots = []; G.repelled = []; G.hauls = []; G.jump = null;
+    G.target = null; G.manualTarget = null;
     G.spawnTimer = 0.5; G.asteroidTimer = 9; G.shake = 0;
     G.tilt.yaw0 = null;
     G.tilt.sm = { x: 0, y: 0, z: 1 };
