@@ -217,11 +217,19 @@ rising two-note chime as the rock comes aboard. Everything happens in a vacuum: 
 fed into a long, dark reverb. A limiter on the output keeps overlapping sounds from
 distorting. These are synthesised in the browser rather than played from files.
 
-**Ships.** Six hulls per squadron, drawn from the concept art. Class 1 is the Vanguard
-flight — the Vanguard interceptor, the Aethelgard capital ship and the Nomad modular
-hauler. Class 2 is the Aurelia-class medium cruisers, AUR-01 through AUR-03, unlocked by
-clearing 30 facts in a single flight. Each squadron flies the same six hulls in its own
-colour. Ship choice remains purely cosmetic.
+**Ships.** Three hulls, traced directly from the squadron concept sheet rather than drawn
+by hand: the Vanguard battlecruiser, the Aethelgard dreadnought and the Nomad fleet carrier.
+Each is stored as a stack of seven nested tone bands — the darkest band is the full
+silhouette and each lighter one sits inside the last — so a single set of shapes repaints in
+any squadron's colour by swapping the seven-step ramp built from that squadron's
+`dark`/`mid`/`light`. Class 2 flies the same three hulls in an up-armoured mark, wearing a
+brighter finish and a rim light, unlocked by clearing 30 facts in a single flight. Exhaust
+is drawn procedurally from nozzle anchors measured off the concept art, and is cyan-white on
+every squadron. Ship choice remains purely cosmetic.
+
+The battlecruiser and the dreadnought are painted lit from one side, with the shadowed half
+too dark to separate from the nebula behind it; both are symmetric ships, so each is rebuilt
+by mirroring its well-lit half. The carrier is a three-quarter view and is traced whole.
 
 **The bridge.** A broad rounded-rectangle window set into the forward bulkhead: plated
 hull with bevelled seams, structural stanchions up the side pillars, a bracing beam across
