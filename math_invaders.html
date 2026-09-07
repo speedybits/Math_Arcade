@@ -301,7 +301,8 @@
         <div id="initials"></div>
     </div>
 
-    <script>
+    <script src="players.js"></script>
+<script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const scoreElement = document.getElementById('score');
@@ -340,7 +341,7 @@
 
         let highScores = []; // Array to store high score objects
 
-        let missedFacts = JSON.parse(localStorage.getItem('mathInvaders_missedFacts')) || [];
+        let missedFacts = JSON.parse(localStorage.getItem(Players.key('mathInvaders_missedFacts'))) || [];
         const MISSED_FACT_MULTIPLIER = 3; // How much to increase exposure when missed
 
         const BULLET_BASE_SPEED = 5; // Base speed for bullets
@@ -1123,7 +1124,7 @@
             document.getElementById('finalScore').textContent = `Your Score: ${window.score}`;
             
             // Get last used initials from localStorage
-            const lastInitials = localStorage.getItem('mathInvaders_lastInitials') || 'AAA';
+            const lastInitials = localStorage.getItem(Players.key('mathInvaders_lastInitials')) || 'AAA';
             
             // Prompt for initials with a slight delay to ensure UI updates
             setTimeout(() => {
@@ -1131,7 +1132,7 @@
                 if (initials) {
                     initials = initials.slice(0, 3).toUpperCase();
                     // Store the initials for next time
-                    localStorage.setItem('mathInvaders_lastInitials', initials);
+                    localStorage.setItem(Players.key('mathInvaders_lastInitials'), initials);
                     highScores.push({ initials, score: window.score });
                     highScores.sort((a, b) => b.score - a.score);
                     highScores = highScores.slice(0, 10); // Keep top 10 scores
@@ -1142,11 +1143,11 @@
         }
 
         function saveHighScores() {
-            localStorage.setItem('mathInvaders_highScores', JSON.stringify(highScores));
+            localStorage.setItem(Players.key('mathInvaders_highScores'), JSON.stringify(highScores));
         }
 
         function loadHighScores() {
-            const storedHighScores = localStorage.getItem('mathInvaders_highScores');
+            const storedHighScores = localStorage.getItem(Players.key('mathInvaders_highScores'));
             if (storedHighScores) {
                 try {
                     highScores = JSON.parse(storedHighScores);
@@ -1513,7 +1514,7 @@
                     exposureCount: MISSED_FACT_MULTIPLIER 
                 });
             }
-            localStorage.setItem('mathInvaders_missedFacts', JSON.stringify(missedFacts));
+            localStorage.setItem(Players.key('mathInvaders_missedFacts'), JSON.stringify(missedFacts));
             
             // Log the current state for debugging
             console.log('Updated missedFacts:', missedFacts);

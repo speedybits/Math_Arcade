@@ -172,7 +172,8 @@
     <!-- **Feedback Element** -->
     <div id="feedback"></div>
 
-    <script>
+    <script src="players.js"></script>
+<script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const scoreElement = document.getElementById('score');
@@ -196,7 +197,7 @@
         let highScore = 0;
 
         // Initialize high scores from localStorage or set to empty array
-        let highScores = JSON.parse(localStorage.getItem('highScores')) || [];
+        let highScores = JSON.parse(localStorage.getItem(Players.key('highScores'))) || [];
         const maxHighScores = 5; // Maximum number of high scores to keep
 
         // **New: Initialize missed facts from localStorage or set to empty array**
@@ -581,7 +582,7 @@
 
         // **Function to Save Missed Facts to localStorage**
         function saveMissedFacts() {
-            localStorage.setItem('mathAsteroids_missedFacts', JSON.stringify(missedFacts));
+            localStorage.setItem(Players.key('mathAsteroids_missedFacts'), JSON.stringify(missedFacts));
         }
 
         // **Function to Display Correct Answer Feedback**
@@ -651,7 +652,7 @@
                 highScores = highScores.slice(0, maxHighScores);
                 
                 // Save updated high scores to localStorage
-                localStorage.setItem('highScores', JSON.stringify(highScores));
+                localStorage.setItem(Players.key('highScores'), JSON.stringify(highScores));
             }
             
             // Update high score display
@@ -662,7 +663,7 @@
             // missedFacts = [];
 
             // Save the missedFacts to localStorage
-            localStorage.setItem('mathAsteroids_missedFacts', JSON.stringify(missedFacts));
+            localStorage.setItem(Players.key('mathAsteroids_missedFacts'), JSON.stringify(missedFacts));
         }
 
         // Function to display high scores
@@ -800,7 +801,7 @@
 
         // Add this function to load missed facts from localStorage
         function loadMissedFacts() {
-            const storedFacts = localStorage.getItem('mathAsteroids_missedFacts');
+            const storedFacts = localStorage.getItem(Players.key('mathAsteroids_missedFacts'));
             if (storedFacts) {
                 try {
                     missedFacts = JSON.parse(storedFacts);

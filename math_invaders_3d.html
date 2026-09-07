@@ -72,6 +72,50 @@
         padding: 16px 12px 30px; text-align: center;
     }
     .screen h1 { font-size: 30px; margin: 4px 0 2px; letter-spacing: 3px; }
+
+    /* Who's playing, and how they're getting on */
+    #playerScreen, #progressScreen { display: none; }
+    .who { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin: 22px auto 0; max-width: 620px; }
+    .who button {
+        font-family: inherit; font-size: 19px; color: #eaf6ff; cursor: pointer;
+        background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.03));
+        border: 2px solid rgba(127,215,255,.45); border-radius: 12px;
+        padding: 20px 26px; min-width: 132px;
+    }
+    .who button:hover, .who button:focus-visible { border-color: #7fd7ff; background: rgba(127,215,255,.16); outline: none; }
+    .who button.add { border-style: dashed; color: #9fb6c9; font-size: 16px; }
+    .nameRow { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 20px; }
+    .nameRow input {
+        font-family: inherit; font-size: 18px; padding: 12px 14px; width: 220px;
+        background: #0d1621; color: #eaf6ff; border: 2px solid rgba(127,215,255,.45); border-radius: 8px;
+    }
+    .nameRow input:focus { outline: none; border-color: #7fd7ff; }
+    .whoNote { color: #8fa6c4; font-size: 12.5px; margin-top: 16px; }
+
+    /* Fact grid */
+    .opTabs { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 4px 0 18px; }
+    .opTab {
+        font-family: inherit; font-size: 14px; cursor: pointer; color: #b9c8d8;
+        background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.16);
+        border-radius: 999px; padding: 7px 16px;
+    }
+    .opTab.on { background: #2a6df4; border-color: #2a6df4; color: #fff; }
+    .gridWrap { overflow-x: auto; margin: 0 auto; max-width: 100%; }
+    table.factGrid { border-collapse: collapse; margin: 0 auto; font-size: 12px; }
+    table.factGrid th, table.factGrid td {
+        border: 1px solid rgba(255,255,255,.10); width: 34px; height: 26px; text-align: center;
+        font-variant-numeric: tabular-nums;
+    }
+    table.factGrid th { color: #7f97ae; background: rgba(255,255,255,.04); font-weight: normal; }
+    table.factGrid td.u { color: #47576a; }
+    table.factGrid td.sec { background: rgba(77,255,157,.16); color: #8effc0; }
+    table.factGrid td.pra { background: rgba(255,210,63,.18); color: #ffdf82; }
+    table.factGrid td.car { background: rgba(255,90,60,.20); color: #ff9d86; }
+    .gridKey { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; margin-top: 16px; font-size: 12.5px; color: #8fa6c4; }
+    .gridKey span { display: inline-flex; align-items: center; gap: 6px; }
+    .gridKey i { width: 12px; height: 12px; border-radius: 2px; display: inline-block; }
+    .progStat { font-size: 14px; color: #cfe0f0; margin: 3px 0; }
+    .progStat b { color: #fff; font-size: 19px; }
     .screen .sub { color: #8fa6c4; font-size: 13px; margin-bottom: 12px; line-height: 1.5; }
 
     #classBar { display: flex; gap: 8px; justify-content: center; margin-bottom: 14px; flex-wrap: wrap; }
@@ -171,6 +215,38 @@
 <div id="flash"></div>
 <div id="toast"></div>
 
+<div class="screen" id="playerScreen">
+    <h1>WHO'S PLAYING?</h1>
+    <div class="sub" id="whoSub">Tap your name.</div>
+    <div class="who" id="whoList"></div>
+    <div class="nameRow" id="nameRow" style="display:none">
+        <input id="newName" maxlength="24" placeholder="First name" autocomplete="off">
+        <button class="btn" id="newNameGo">Start playing</button>
+    </div>
+    <div class="whoNote">Your progress is saved on this device, under your own name.</div>
+    <div class="toggleRow">
+        <button class="btn ghost" onclick="location.href='index.html'">Back to the Arcade</button>
+    </div>
+</div>
+
+<div class="screen" id="progressScreen">
+    <h1>PROGRESS</h1>
+    <div class="sub" id="progWho">—</div>
+    <div class="progStat">FACTS SECURE <b id="progSecure">0</b></div>
+    <div class="progStat">STILL CARRYING <b id="progCarry">0</b></div>
+    <div class="opTabs" id="opTabs"></div>
+    <div class="gridWrap" id="gridWrap"></div>
+    <div class="gridKey">
+        <span><i style="background:rgba(77,255,157,.5)"></i> Secure</span>
+        <span><i style="background:rgba(255,210,63,.5)"></i> Still practising</span>
+        <span><i style="background:rgba(255,90,60,.5)"></i> Getting it wrong</span>
+        <span><i style="background:rgba(255,255,255,.08)"></i> Not met yet</span>
+    </div>
+    <div class="toggleRow">
+        <button class="btn" id="progBack">Back</button>
+    </div>
+</div>
+
 <div class="screen" id="selectScreen">
     <h1>MATH INVADERS 3D</h1>
     <div class="sub">Pick your squadron. The squadron chooses your operation —<br>the ships inside it are just for looks.</div>
@@ -185,6 +261,8 @@
 
     <div class="toggleRow">
         <button class="btn ghost" id="tiltBtn">Tilt to Look: Off</button>
+        <button class="btn ghost" id="progressBtn">My Progress</button>
+        <button class="btn ghost" id="switchPlayerBtn">Not you?</button>
         <button class="btn ghost" onclick="location.href='index.html'">Back to the Arcade</button>
     </div>
 
@@ -219,6 +297,7 @@
     </div>
 </div>
 
+<script src="players.js"></script>
 <script>
 /* =========================================================================
    Math Invaders 3D
@@ -517,12 +596,26 @@ const MISSED_KEY = 'mathInvaders3D_missedFacts';
 const MISSED_KEY_2D = 'mathInvaders_missedFacts';
 const MISSED_FACT_MULTIPLIER = 3;
 
+/* Every saved key is scoped to the child at the controls, so two children
+   sharing a device no longer overwrite each other. */
 function readJSON(key) {
-    try { return JSON.parse(localStorage.getItem(key)) || []; }
+    try { return JSON.parse(localStorage.getItem(Players.key(key))) || []; }
     catch (e) { return []; }
 }
 function writeJSON(key, val) {
-    try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) { /* private mode */ }
+    try { localStorage.setItem(Players.key(key), JSON.stringify(val)); } catch (e) { /* private mode */ }
+}
+
+/* Which facts this child has actually got right. Nothing recorded this before
+   — only the ones they got wrong — so a progress view had no way to tell
+   "secure" from "never met". Keyed the same way as the missed list. */
+const CLEARED_KEY = 'mathInvaders3D_clearedFacts';
+function recordCleared(problem) {
+    const seen = readJSON(CLEARED_KEY);
+    const hit = seen.find(c => c.key === problem.key);
+    if (hit) { hit.n = (hit.n || 1) + 1; hit.last = Date.now(); }
+    else seen.push({ key: problem.key, op: problem.op, a: problem.a, b: problem.b, n: 1, last: Date.now() });
+    writeJSON(CLEARED_KEY, seen);
 }
 
 function loadMissed(op) {
@@ -1266,6 +1359,7 @@ function resolveShot(shot) {
     if (!t || t.dead) return;
     if (shot.value === t.problem.answer) {
         t.dead = true;
+        recordCleared(t.problem);
         if (t.kind === 'asteroid') {
             forgiveMissed(t.problem);
             G.score += 20 + G.level * 4;
@@ -2871,8 +2965,8 @@ function endGame() {
           + memory.map(m => '<span class="factChip">' + m.text + '</span>').join('')
         : 'You cleared every fact you missed. Nothing left in memory.';
 
-    const best = Math.max(G.cleared, parseInt(localStorage.getItem(BEST_KEY) || '0', 10) || 0);
-    try { localStorage.setItem(BEST_KEY, String(best)); } catch (e) { /* private mode */ }
+    const best = Math.max(G.cleared, parseInt(localStorage.getItem(Players.key(BEST_KEY)) || '0', 10) || 0);
+    try { localStorage.setItem(Players.key(BEST_KEY), String(best)); } catch (e) { /* private mode */ }
     document.getElementById('unlockMsg').innerHTML = best >= UNLOCK_TARGET
         ? '<b style="color:#4dff9d">Class 2 ships are unlocked.</b>'
         : 'Clear ' + UNLOCK_TARGET + ' facts in one flight to unlock the Class 2 ships. Best so far: <b>' + best + '</b>.';
@@ -2885,12 +2979,12 @@ function endGame() {
 /* ---------------- Ship select ---------------- */
 let selectedClass = 1;
 function classUnlocked() {
-    return (parseInt(localStorage.getItem(BEST_KEY) || '0', 10) || 0) >= UNLOCK_TARGET;
+    return (parseInt(localStorage.getItem(Players.key(BEST_KEY)) || '0', 10) || 0) >= UNLOCK_TARGET;
 }
 
 function buildSelectScreen() {
     const unlocked = classUnlocked();
-    const best = parseInt(localStorage.getItem(BEST_KEY) || '0', 10) || 0;
+    const best = parseInt(localStorage.getItem(Players.key(BEST_KEY)) || '0', 10) || 0;
 
     document.querySelectorAll('.classTab').forEach(tab => {
         const cls = parseInt(tab.dataset.class, 10);
@@ -2933,7 +3027,171 @@ function buildSelectScreen() {
     });
 }
 
-buildSelectScreen();
+/* =========================================================================
+   WHO'S PLAYING, AND HOW THEY'RE GETTING ON
+   ========================================================================= */
+const SCREENS = ['playerScreen', 'progressScreen', 'selectScreen', 'gameOver'];
+function showScreen(id) {
+    SCREENS.forEach(n => {
+        const el = document.getElementById(n);
+        if (el) el.style.display = (n === id) ? 'block' : 'none';
+    });
+}
+
+function renderWho() {
+    const players = Players.list();
+    const wrap = document.getElementById('whoList');
+    const nameRow = document.getElementById('nameRow');
+    wrap.innerHTML = '';
+    players.forEach(pl => {
+        const b = document.createElement('button');
+        b.textContent = pl.name;
+        b.addEventListener('click', () => { Players.setActive(pl.id); enterGame(); });
+        wrap.appendChild(b);
+    });
+    if (players.length) {
+        const add = document.createElement('button');
+        add.className = 'add';
+        add.textContent = '+ Someone else';
+        add.addEventListener('click', () => {
+            nameRow.style.display = 'flex';
+            document.getElementById('newName').focus();
+        });
+        wrap.appendChild(add);
+    }
+    // With nobody on the device yet there is nothing to tap, so ask straight away.
+    document.getElementById('whoSub').textContent =
+        players.length ? 'Tap your name.' : 'Type your first name to get started.';
+    nameRow.style.display = players.length ? 'none' : 'flex';
+}
+
+function addPlayerFromInput() {
+    const input = document.getElementById('newName');
+    const name = input.value.trim();
+    if (!name) { input.focus(); return; }
+    Players.add(name);            // the first player inherits any progress already on the device
+    input.value = '';
+    enterGame();
+}
+
+/* Into the squadron picker, with the roster rebuilt for whoever is now playing
+   — Class 2 unlocks are per child. */
+function enterGame() {
+    buildSelectScreen();
+    showScreen('selectScreen');
+    const who = Players.active();
+    const btn = document.getElementById('switchPlayerBtn');
+    if (btn) btn.textContent = who ? 'Not ' + who.name + '?' : 'Not you?';
+}
+
+/* ---------------- Progress ---------------- */
+const GRID_OPS = [
+    { id: 'mul', label: '× Multiplication', grid: true },
+    { id: 'add', label: '+ Addition', grid: true },
+    { id: 'sub', label: '− Subtraction', grid: false },
+    { id: 'div', label: '÷ Division', grid: false }
+];
+let progOp = 'mul';
+
+function factIndex() {
+    const carried = new Set(), cleared = new Set();
+    for (const op of ['add', 'sub', 'mul', 'div']) {
+        for (const m of loadMissed(op)) carried.add(m.op + ':' + m.a + ':' + m.b);
+    }
+    for (const c of readJSON(CLEARED_KEY)) cleared.add(c.op + ':' + c.a + ':' + c.b);
+    return { carried, cleared };
+}
+
+function factState(ix, op, a, b) {
+    const k = op + ':' + a + ':' + b;
+    const got = ix.cleared.has(k), missing = ix.carried.has(k);
+    if (missing && got) return 'pra';     // has had it right, still gets it wrong
+    if (missing) return 'car';
+    if (got) return 'sec';
+    return 'u';                            // never met
+}
+
+function renderProgress() {
+    const who = Players.active();
+    document.getElementById('progWho').textContent = who ? who.name : '';
+    const ix = factIndex();
+    document.getElementById('progSecure').textContent =
+        [...ix.cleared].filter(k => !ix.carried.has(k)).length;
+    document.getElementById('progCarry').textContent = ix.carried.size;
+
+    const tabs = document.getElementById('opTabs');
+    tabs.innerHTML = '';
+    GRID_OPS.forEach(o => {
+        const b = document.createElement('button');
+        b.className = 'opTab' + (o.id === progOp ? ' on' : '');
+        b.textContent = o.label;
+        b.addEventListener('click', () => { progOp = o.id; renderProgress(); });
+        tabs.appendChild(b);
+    });
+
+    const wrap = document.getElementById('gridWrap');
+    const spec = GRID_OPS.find(o => o.id === progOp);
+    wrap.innerHTML = '';
+
+    if (spec.grid) {
+        const t = document.createElement('table');
+        t.className = 'factGrid';
+        let html = '<tr><th></th>';
+        for (let c = 1; c <= 12; c++) html += '<th>' + c + '</th>';
+        html += '</tr>';
+        for (let r = 1; r <= 12; r++) {
+            html += '<tr><th>' + r + '</th>';
+            for (let c = 1; c <= 12; c++) {
+                const val = progOp === 'mul' ? r * c : r + c;
+                html += '<td class="' + factState(ix, progOp, r, c) + '">' + val + '</td>';
+            }
+            html += '</tr>';
+        }
+        t.innerHTML = html;
+        wrap.appendChild(t);
+    } else {
+        // Subtraction and division do not lay out as a square table, so these
+        // are listed rather than drawn as a grid.
+        const carried = loadMissed(progOp);
+        const cleared = readJSON(CLEARED_KEY).filter(c => c.op === progOp);
+        const box = document.createElement('div');
+        box.style.cssText = 'max-width:640px;margin:0 auto;text-align:center';
+        box.innerHTML =
+            (carried.length
+                ? '<div class="note" style="margin-top:0">Getting wrong:<br>'
+                  + carried.map(m => '<span class="factChip">' + m.text + '</span>').join('') + '</div>'
+                : '<div class="note" style="margin-top:0">Nothing outstanding here.</div>')
+            + (cleared.length
+                ? '<div class="note">Answered right ' + cleared.length + ' different way'
+                  + (cleared.length === 1 ? '' : 's') + ' so far.</div>'
+                : '<div class="note">Not started this one yet.</div>');
+        wrap.appendChild(box);
+    }
+}
+
+document.getElementById('newNameGo').addEventListener('click', addPlayerFromInput);
+document.getElementById('newName').addEventListener('keydown', e => {
+    if (e.key === 'Enter') addPlayerFromInput();
+});
+document.getElementById('progressBtn').addEventListener('click', () => {
+    renderProgress();
+    showScreen('progressScreen');
+});
+document.getElementById('progBack').addEventListener('click', () => showScreen('selectScreen'));
+document.getElementById('switchPlayerBtn').addEventListener('click', () => {
+    renderWho();
+    showScreen('playerScreen');
+});
+
+/* One player goes straight in; nobody, or several, gets asked first. */
+function bootPlayers() {
+    const players = Players.list();
+    if (players.length === 1) { enterGame(); return; }
+    renderWho();
+    showScreen('playerScreen');
+}
+
+bootPlayers();
 resize();
 </script>
 </body>

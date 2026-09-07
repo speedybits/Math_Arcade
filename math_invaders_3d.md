@@ -112,6 +112,34 @@ advancing every 60 seconds of clean play.
 This is curriculum work, independent of anything 3D, and it is the largest piece of
 unbuilt design in this concept. Three of the four squadrons cannot ship without it.
 
+## Who Is Playing
+
+Progress used to be saved under fixed keys, so two children sharing a tablet shared one set of
+missed facts and one unlock state — each quietly overwriting the other. Every saved key is now
+scoped to a player.
+
+A device holds a short list of players. With nobody on it yet the game asks for a first name;
+with one player it goes straight to the squadron picker and never asks again; with several it
+opens on a grid of names to tap. "Not you?" on the squadron screen switches player, and the
+Class 2 unlock is per child, so one sibling cannot unlock ships for the other.
+
+The first player created on a device inherits whatever was already saved there, so a child who
+has been playing for weeks keeps their carried facts. The old keys are removed once adopted, so
+it happens exactly once. All three games share `players.js` rather than each carrying a copy —
+the key naming has to agree across them, and a disagreement would lose a child's progress.
+
+## Progress
+
+**My Progress** shows the fact grid for whoever is playing: secure, still practising, getting
+it wrong, and not met yet. Multiplication and addition draw as twelve-by-twelve tables;
+subtraction and division do not lay out squarely and are listed instead.
+
+This needed a new piece of data. The game recorded which facts a child got *wrong* and a best
+cleared count, but never which facts they got *right* — so "secure" could not be told apart
+from "never seen". Correct answers are now recorded per player, which is what makes the grid
+mean anything. It is also the shape the teacher dashboard will read later, so the idea gets
+tested against real play before any of it is built.
+
 ## Carried Over From the Existing Games
 
 - Missed-fact tracking with increased exposure for problem facts
